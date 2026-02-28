@@ -1,0 +1,155 @@
+# Docker Compose для локальной разработки
+# Используется для разработки с hot-reload и отладки
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: football_research_db_local
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-football_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data_local:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-football_db}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - football_network_local
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: football_research_redis_local
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_local:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - football_network_local
+
+  # Database Migrations
+  migrations:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: football_research_migrations_local
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-football_db}
+      DEBUG: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - football_network_local
+    volumes:
+      # Монтируем код для hot-reload, но исключаем .venv
+      - .:/app:cached
+      - /app/.venv
+    command: >
+      python -m alembic upgrade head
+
+  # Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: football_research_app_local
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-football_db}
+      REDIS_URL: redis://redis:6379
+      DEBUG: "true"
+      ENVIRONMENT: development
+      APP_NAME: "${APP_NAME:-Football Research API (Dev)}"
+      APP_VERSION: "${APP_VERSION:-1.0.0-dev}"
+      LOG_LEVEL: "${LOG_LEVEL:-DEBUG}"
+      JSON_LOGS: "${JSON_LOGS:-false}"
+      WORKERS: "1"
+    ports:
+      - "${PORT:-8000}:8000"
+    volumes:
+      # Монтируем код для hot-reload, но исключаем .venv
+      - .:/app:cached
+      - /app/.venv
+      - ./logs:/app/logs:rw
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    networks:
+      - football_network_local
+    command: >
+      python -m uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload --log-level debug
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  # pgAdmin для управления базой данных (опционально)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: football_research_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@local.dev}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - football_network_local
+    profiles:
+      - tools
+
+  # Redis Commander для управления Redis (опционально)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: football_research_redis_commander
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "${REDIS_COMMANDER_PORT:-8081}:8081"
+    depends_on:
+      - redis
+    networks:
+      - football_network_local
+    profiles:
+      - tools
+
+volumes:
+  postgres_data_local:
+    driver: local
+  redis_data_local:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  football_network_local:
+    driver: bridge

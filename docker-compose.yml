@@ -1,0 +1,129 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: football_research_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-football_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-football_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - football_network
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: football_research_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - football_network
+    restart: unless-stopped
+
+  # Database Migrations
+  migrations:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    container_name: football_research_migrations
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-football_db}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - football_network
+    command: >
+      sh -c "echo 'Waiting for database...' && sleep 5 && alembic upgrade head"
+    profiles:
+      - migrations
+      - ""
+
+  # Application (Production)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    container_name: football_research_app
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-football_db}
+      REDIS_URL: redis://redis:6379
+      DEBUG: "false"
+      ENVIRONMENT: production
+      APP_NAME: "${APP_NAME:-Football Research API}"
+      APP_VERSION: "${APP_VERSION:-1.0.0}"
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+      JSON_LOGS: "${JSON_LOGS:-true}"
+    ports:
+      - "${PORT:-8000}:8000"
+    volumes:
+      - ./logs:/app/logs:rw
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    networks:
+      - football_network
+    command: >
+      python -m uvicorn src.main:app --host 0.0.0.0 --port 8000 --workers ${WORKERS:-4}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  football_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

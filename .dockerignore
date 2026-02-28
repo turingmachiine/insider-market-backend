@@ -1,0 +1,76 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Qwen
+.qwen
+.qwenignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+.eggs/
+*.egg-info/
+*.egg
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+.hypothesis/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Docker
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Test
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Scripts (not needed in production)
+scripts/migrate.sh
+
+# Alembic (versions not needed for runtime)
+alembic/versions/*.py
+!alembic/versions/.gitkeep
+
+# Development files
+.pre-commit-config.yaml
+.mypy.ini
+.pylintrc
+setup.cfg
+tox.ini
+
+# Data
+data/

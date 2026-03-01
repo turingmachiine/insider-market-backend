@@ -20,6 +20,7 @@ from src.domain.interfaces.repositories import (
     IPlayerRepository,
     ITeamRepository,
 )
+from src.domain.interfaces.transaction_manager import TransactionManager
 from src.domain.services import TeamService
 from src.processing.matching.service import PlayerMatchingService
 from src.processing.radar.service import RadarChartService
@@ -42,6 +43,7 @@ class UseCaseProvider(Provider):
         player_mapper: IPlayerMapper,
         create_player_mapper: ICreatePlayerMapper,
         update_player_mapper: IUpdatePlayerMapper,
+        transaction_manager: TransactionManager,
     ) -> PlayerUseCases:
         """Use cases для игроков"""
         return PlayerUseCases(
@@ -53,6 +55,7 @@ class UseCaseProvider(Provider):
             player_mapper=player_mapper,
             create_player_mapper=create_player_mapper,
             update_player_mapper=update_player_mapper,
+            transaction_manager=transaction_manager,
         )
 
     @provide
@@ -61,12 +64,14 @@ class UseCaseProvider(Provider):
         club_repository: IClubRepository,
         player_repository: IPlayerRepository,
         club_mapper: IClubMapper,
+        transaction_manager: TransactionManager,
     ) -> ClubUseCases:
         """Use cases для клубов"""
         return ClubUseCases(
             club_repository=club_repository,
             player_repository=player_repository,
             club_mapper=club_mapper,
+            transaction_manager=transaction_manager,
         )
 
     @provide
@@ -74,11 +79,13 @@ class UseCaseProvider(Provider):
         self,
         league_repository: ILeagueRepository,
         league_mapper: ILeagueMapper,
+        transaction_manager: TransactionManager,
     ) -> LeagueUseCases:
         """Use cases для лиг"""
         return LeagueUseCases(
             league_repository=league_repository,
             league_mapper=league_mapper,
+            transaction_manager=transaction_manager,
         )
 
     @provide
@@ -89,6 +96,7 @@ class UseCaseProvider(Provider):
         shadow_team_service: ShadowTeamService,
         team_service: TeamService,
         team_mapper: ITeamMapper,
+        transaction_manager: TransactionManager,
     ) -> TeamUseCases:
         """Use cases для команд"""
         return TeamUseCases(
@@ -97,4 +105,5 @@ class UseCaseProvider(Provider):
             shadow_team_service=shadow_team_service,
             team_service=team_service,
             team_mapper=team_mapper,
+            transaction_manager=transaction_manager,
         )

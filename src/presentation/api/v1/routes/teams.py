@@ -149,7 +149,7 @@ async def delete_team(
     team_use_cases: FromDishka[TeamUseCases],
 ) -> BaseResponse:
     """Удалить команду"""
-    success = await team_use_cases.team_repo.delete_by_id(team_id)
+    success = await team_use_cases.delete_by_id(team_id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

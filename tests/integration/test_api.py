@@ -4,7 +4,7 @@ from uuid import uuid4
 import httpx
 import pytest
 import pytest_asyncio
-from dishka import Provider, Scope, make_async_container, provide
+from dishka import Scope, make_async_container, provide
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -13,10 +13,11 @@ from sqlalchemy.ext.asyncio import (
 )
 from testcontainers.postgres import PostgresContainer
 
-from src.core.config import settings
+from src.core.config import Settings, settings
 from src.infrastructure.db.metadata import mapper_registry
 from src.infrastructure.di.providers import (
     ContainerProvider,
+    DatabaseProvider,
     DomainServiceProvider,
     MapperProvider,
     ProcessingProvider,
@@ -25,15 +26,18 @@ from src.infrastructure.di.providers import (
 )
 
 
-class DatabaseProvider(Provider):
+class TestDatabaseProvider(DatabaseProvider):
     """Провайдер базы данных для тестов"""
 
     scope = Scope.APP
 
     def __init__(
-        self, engine: AsyncEngine, session_factory: async_sessionmaker[AsyncSession]
+        self,
+        engine: AsyncEngine,
+        session_factory: async_sessionmaker[AsyncSession],
+        settings: Settings,
     ):
-        super().__init__()
+        super().__init__(settings=settings)
         self.engine = engine
         self.session_factory = session_factory
 
@@ -95,7 +99,7 @@ async def test_container(test_db_engine: AsyncEngine):
     )
 
     container = make_async_container(
-        DatabaseProvider(test_db_engine, session_factory),
+        TestDatabaseProvider(test_db_engine, session_factory, settings),
         RepositoryProvider(),
         DomainServiceProvider(),
         MapperProvider(),

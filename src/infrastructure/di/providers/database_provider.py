@@ -4,7 +4,9 @@ from dishka import Provider, Scope, provide
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from src.core.config import Settings
+from src.domain.interfaces.transaction_manager import TransactionManager
 from src.infrastructure.db.database import create_engine, create_session_factory
+from src.infrastructure.db.transaction_manager import SQLAlchemyTransactionManager
 
 
 class DatabaseProvider(Provider):
@@ -41,5 +43,16 @@ class DatabaseProvider(Provider):
     ) -> AsyncIterable[AsyncSession]:
         """Сессия базы данных (Scope.REQUEST)"""
         async with session_factory() as session:
-            yield session
-            await session.commit()
+            try:
+                yield session
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+
+    @provide(scope=Scope.REQUEST)
+    async def provide_transaction_manager(
+        self, session: AsyncSession
+    ) -> TransactionManager:
+        """Менеджер транзакции (Scope.REQUEST)"""
+        return SQLAlchemyTransactionManager(session=session)

@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from testcontainers.postgres import PostgresContainer
-from testcontainers.redis import RedisContainer
+from testcontainers.redis import AsyncRedisContainer
 
 from src.backend.nsi_service.domain.entities.club import Club
 from src.backend.nsi_service.domain.entities.league import League
@@ -44,9 +44,9 @@ def postgres_container() -> Generator[PostgresContainer, None, None]:
 
 
 @pytest.fixture(scope="session")
-def redis_container() -> Generator[RedisContainer, None, None]:
+def redis_container() -> Generator[AsyncRedisContainer, None, None]:
     """Создать Redis контейнер для тестов"""
-    with RedisContainer("redis:7-alpine") as redis:
+    with AsyncRedisContainer("redis:7-alpine") as redis:
         yield redis
 
 

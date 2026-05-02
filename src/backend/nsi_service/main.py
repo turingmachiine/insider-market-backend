@@ -49,6 +49,10 @@ def create_app(container: AsyncContainer | None = None) -> FastAPI:
         docs_url=None,
         redoc_url=None,
         lifespan=lifespan,
+        servers=[
+            {"url": f"/{settings.PROXY_NAME}", "description": "Через Gateway"},
+            {"url": "", "description": "Локально"},
+        ],
     )
 
     app.middleware("http")(jwt_auth_middleware)

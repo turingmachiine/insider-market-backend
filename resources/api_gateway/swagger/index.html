@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Football Research API Docs</title>
+    <link rel="stylesheet" href="/swagger/assets/styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="shell topbar-inner">
+        <a class="brand" href="/swagger/">
+          <span class="brand-mark">FR</span>
+          <span>
+            <span class="brand-title">Football Research API</span>
+            <span class="brand-subtitle">Gateway documentation</span>
+          </span>
+        </a>
+        <nav class="nav" aria-label="Documentation">
+          <a href="/docs?url=/swagger/nsi/swagger.json">NSI Swagger</a>
+          <a href="/docs?url=/swagger/auth/swagger.json">Auth Swagger</a>
+          <a href="/health">Health</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="shell hero-grid">
+          <div>
+            <div class="eyebrow">OpenAPI Gateway</div>
+            <h1>Football analytics APIs from one entry point.</h1>
+            <p class="lead">
+              Explore authentication, reference data, player analytics,
+              squad workflows, and service contracts through a single
+              gateway built for public API consumers.
+            </p>
+            <div class="hero-actions">
+              <a class="button primary" href="/docs?url=/swagger/nsi/swagger.json">
+                Open NSI documentation
+              </a>
+              <a class="button" href="/docs?url=/swagger/auth/swagger.json">
+                Open Auth documentation
+              </a>
+            </div>
+          </div>
+
+          <aside class="status-panel" aria-label="Gateway capabilities">
+            <div class="status-title">
+              <span>Gateway capabilities</span>
+              <span class="badge">Active</span>
+            </div>
+            <div class="metric-grid">
+              <div class="metric">
+                <strong>2</strong>
+                <span>Upstream services routed through the gateway</span>
+              </div>
+              <div class="metric">
+                <strong>JWT</strong>
+                <span>Authorization header forwarding and user rate limits</span>
+              </div>
+              <div class="metric">
+                <strong>Redis</strong>
+                <span>Rate limiting, statistics, and first-level cache</span>
+              </div>
+              <div class="metric">
+                <strong>10 MB</strong>
+                <span>Request body protection at the gateway boundary</span>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="shell">
+          <div class="section-header">
+            <div>
+              <h2>Service contracts</h2>
+              <p>Choose a service to open the interactive Swagger UI or raw OpenAPI schema.</p>
+            </div>
+          </div>
+
+          <div class="service-grid">
+            <article class="service-card">
+              <header>
+                <h3 class="service-name">NSI Service</h3>
+                <span class="badge">Cached GET</span>
+              </header>
+              <p class="service-desc">
+                Football reference data, players, clubs, leagues, radar
+                charts, matching, and shadow-team workflows.
+              </p>
+              <div class="method-list" aria-label="NSI gateway routes">
+                <div class="method">
+                  <span class="verb get">GET</span>
+                  <span class="path">/nsi/api/v1/...</span>
+                </div>
+                <div class="method">
+                  <span class="verb post">POST</span>
+                  <span class="path">/nsi/api/v1/...</span>
+                </div>
+                <div class="method">
+                  <span class="verb put">PUT</span>
+                  <span class="path">/nsi/api/v1/...</span>
+                </div>
+              </div>
+              <div class="card-actions">
+                <a class="button primary" href="/docs?url=/swagger/nsi/swagger.json">Swagger UI</a>
+                <a class="button" href="/swagger/nsi/swagger.json">OpenAPI JSON</a>
+              </div>
+            </article>
+
+            <article class="service-card">
+              <header>
+                <h3 class="service-name">Auth Service</h3>
+                <span class="badge">JWT</span>
+              </header>
+              <p class="service-desc">
+                Registration, login, token issuing, permission checks,
+                and authenticated user context for downstream services.
+              </p>
+              </p>
+              <div class="method-list" aria-label="Auth gateway routes">
+                <div class="method">
+                  <span class="verb post">POST</span>
+                  <span class="path">/auth/api/v1/login</span>
+                </div>
+                <div class="method">
+                  <span class="verb post">POST</span>
+                  <span class="path">/auth/api/v1/register</span>
+                </div>
+                <div class="method">
+                  <span class="verb get">GET</span>
+                  <span class="path">/auth/api/v1/permissions/me</span>
+                </div>
+              </div>
+              <div class="card-actions">
+                <a class="button primary" href="/docs?url=/swagger/auth/swagger.json">Swagger UI</a>
+                <a class="button" href="/swagger/auth/swagger.json">OpenAPI JSON</a>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer-note">
+      <div class="shell">
+        Public entry point: <strong>/nsi</strong> and
+        <strong>/auth</strong>. Gateway protections include
+        CORS, path validation, body size limits, Redis-backed rate limiting,
+        JSON access logs, and upstream timeout handling.
+      </div>
+    </footer>
+  </body>
+</html>

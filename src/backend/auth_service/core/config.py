@@ -10,6 +10,7 @@ class AuthSettings(BaseSettings):
         extra="ignore",
     )
 
+    PROXY_NAME: str = "auth"
     APP_NAME: str = "Football Research Auth Service"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False

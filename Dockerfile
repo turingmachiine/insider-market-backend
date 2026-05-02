@@ -6,7 +6,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    PATH="/app/.venv/bin:$PATH"
 
 # Set work directory
 WORKDIR /app
@@ -22,14 +23,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy dependency files first for better caching
 COPY pyproject.toml uv.lock ./
 
-# Install dependencies using uv (includes all dependencies)
-RUN uv sync --frozen --no-dev
+# Install third-party dependencies first. The project itself is installed after
+# source code is copied; otherwise hatchling cannot find the configured package.
+RUN uv sync --frozen --no-dev --no-install-project
 
 # Copy application code
 COPY . .
 
-# Create non-root user
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+# Install the local project into the already-created virtual environment and
+# create the non-root user in the same layer.
+RUN uv sync --frozen --no-dev && \
+    useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
 # Expose port
@@ -48,12 +52,11 @@ FROM base AS development
 
 USER root
 
+# Ensure application imports resolve in development containers
+ENV PYTHONPATH="/app"
+
 # Install pre-commit for development
 RUN pip install --no-cache-dir pre-commit
-
-# Ensure venv is used by default
-ENV PATH="/app/.venv/bin:$PATH"
-ENV PYTHONPATH="/app"
 
 USER appuser
 

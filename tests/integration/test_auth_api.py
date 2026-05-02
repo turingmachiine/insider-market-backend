@@ -47,13 +47,13 @@ async def auth_client(auth_postgres_container: PostgresContainer):
 @pytest.mark.asyncio
 async def test_register_login_token(auth_client: httpx.AsyncClient) -> None:
     response = await auth_client.post(
-        "/register",
+        "/api/v1/register",
         json={"email": "user@example.com", "password": "password123"},
     )
     assert response.status_code == 201
 
     response = await auth_client.post(
-        "/login",
+        "/api/v1/login",
         json={"email": "user@example.com", "password": "password123"},
     )
     assert response.status_code == 200
@@ -66,7 +66,7 @@ async def test_register_login_token(auth_client: httpx.AsyncClient) -> None:
 @pytest.mark.asyncio
 async def test_invalid_token_rejected(auth_client: httpx.AsyncClient) -> None:
     response = await auth_client.get(
-        "/permissions/me",
+        "/api/v1/permissions/me",
         headers={"Authorization": "Bearer invalid-token"},
     )
     assert response.status_code == 401
@@ -85,7 +85,7 @@ async def test_expired_token_rejected(auth_client: httpx.AsyncClient) -> None:
     )
 
     response = await auth_client.get(
-        "/permissions/me",
+        "/api/v1/permissions/me",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 401
@@ -105,7 +105,7 @@ async def test_permission_required_not_role(auth_client: httpx.AsyncClient) -> N
     )
 
     response = await auth_client.get(
-        "/permissions/me",
+        "/api/v1/permissions/me",
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 403

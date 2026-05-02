@@ -2,21 +2,41 @@
 # Используется для разработки с hot-reload и отладки
 
 services:
-  # PostgreSQL Database
+  # NSI PostgreSQL Database
   postgres:
     image: postgres:16-alpine
     container_name: football_research_db_local
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-football_db}
+      POSTGRES_DB: ${POSTGRES_DB_NSI:-football_db}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT_NSI:-5432}:5432"
     volumes:
       - postgres_data_local:/var/lib/postgresql/data
       - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-football_db}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB_NSI:-football_db}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - football_network_local
+
+  # Auth PostgreSQL Database
+  postgres_auth:
+    image: postgres:16-alpine
+    container_name: football_research_auth_db_local
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER_AUTH:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_AUTH:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB_AUTH:-auth_db}
+    ports:
+      - "${POSTGRES_PORT_AUTH:-5433}:5432"
+    volumes:
+      - postgres_auth_data_local:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER_AUTH:-postgres} -d ${POSTGRES_DB_AUTH:-auth_db}"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -39,7 +59,7 @@ services:
     networks:
       - football_network_local
 
-  # Database Migrations
+  # NSI Database Migrations
   migrations:
     build:
       context: .
@@ -51,7 +71,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
-      POSTGRES_DB: ${POSTGRES_DB:-football_db}
+      POSTGRES_DB: ${POSTGRES_DB_NSI:-football_db}
+      DATABASE_URL_NSI: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB_NSI:-football_db}
       DEBUG: "true"
     depends_on:
       postgres:
@@ -65,7 +86,28 @@ services:
     command: >
       python -m alembic -c migrations/nsi_service/alembic.ini upgrade head
 
-  # Application
+  # Auth Database Migrations
+  migrations_auth:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: football_research_auth_migrations_local
+    environment:
+      DATABASE_URL_AUTH: postgresql+asyncpg://${POSTGRES_USER_AUTH:-postgres}:${POSTGRES_PASSWORD_AUTH:-postgres}@postgres_auth:5432/${POSTGRES_DB_AUTH:-auth_db}
+      DEBUG: "true"
+    depends_on:
+      postgres_auth:
+        condition: service_healthy
+    networks:
+      - football_network_local
+    volumes:
+      - .:/app:cached
+      - /app/.venv
+    command: >
+      python -m alembic -c migrations/auth_service/alembic.ini upgrade head
+
+  # NSI Service
   app:
     build:
       context: .
@@ -77,8 +119,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
-      POSTGRES_DB: ${POSTGRES_DB:-football_db}
+      POSTGRES_DB: ${POSTGRES_DB_NSI:-football_db}
+      DATABASE_URL_NSI: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB_NSI:-football_db}
       REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+      JWT_TTL: ${JWT_TTL:-3600}
       DEBUG: "true"
       ENVIRONMENT: development
       APP_NAME: "${APP_NAME:-Football Research API (Dev)}"
@@ -86,8 +131,8 @@ services:
       LOG_LEVEL: "${LOG_LEVEL:-DEBUG}"
       JSON_LOGS: "${JSON_LOGS:-false}"
       WORKERS: "1"
-    ports:
-      - "${PORT:-8000}:8000"
+    expose:
+      - "8001"
     volumes:
       # Монтируем код для hot-reload, но исключаем .venv
       - .:/app:cached
@@ -103,7 +148,79 @@ services:
     networks:
       - football_network_local
     command: >
-      python -m uvicorn src.backend.nsi_service.main:app --host 0.0.0.0 --port 8000 --reload --log-level debug
+      python -m uvicorn src.backend.nsi_service.main:app --host 0.0.0.0 --port 8001 --reload --log-level debug
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  # Auth Service
+  auth_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: football_research_auth_service_local
+    environment:
+      DATABASE_URL_AUTH: postgresql+asyncpg://${POSTGRES_USER_AUTH:-postgres}:${POSTGRES_PASSWORD_AUTH:-postgres}@postgres_auth:5432/${POSTGRES_DB_AUTH:-auth_db}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+      JWT_TTL: ${JWT_TTL:-3600}
+      DEBUG: "true"
+    expose:
+      - "8002"
+    volumes:
+      - .:/app:cached
+      - /app/.venv
+      - ./logs:/app/logs:rw
+    depends_on:
+      postgres_auth:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrations_auth:
+        condition: service_completed_successfully
+    networks:
+      - football_network_local
+    command: >
+      python -m uvicorn src.backend.auth_service.main:app --host 0.0.0.0 --port 8002 --reload --log-level debug
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  # API Gateway
+  api_gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: football_research_api_gateway_local
+    environment:
+      SERVICE_NSI_URL: ${SERVICE_NSI_URL:-http://app:8001}
+      SERVICE_AUTH_URL: ${SERVICE_AUTH_URL:-http://auth_service:8002}
+      REDIS_URL: ${GATEWAY_REDIS_URL:-redis://redis:6379/0}
+      RATE_LIMIT: ${RATE_LIMIT:-100/minute}
+      RATE_LIMIT_BY_JWT: ${RATE_LIMIT_BY_JWT:-true}
+      CACHE_TTL_SECONDS: ${CACHE_TTL_SECONDS:-30}
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000"]}
+      MAX_BODY_SIZE_MB: ${MAX_BODY_SIZE_MB:-10}
+      DEBUG: "true"
+    ports:
+      - "${GATEWAY_PORT:-8000}:8000"
+    volumes:
+      - .:/app:cached
+      - /app/.venv
+      - ./logs:/app/logs:rw
+    depends_on:
+      app:
+        condition: service_started
+      auth_service:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    networks:
+      - football_network_local
+    command: >
+      python -m uvicorn src.backend.api_gateway.main:app --host 0.0.0.0 --port 8000 --reload --log-level debug
     stdin_open: true
     tty: true
     restart: unless-stopped
@@ -144,6 +261,8 @@ services:
 
 volumes:
   postgres_data_local:
+    driver: local
+  postgres_auth_data_local:
     driver: local
   redis_data_local:
     driver: local

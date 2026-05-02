@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   postgres_nsi:
     image: postgres:16-alpine
@@ -107,8 +105,8 @@ services:
       APP_VERSION: "${APP_VERSION:-1.0.0}"
       LOG_LEVEL: "${LOG_LEVEL:-INFO}"
       JSON_LOGS: "${JSON_LOGS:-true}"
-    ports:
-      - "${PORT:-8000}:8000"
+    expose:
+      - "8001"
     depends_on:
       postgres_nsi:
         condition: service_healthy
@@ -119,9 +117,9 @@ services:
     networks:
       - football_network
     command: >
-      python -m uvicorn src.backend.nsi_service.main:app --host 0.0.0.0 --port 8000 --workers ${WORKERS:-4}
+      python -m uvicorn src.backend.nsi_service.main:app --host 0.0.0.0 --port 8001 --workers ${WORKERS:-4}
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -139,8 +137,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-me}
       JWT_TTL: ${JWT_TTL:-3600}
       DEBUG: "false"
-    ports:
-      - "${AUTH_PORT:-8001}:8001"
+    expose:
+      - "8002"
     depends_on:
       postgres_auth:
         condition: service_healthy
@@ -151,9 +149,46 @@ services:
     networks:
       - football_network
     command: >
-      python -m uvicorn src.backend.auth_service.main:app --host 0.0.0.0 --port 8001 --workers 1
+      python -m uvicorn src.backend.auth_service.main:app --host 0.0.0.0 --port 8002 --workers 1
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  api_gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    container_name: football_research_api_gateway
+    environment:
+      SERVICE_NSI_URL: ${SERVICE_NSI_URL:-http://nsi_service:8001}
+      SERVICE_AUTH_URL: ${SERVICE_AUTH_URL:-http://auth_service:8002}
+      REDIS_URL: ${GATEWAY_REDIS_URL:-redis://redis:6379/0}
+      RATE_LIMIT: ${RATE_LIMIT:-100/minute}
+      RATE_LIMIT_BY_JWT: ${RATE_LIMIT_BY_JWT:-true}
+      CACHE_TTL_SECONDS: ${CACHE_TTL_SECONDS:-30}
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000"]}
+      MAX_BODY_SIZE_MB: ${MAX_BODY_SIZE_MB:-10}
+      DEBUG: "false"
+    ports:
+      - "${GATEWAY_PORT:-8000}:8000"
+    depends_on:
+      nsi_service:
+        condition: service_healthy
+      auth_service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - football_network
+    command: >
+      python -m uvicorn src.backend.api_gateway.main:app --host 0.0.0.0 --port 8000 --workers ${GATEWAY_WORKERS:-2}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3

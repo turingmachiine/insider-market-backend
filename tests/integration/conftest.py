@@ -15,14 +15,14 @@ from sqlalchemy.ext.asyncio import (
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
-from src.domain.entities.club import Club
-from src.domain.entities.league import League
-from src.domain.entities.player import Player
-from src.domain.entities.team import Team
-from src.domain.value_objects.position import Position
-from src.infrastructure.db import setup_mapping
-from src.infrastructure.db.metadata import mapper_registry
-from src.infrastructure.db.repositories import (
+from src.backend.nsi_service.domain.entities.club import Club
+from src.backend.nsi_service.domain.entities.league import League
+from src.backend.nsi_service.domain.entities.player import Player
+from src.backend.nsi_service.domain.entities.team import Team
+from src.backend.nsi_service.domain.value_objects.position import Position
+from src.backend.nsi_service.infrastructure.db import setup_mapping
+from src.backend.nsi_service.infrastructure.db.metadata import mapper_registry
+from src.backend.nsi_service.infrastructure.db.repositories import (
     ClubRepository,
     LeagueRepository,
     PlayerRepository,

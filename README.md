@@ -306,7 +306,7 @@ pre-commit install
 cp .env.example .env
 
 # Запуск
-uv run python -m uvicorn src.main:app --reload
+uv run python -m uvicorn src.backend.nsi_service.main:app --reload
 ```
 
 ## API Документация
@@ -387,16 +387,16 @@ uv run python -m uvicorn src.main:app --reload
 
 ```bash
 # Создать миграцию
-alembic revision --autogenerate -m "Description"
+alembic -c migrations/nsi_service/alembic.ini revision --autogenerate -m "Description"
 
 # Применить миграции
-alembic upgrade head
+alembic -c migrations/nsi_service/alembic.ini upgrade head
 
 # Откатить на одну миграцию
-alembic downgrade -1
+alembic -c migrations/nsi_service/alembic.ini downgrade -1
 
 # Показать текущую версию
-alembic current
+alembic -c migrations/nsi_service/alembic.ini current
 ```
 
 ### Миграции в Docker
@@ -491,8 +491,8 @@ pre-commit run --all-files
 | `POSTGRES_USER` | Пользователь PostgreSQL | `postgres` |
 | `POSTGRES_PASSWORD` | Пароль PostgreSQL | `postgres` |
 | `POSTGRES_HOST` | Хост PostgreSQL | `localhost` |
-| `POSTGRES_PORT` | Порт PostgreSQL | `5432` |
-| `POSTGRES_DB` | Имя базы данных | `football_db` |
+| `POSTGRES_PORT_NSI` | Порт PostgreSQL NSI | `5432` |
+| `POSTGRES_DB_NSI` | Имя базы данных NSI | `football_db` |
 | `REDIS_URL` | URL Redis | `redis://localhost:6379` |
 | `DEBUG` | Режим отладки | `false` |
 | `LOG_LEVEL` | Уровень логов | `INFO` |
@@ -502,7 +502,7 @@ pre-commit run --all-files
 ## Структура миграций
 
 ```
-alembic/
+migrations/
 ├── versions/
 │   ├── 001_initial.py    # Начальная миграция
 │   └── ...

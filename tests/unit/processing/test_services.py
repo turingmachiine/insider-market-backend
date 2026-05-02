@@ -1,10 +1,11 @@
 """Тесты для сервисов процессинга"""
+
 import math
 
 import pytest
 
-from src.processing.matching.service import PlayerMatchingService
-from src.processing.shadow_team.service import ShadowTeamService
+from src.backend.nsi_service.processing.matching.service import PlayerMatchingService
+from src.backend.nsi_service.processing.shadow_team.service import ShadowTeamService
 
 
 class TestPlayerMatchingService:
@@ -19,7 +20,7 @@ class TestPlayerMatchingService:
         self, matching_service: PlayerMatchingService
     ) -> None:
         """Тест совместимости одинаковых позиций"""
-        from src.domain.value_objects.position import Position
+        from src.backend.nsi_service.domain.value_objects.position import Position
 
         assert matching_service._positions_compatible(Position.ST, Position.ST) is True
         assert matching_service._positions_compatible(Position.CM, Position.CM) is True
@@ -28,7 +29,7 @@ class TestPlayerMatchingService:
         self, matching_service: PlayerMatchingService
     ) -> None:
         """Тест совместимости смежных позиций"""
-        from src.domain.value_objects.position import Position
+        from src.backend.nsi_service.domain.value_objects.position import Position
 
         # CDM и CM совместимы
         assert matching_service._positions_compatible(Position.CDM, Position.CM) is True
@@ -37,7 +38,7 @@ class TestPlayerMatchingService:
         self, matching_service: PlayerMatchingService
     ) -> None:
         """Тест несовместимых позиций"""
-        from src.domain.value_objects.position import Position
+        from src.backend.nsi_service.domain.value_objects.position import Position
 
         # GK и ST не совместимы
         assert matching_service._positions_compatible(Position.GK, Position.ST) is False

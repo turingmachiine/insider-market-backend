@@ -3,11 +3,11 @@
 from datetime import date
 from uuid import uuid4
 
-from src.domain.entities.club import Club
-from src.domain.entities.league import League
-from src.domain.entities.player import Player
-from src.domain.entities.team import Team
-from src.domain.value_objects.position import Position
+from src.backend.nsi_service.domain.entities.club import Club
+from src.backend.nsi_service.domain.entities.league import League
+from src.backend.nsi_service.domain.entities.player import Player
+from src.backend.nsi_service.domain.entities.team import Team
+from src.backend.nsi_service.domain.value_objects.position import Position
 
 
 class TestPlayer:
@@ -122,7 +122,7 @@ class TestTeam:
             name="Test Team",
             user_id=uuid4(),
             description="Test",
-            squad={Position.ST.value: [uuid4()]},
+            squad={Position.ST.value: [str(uuid4())]},
         )
         assert team.name == "Test Team"
         assert len(team.squad) > 0

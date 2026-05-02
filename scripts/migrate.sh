@@ -32,7 +32,7 @@ check_alembic() {
 
 # Show help
 show_help() {
-    echo "Usage: $0 <command> [options]"
+    echo "Usage: $0 [nsi|auth] <command> [options]"
     echo ""
     echo "Commands:"
     echo "  init              Initialize alembic (already done)"
@@ -46,10 +46,19 @@ show_help() {
     echo "  help              Show this help message"
     echo ""
     echo "Examples:"
-    echo "  $0 migrate 'Add users table'"
-    echo "  $0 upgrade"
-    echo "  $0 downgrade 1"
+    echo "  $0 nsi migrate 'Add players index'"
+    echo "  $0 auth upgrade"
+    echo "  $0 nsi downgrade 1"
 }
+
+service="${1:-nsi}"
+if [ "$service" = "nsi" ] || [ "$service" = "auth" ]; then
+    shift || true
+else
+    service="nsi"
+fi
+
+ALEMBIC_CONFIG="migrations/${service}_service/alembic.ini"
 
 # Create new migration
 create_migration() {
@@ -60,14 +69,14 @@ create_migration() {
         exit 1
     fi
     print_info "Creating migration: $message"
-    alembic revision --autogenerate -m "$message"
+    alembic -c "$ALEMBIC_CONFIG" revision --autogenerate -m "$message"
     print_info "Migration created successfully!"
 }
 
 # Run migrations
 run_upgrade() {
     print_info "Running pending migrations..."
-    alembic upgrade head
+    alembic -c "$ALEMBIC_CONFIG" upgrade head
     print_info "Migrations completed successfully!"
 }
 
@@ -75,26 +84,26 @@ run_upgrade() {
 run_downgrade() {
     local count="${1:-1}"
     print_warning "Downgrading $count migration(s)..."
-    alembic downgrade -${count}
+    alembic -c "$ALEMBIC_CONFIG" downgrade -${count}
     print_info "Downgrade completed!"
 }
 
 # Show current migration
 show_current() {
     print_info "Current migration:"
-    alembic current
+    alembic -c "$ALEMBIC_CONFIG" current
 }
 
 # Show migration history
 show_history() {
     print_info "Migration history:"
-    alembic history -v
+    alembic -c "$ALEMBIC_CONFIG" history -v
 }
 
 # Show heads
 show_heads() {
     print_info "Current head(s):"
-    alembic heads
+    alembic -c "$ALEMBIC_CONFIG" heads
 }
 
 # Stamp database
@@ -106,7 +115,7 @@ stamp_db() {
         exit 1
     fi
     print_info "Stamping database with version: $version"
-    alembic stamp "$version"
+    alembic -c "$ALEMBIC_CONFIG" stamp "$version"
 }
 
 # Main script

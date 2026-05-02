@@ -1,21 +1,20 @@
 version: '3.9'
 
 services:
-  # PostgreSQL Database
-  postgres:
+  postgres_nsi:
     image: postgres:16-alpine
-    container_name: football_research_db
+    container_name: football_research_nsi_db
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-football_db}
+      POSTGRES_DB: ${POSTGRES_DB_NSI:-football_db}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT_NSI:-5432}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_nsi_data:/var/lib/postgresql/data
       - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-football_db}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB_NSI:-football_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -23,7 +22,26 @@ services:
       - football_network
     restart: unless-stopped
 
-  # Redis Cache
+  postgres_auth:
+    image: postgres:16-alpine
+    container_name: football_research_auth_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER_AUTH:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_AUTH:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB_AUTH:-auth_db}
+    ports:
+      - "${POSTGRES_PORT_AUTH:-5433}:5432"
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER_AUTH:-postgres} -d ${POSTGRES_DB_AUTH:-auth_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - football_network
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     container_name: football_research_redis
@@ -40,44 +58,49 @@ services:
       - football_network
     restart: unless-stopped
 
-  # Database Migrations
-  migrations:
+  migrations_nsi:
     build:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_migrations
+    container_name: football_research_nsi_migrations
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: ${POSTGRES_DB:-football_db}
+      DATABASE_URL_NSI: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres_nsi:5432/${POSTGRES_DB_NSI:-football_db}
     depends_on:
-      postgres:
+      postgres_nsi:
         condition: service_healthy
     networks:
       - football_network
     command: >
-      sh -c "echo 'Waiting for database...' && sleep 5 && alembic upgrade head"
-    profiles:
-      - migrations
-      - ""
+      sh -c "alembic -c migrations/nsi_service/alembic.ini upgrade head"
 
-  # Application (Production)
-  app:
+  migrations_auth:
     build:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_app
+    container_name: football_research_auth_migrations
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: ${POSTGRES_DB:-football_db}
+      DATABASE_URL_AUTH: postgresql+asyncpg://${POSTGRES_USER_AUTH:-postgres}:${POSTGRES_PASSWORD_AUTH:-postgres}@postgres_auth:5432/${POSTGRES_DB_AUTH:-auth_db}
+    depends_on:
+      postgres_auth:
+        condition: service_healthy
+    networks:
+      - football_network
+    command: >
+      sh -c "alembic -c migrations/auth_service/alembic.ini upgrade head"
+
+  nsi_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    container_name: football_research_nsi_service
+    environment:
+      DATABASE_URL_NSI: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres_nsi:5432/${POSTGRES_DB_NSI:-football_db}
       REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+      JWT_TTL: ${JWT_TTL:-3600}
       DEBUG: "false"
       ENVIRONMENT: production
       APP_NAME: "${APP_NAME:-Football Research API}"
@@ -86,19 +109,17 @@ services:
       JSON_LOGS: "${JSON_LOGS:-true}"
     ports:
       - "${PORT:-8000}:8000"
-    volumes:
-      - ./logs:/app/logs:rw
     depends_on:
-      postgres:
+      postgres_nsi:
         condition: service_healthy
       redis:
         condition: service_healthy
-      migrations:
+      migrations_nsi:
         condition: service_completed_successfully
     networks:
       - football_network
     command: >
-      python -m uvicorn src.main:app --host 0.0.0.0 --port 8000 --workers ${WORKERS:-4}
+      python -m uvicorn src.backend.nsi_service.main:app --host 0.0.0.0 --port 8000 --workers ${WORKERS:-4}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
@@ -106,17 +127,43 @@ services:
       retries: 3
       start_period: 10s
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 2G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
+  auth_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    container_name: football_research_auth_service
+    environment:
+      DATABASE_URL_AUTH: postgresql+asyncpg://${POSTGRES_USER_AUTH:-postgres}:${POSTGRES_PASSWORD_AUTH:-postgres}@postgres_auth:5432/${POSTGRES_DB_AUTH:-auth_db}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+      JWT_TTL: ${JWT_TTL:-3600}
+      DEBUG: "false"
+    ports:
+      - "${AUTH_PORT:-8001}:8001"
+    depends_on:
+      postgres_auth:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrations_auth:
+        condition: service_completed_successfully
+    networks:
+      - football_network
+    command: >
+      python -m uvicorn src.backend.auth_service.main:app --host 0.0.0.0 --port 8001 --workers 1
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
 
 volumes:
-  postgres_data:
+  postgres_nsi_data:
+    driver: local
+  postgres_auth_data:
     driver: local
   redis_data:
     driver: local

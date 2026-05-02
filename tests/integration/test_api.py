@@ -1,3 +1,4 @@
+from datetime import UTC, datetime, timedelta
 from typing import AsyncGenerator
 from uuid import uuid4
 
@@ -5,6 +6,7 @@ import httpx
 import pytest
 import pytest_asyncio
 from dishka import Scope, make_async_container, provide
+from jose import jwt
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -13,9 +15,9 @@ from sqlalchemy.ext.asyncio import (
 )
 from testcontainers.postgres import PostgresContainer
 
-from src.core.config import Settings, settings
-from src.infrastructure.db.metadata import mapper_registry
-from src.infrastructure.di.providers import (
+from src.backend.nsi_service.core.config import Settings, settings
+from src.backend.nsi_service.infrastructure.db.metadata import mapper_registry
+from src.backend.nsi_service.infrastructure.di.providers import (
     ContainerProvider,
     DatabaseProvider,
     DomainServiceProvider,
@@ -24,6 +26,19 @@ from src.infrastructure.di.providers import (
     RepositoryProvider,
     UseCaseProvider,
 )
+
+
+@pytest.fixture
+def test_token() -> str:
+    return jwt.encode(
+        {
+            "sub": str(uuid4()),
+            "permissions": ["nsi:read", "team:write"],
+            "exp": datetime.now(UTC) + timedelta(hours=1),
+        },
+        settings.JWT_SECRET,
+        algorithm=settings.JWT_ALGORITHM,
+    )
 
 
 class TestDatabaseProvider(DatabaseProvider):
@@ -114,9 +129,9 @@ async def test_container(test_db_engine: AsyncEngine):
 
 
 @pytest_asyncio.fixture(scope="function")
-async def api_client(test_container):
+async def api_client(test_container, test_token: str):
     """Создать асинхронный тестовый клиент API с DI"""
-    from src.main import create_app
+    from src.backend.nsi_service.main import create_app
 
     app = create_app(container=test_container)
 
@@ -124,6 +139,7 @@ async def api_client(test_container):
         transport=httpx.ASGITransport(app=app),
         base_url="http://test",
     ) as client:
+        client.headers.update({"Authorization": f"Bearer {test_token}"})
         yield client
 
 

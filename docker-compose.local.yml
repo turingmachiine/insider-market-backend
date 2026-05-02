@@ -63,7 +63,7 @@ services:
       - .:/app:cached
       - /app/.venv
     command: >
-      python -m alembic upgrade head
+      python -m alembic -c migrations/nsi_service/alembic.ini upgrade head
 
   # Application
   app:
@@ -103,7 +103,7 @@ services:
     networks:
       - football_network_local
     command: >
-      python -m uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload --log-level debug
+      python -m uvicorn src.backend.nsi_service.main:app --host 0.0.0.0 --port 8000 --reload --log-level debug
     stdin_open: true
     tty: true
     restart: unless-stopped

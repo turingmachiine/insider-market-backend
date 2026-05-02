@@ -1,6 +1,6 @@
 import pytest
 
-from src.domain.services import PlayerService, TeamService
+from src.backend.nsi_service.domain.services import PlayerService, TeamService
 
 
 @pytest.fixture

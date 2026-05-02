@@ -40,7 +40,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
 
 # Default command
-CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "src.backend.nsi_service.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 
 # Development stage
@@ -58,7 +58,7 @@ ENV PYTHONPATH="/app"
 USER appuser
 
 # Enable reload for development
-CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["python", "-m", "uvicorn", "src.backend.nsi_service.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
 
 # Migrations stage
@@ -72,4 +72,4 @@ RUN pip install --no-cache-dir alembic
 USER appuser
 
 # Default command for migrations
-CMD ["alembic", "upgrade", "head"]
+CMD ["alembic", "-c", "migrations/nsi_service/alembic.ini", "upgrade", "head"]

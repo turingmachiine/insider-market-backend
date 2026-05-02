@@ -2,15 +2,25 @@
 
 from datetime import date
 from decimal import Decimal
+from typing import TypedDict
 from uuid import uuid4
 
 import pytest
 
-from src.domain.entities.club import Club
-from src.domain.entities.league import League
-from src.domain.entities.player import Player
-from src.domain.entities.team import Team
-from src.domain.value_objects.position import Position
+from src.backend.nsi_service.domain.entities.club import Club
+from src.backend.nsi_service.domain.entities.league import League
+from src.backend.nsi_service.domain.entities.player import Player
+from src.backend.nsi_service.domain.entities.team import Team
+from src.backend.nsi_service.domain.value_objects.position import Position
+
+
+class PlayerFixtureData(TypedDict):
+    name: str
+    position: Position
+    goals: int
+    assists: int
+    xg_per_90: float
+    xa_per_90: float
 
 
 @pytest.fixture
@@ -109,7 +119,7 @@ def sample_team() -> Team:
 @pytest.fixture
 def multiple_players(sample_club: Club, sample_league: League) -> list[Player]:
     """Создать несколько тестовых игроков"""
-    players_data = [
+    players_data: list[PlayerFixtureData] = [
         {
             "name": "Kevin De Bruyne",
             "position": Position.CM,

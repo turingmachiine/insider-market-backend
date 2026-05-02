@@ -27,6 +27,10 @@ dependencies = [
     "adaptix>=3.0.0b11",
 ]
 
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
 [dependency-groups]
 dev = [
     "pytest>=7.4.0",
@@ -45,8 +49,8 @@ dev = [
 [tool.uv.sources]
 football-research = { workspace = true }
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -77,10 +81,10 @@ python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
 asyncio_mode = "auto"
-pythonpath = ["src"]
+pythonpath = ["."]
 
 [tool.coverage.run]
-source = ["src"]
+source = ["src/backend/nsi_service"]
 omit = [
     "*/tests/*",
     "*/__init__.py",

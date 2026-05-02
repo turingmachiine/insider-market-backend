@@ -1,4 +1,4 @@
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 from typing import Annotated, Any
 
 from dishka.integrations.fastapi import FromDishka, inject
@@ -20,9 +20,9 @@ BearerCredentials = Annotated[
 
 def require_permission(
     permission: str,
-) -> Callable[..., Awaitable[dict[str, Any]]]:
+) -> Callable[..., dict[str, Any]]:
     @inject
-    async def dependency(
+    def dependency(
         request: Request,
         credentials: BearerCredentials,
         auth_settings: FromDishka[AuthSettings],

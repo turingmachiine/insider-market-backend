@@ -1,9 +1,10 @@
 from urllib.parse import unquote
 
+import anyio
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import JSONResponse, Response
-from starlette.types import ASGIApp
+from starlette.types import ASGIApp, Message
 
 
 class GatewaySecurityMiddleware(BaseHTTPMiddleware):
@@ -28,7 +29,8 @@ class GatewaySecurityMiddleware(BaseHTTPMiddleware):
         if len(body) > self._max_body_size_bytes:
             return JSONResponse({"detail": "Request body is too large"}, 413)
 
-        async def receive() -> dict:
+        async def receive() -> Message:
+            await anyio.lowlevel.checkpoint()
             return {"type": "http.request", "body": body, "more_body": False}
 
         request._receive = receive

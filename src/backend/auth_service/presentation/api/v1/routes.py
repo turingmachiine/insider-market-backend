@@ -61,7 +61,7 @@ async def login(
 
 
 @router.get("/permissions/me")
-async def get_my_permissions(
+def get_my_permissions(
     payload: Annotated[
         dict[str, object],
         Depends(require_permission("nsi:read")),

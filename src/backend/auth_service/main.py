@@ -30,7 +30,7 @@ def create_app(container: AsyncContainer | None = None) -> FastAPI:
     )
 
     @app.get("/health", tags=["Health"])
-    async def health_check() -> dict[str, str]:
+    def health_check() -> dict[str, str]:
         return {"status": "healthy", "version": settings.APP_VERSION}
 
     app.include_router(v1_router, prefix="/api")

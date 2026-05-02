@@ -35,7 +35,7 @@ MIN_IMPROVEMENT_THRESHOLD = 0.15  # 15% улучшение
 class ShadowTeamService:
     """Сервис для формирования shadow-team"""
 
-    async def build_shadow_team(
+    def build_shadow_team(
         self,
         user_team: Team,
         all_players: list[Player],
@@ -71,7 +71,7 @@ class ShadowTeamService:
             current_players = [p for p in all_players if str(p.id) in player_ids]
 
             # Поиск кандидатов на усиление
-            candidates = await self._find_position_candidates(
+            candidates = self._find_position_candidates(
                 position=position,
                 current_players=current_players,
                 all_players=all_players,
@@ -95,7 +95,7 @@ class ShadowTeamService:
             total_improvement_score=round(total_improvement, 3),
         )
 
-    async def _find_position_candidates(
+    def _find_position_candidates(
         self,
         position: Position,
         current_players: list[Player],

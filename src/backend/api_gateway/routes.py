@@ -62,14 +62,17 @@ class GatewayRouter:
             methods=methods,
         )
 
-    async def health_check(self) -> dict[str, str]:
+    @staticmethod
+    def health_check() -> dict[str, str]:
         return {"status": "healthy"}
 
-    async def swagger_index(self, request: Request) -> HTMLResponse:
+    @staticmethod
+    def swagger_index(request: Request) -> HTMLResponse:
         swagger_page: SwaggerLandingPage = request.app.state.swagger_page
         return HTMLResponse(swagger_page.render())
 
-    async def swagger_ui(self, url: str = "/swagger/nsi/swagger.json") -> HTMLResponse:
+    @staticmethod
+    def swagger_ui(url: str = "/swagger/nsi/swagger.json") -> HTMLResponse:
         return get_swagger_ui_html(openapi_url=url, title="Football Research Gateway")
 
     async def swagger_json(self, request: Request, service: str) -> Response:

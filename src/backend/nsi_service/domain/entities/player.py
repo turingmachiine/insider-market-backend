@@ -39,6 +39,7 @@ class Player:
     xa: float = field(default=0.0)
     xg_per_90: float = field(default=0.0)
     xa_per_90: float = field(default=0.0)
+    tackles_per_90: float = field(default=0.0)
 
     # Для сравнения и подбора
     league_strength_coefficient: float = field(default=1.0)

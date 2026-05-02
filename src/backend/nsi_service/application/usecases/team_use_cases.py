@@ -100,7 +100,7 @@ class TeamUseCases(HasTransactionManager):
         # Получение всех игроков для сравнения
         all_players = await self.player_repository.get_all(limit=1000)
 
-        return await self.shadow_team_service.build_shadow_team(
+        return self.shadow_team_service.build_shadow_team(
             user_team=team,
             all_players=all_players,
             budget=budget,

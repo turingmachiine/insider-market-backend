@@ -59,7 +59,7 @@ def create_app(container: AsyncContainer | None = None) -> FastAPI:
 
     # Swagger UI
     @app.get("/api/docs", response_class=HTMLResponse, include_in_schema=False)
-    async def get_docs() -> HTMLResponse:
+    def get_docs() -> HTMLResponse:
         return get_swagger_ui_html(
             openapi_url="/openapi.json",
             title=f"{settings.APP_NAME} - Swagger",
@@ -68,7 +68,7 @@ def create_app(container: AsyncContainer | None = None) -> FastAPI:
 
     # ReDoc
     @app.get("/api/redoc", response_class=HTMLResponse, include_in_schema=False)
-    async def get_redoc() -> HTMLResponse:
+    def get_redoc() -> HTMLResponse:
         return get_redoc_html(
             openapi_url="/openapi.json",
             title=f"{settings.APP_NAME} - ReDoc",
@@ -76,7 +76,7 @@ def create_app(container: AsyncContainer | None = None) -> FastAPI:
 
     # Health check
     @app.get("/health", tags=["Health"])
-    async def health_check() -> dict[str, str]:
+    def health_check() -> dict[str, str]:
         return {"status": "healthy", "version": settings.APP_VERSION}
 
     # Подключение роутеров (префикс /api/v1 уже есть в router)

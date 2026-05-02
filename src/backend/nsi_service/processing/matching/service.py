@@ -99,7 +99,6 @@ class PlayerMatchingService:
                 similar_player = self._create_similar_player_dto(
                     candidate=candidate,
                     similarity_score=float(similarity),
-                    target_player=target_player,
                 )
                 results.append(similar_player)
 
@@ -223,8 +222,7 @@ class PlayerMatchingService:
         self, player: Player, minutes_factor: float  # TODO: добавить игрока
     ) -> float:
         """Рассчитать оборонительные действия"""
-        # Заглушка - в реальности нужно больше данных
-        base_value = 2.0  # tackles + interceptions per 90
+        base_value = player.tackles_per_90
         return base_value * minutes_factor if minutes_factor else 0
 
     def _estimate_progressive_actions(self, player: Player) -> float:
@@ -290,7 +288,6 @@ class PlayerMatchingService:
         self,
         candidate: Player,
         similarity_score: float,
-        target_player: Player,  # TODO: добавить игрока
     ) -> SimilarPlayerDTO:
         """Создать DTO похожего игрока"""
         # Ключевые статы для отображения

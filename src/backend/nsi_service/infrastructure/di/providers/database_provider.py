@@ -58,8 +58,6 @@ class DatabaseProvider(Provider):
                 raise
 
     @provide(scope=Scope.REQUEST)
-    async def provide_transaction_manager(
-        self, session: AsyncSession
-    ) -> TransactionManager:
+    def provide_transaction_manager(self, session: AsyncSession) -> TransactionManager:
         """Менеджер транзакции (Scope.REQUEST)"""
         return SQLAlchemyTransactionManager(session=session)

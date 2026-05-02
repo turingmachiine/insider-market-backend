@@ -3,45 +3,8 @@ from datetime import UTC, datetime, timedelta
 import httpx
 import pytest
 from jose import jwt
-from sqlalchemy.ext.asyncio import create_async_engine
-from testcontainers.postgres import PostgresContainer
 
 from src.backend.auth_service.core.config import settings
-from src.backend.auth_service.infrastructure.db.database import create_session_factory
-from src.backend.auth_service.infrastructure.db.metadata import Base
-from src.backend.auth_service.main import create_app
-
-
-@pytest.fixture
-def auth_postgres_container() -> PostgresContainer:
-    with PostgresContainer("postgres:16-alpine", driver="asyncpg") as postgres:
-        yield postgres
-
-
-@pytest.fixture
-async def auth_client(auth_postgres_container: PostgresContainer):
-    db_url = auth_postgres_container.get_connection_url().replace(
-        "postgresql://",
-        "postgresql+asyncpg://",
-    )
-    settings.DATABASE_URL_AUTH = db_url
-    settings.REDIS_URL = None
-    settings.JWT_SECRET = "test-secret"
-    settings.JWT_TTL = 3600
-
-    engine = create_async_engine(db_url)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    app = create_app()
-    app.state.session_factory = create_session_factory(engine)
-    app.state.redis = None
-    async with httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=app),
-        base_url="http://test",
-    ) as client:
-        yield client
-    await engine.dispose()
 
 
 @pytest.mark.asyncio

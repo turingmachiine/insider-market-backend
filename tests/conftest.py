@@ -5,16 +5,10 @@ from typing import Generator
 
 import pytest
 
-# Фикстуры для сущностей
-from tests.fixtures.entities import (
-    multiple_players,
-    player_radar_metrics,
-    sample_club,
-    sample_league,
-    sample_player,
-    sample_team,
-)
-from tests.fixtures.services import player_service, team_service
+pytest_plugins = [
+    "tests.fixtures.shared.entities",
+    "tests.fixtures.shared.services",
+]
 
 
 @pytest.fixture(scope="session")
@@ -35,18 +29,3 @@ def anyio_backend() -> str:
 def pytest_configure(config):
     """Настройка маркеров pytest"""
     config.addinivalue_line("markers", "integration: mark test as an integration test")
-
-
-__all__ = [
-    "multiple_players",
-    "player_radar_metrics",
-    "sample_club",
-    "sample_league",
-    "sample_player",
-    "sample_team",
-    "player_service",
-    "team_service",
-    "event_loop",
-    "anyio_backend",
-    "pytest_configure",
-]

@@ -37,3 +37,5 @@ This file applies to everything under `src/`.
 - Name repository interfaces `I<Entity>Repository` and store them in `i_<entity>_repository.py`.
 - Name concrete repositories `<Entity>Repository` and store them in `<entity>_repository.py`.
 - Keep one SQLAlchemy table per file named `<table_name>_table.py`, exported from `tables/__init__.py`.
+- Keep code-facing names, helper classes, internal comments, and developer hints in English.
+- Keep public documentation and README-style files in Russian.

@@ -45,6 +45,8 @@ The current codebase uses service-local packages under
 - Do not manually create repositories, services, database sessions, Redis clients, or settings-backed dependencies in FastAPI routes.
 - Application services may depend on domain repository interfaces, cache/application ports, and settings, but not on concrete infrastructure repositories.
 - Presentation must not import infrastructure repositories or database tables directly.
+- Keep internal code-facing text in English: identifiers, helper names, test helper classes, technical comments, and code-oriented strings.
+- Keep public project documentation in Russian: `README.md`, documentation pages, and user-facing project guides.
 
 ## Where to look first
 

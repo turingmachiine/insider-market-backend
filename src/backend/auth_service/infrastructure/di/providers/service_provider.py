@@ -1,8 +1,11 @@
 from dishka import Provider, Scope, provide
 
-from src.backend.auth_service.application.repository import AuthRepository
 from src.backend.auth_service.application.service import AuthService
 from src.backend.auth_service.core.config import AuthSettings
+from src.backend.auth_service.domain.interfaces.repositories import (
+    IRoleRepository,
+    IUserRepository,
+)
 from src.backend.auth_service.infrastructure.cache.permissions_cache import (
     PermissionsCache,
 )
@@ -16,8 +19,14 @@ class ServiceProvider(Provider):
     @provide
     def provide_auth_service(
         self,
-        repository: AuthRepository,
+        user_repository: IUserRepository,
+        role_repository: IRoleRepository,
         permissions_cache: PermissionsCache,
         settings: AuthSettings,
     ) -> AuthService:
-        return AuthService(repository, permissions_cache, settings)
+        return AuthService(
+            user_repository,
+            role_repository,
+            permissions_cache,
+            settings,
+        )

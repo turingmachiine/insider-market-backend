@@ -5,14 +5,15 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from src.backend.auth_service.infrastructure.db.models import Base
+import src.backend.auth_service.infrastructure.db.tables  # noqa: F401
+from src.backend.auth_service.infrastructure.db.metadata import mapper_registry
 
 config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-target_metadata = Base.metadata
+target_metadata = mapper_registry.metadata
 
 
 def get_url() -> str:

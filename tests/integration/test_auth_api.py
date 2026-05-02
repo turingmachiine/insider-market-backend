@@ -8,7 +8,7 @@ from testcontainers.postgres import PostgresContainer
 
 from src.backend.auth_service.core.config import settings
 from src.backend.auth_service.infrastructure.db.database import create_session_factory
-from src.backend.auth_service.infrastructure.db.models import Base
+from src.backend.auth_service.infrastructure.db.metadata import Base
 from src.backend.auth_service.main import create_app
 
 

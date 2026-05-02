@@ -5,6 +5,7 @@ from dishka.integrations.fastapi import AsyncContainer, setup_dishka
 from fastapi import FastAPI
 
 from src.backend.auth_service.core.config import settings
+from src.backend.auth_service.infrastructure.db import setup_mapping
 from src.backend.auth_service.infrastructure.di import create_container
 from src.backend.auth_service.presentation.api.v1.routes import router as v1_router
 
@@ -16,6 +17,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app(container: AsyncContainer | None = None) -> FastAPI:
+    setup_mapping()
+
     app = FastAPI(
         title=settings.APP_NAME,
         version=settings.APP_VERSION,

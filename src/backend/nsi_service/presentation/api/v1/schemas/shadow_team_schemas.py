@@ -17,7 +17,7 @@ class ShadowTeamCandidateResponse(BaseModel):
     league_name: str
     age: int
     nationality: str
-    market_value: Optional[Decimal]
+    market_value: Optional[Decimal] = None
     improvement_score: float
     key_stats: dict
 

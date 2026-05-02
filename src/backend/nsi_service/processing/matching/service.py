@@ -219,7 +219,7 @@ class PlayerMatchingService:
         return np.array(weighted_features)
 
     def _calculate_defensive_actions(
-        self, player: Player, minutes_factor: float  # TODO: добавить игрока
+        self, player: Player, minutes_factor: float
     ) -> float:
         """Рассчитать оборонительные действия"""
         base_value = player.tackles_per_90

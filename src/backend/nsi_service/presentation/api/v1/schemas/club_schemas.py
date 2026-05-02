@@ -37,8 +37,8 @@ class ClubResponse(ClubBase):
     model_config = {"from_attributes": True}
 
     id: UUID
-    league_id: Optional[UUID]
-    squad_market_value: Optional[Decimal]
-    average_age: Optional[float]
-    foreign_players_count: Optional[int]
-    national_team_players_count: Optional[int]
+    league_id: Optional[UUID] = None
+    squad_market_value: Optional[Decimal] = None
+    average_age: Optional[float] = None
+    foreign_players_count: Optional[int] = None
+    national_team_players_count: Optional[int] = None

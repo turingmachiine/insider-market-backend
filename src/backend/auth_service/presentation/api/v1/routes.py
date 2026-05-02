@@ -20,7 +20,6 @@ router = APIRouter(prefix="/v1")
 
 @router.post(
     "/register",
-    response_model=RegisterResponse,
     status_code=status.HTTP_201_CREATED,
 )
 @inject
@@ -35,7 +34,7 @@ async def register(
     return RegisterResponse(user_id=user_id)
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login")
 @inject
 async def login(
     request: LoginRequest,

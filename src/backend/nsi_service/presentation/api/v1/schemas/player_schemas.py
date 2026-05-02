@@ -60,11 +60,11 @@ class PlayerResponse(PlayerBase):
 
     id: UUID
     date_of_birth: date
-    current_club_id: Optional[UUID]
-    current_league_id: Optional[UUID]
-    market_value: Optional[Decimal]
-    contract_until: Optional[date]
-    shirt_number: Optional[int]
+    current_club_id: Optional[UUID] = None
+    current_league_id: Optional[UUID] = None
+    market_value: Optional[Decimal] = None
+    contract_until: Optional[date] = None
+    shirt_number: Optional[int] = None
     appearances: int
     goals: int
     assists: int

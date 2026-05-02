@@ -1,7 +1,7 @@
 """API endpoints для команд пользователей"""
 
 import logging
-from typing import Optional
+from typing import Annotated
 from uuid import UUID
 
 from dishka.integrations.fastapi import FromDishka, inject
@@ -24,14 +24,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/teams", tags=["Teams"])
 
 
-@router.get("", response_model=TeamListResponse)
+@router.get("")
 @inject
 async def get_user_teams(
     team_use_cases: FromDishka[TeamUseCases],
     response_mapper: FromDishka[ITeamResponseMapper],
-    x_user_id: str = Header(..., description="ID пользователя"),  # noqa: B008
-    limit: int = Query(50, ge=1, le=200),  # noqa: B008
-    offset: int = Query(0, ge=0),  # noqa: B008
+    x_user_id: Annotated[str, Header(description="ID пользователя")],
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ) -> TeamListResponse:
     """Получить команды пользователя"""
     try:
@@ -51,7 +51,7 @@ async def get_user_teams(
     )
 
 
-@router.get("/{team_id}", response_model=TeamResponse)
+@router.get("/{team_id}")
 @inject
 async def get_team(
     team_id: UUID,
@@ -68,13 +68,13 @@ async def get_team(
     return response_mapper.to_response(dto)
 
 
-@router.post("", response_model=TeamResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 @inject
 async def create_team(
     team_data: TeamCreate,
     team_use_cases: FromDishka[TeamUseCases],
     response_mapper: FromDishka[ITeamResponseMapper],
-    x_user_id: str = Header(..., description="ID пользователя"),  # noqa: B008
+    x_user_id: Annotated[str, Header(description="ID пользователя")],
 ) -> TeamResponse:
     """Создать новую команду"""
     try:
@@ -98,7 +98,7 @@ async def create_team(
     return response_mapper.to_response(result_dto)
 
 
-@router.post("/{team_id}/players", response_model=TeamResponse)
+@router.post("/{team_id}/players")
 @inject
 async def add_player_to_team(
     team_id: UUID,
@@ -120,13 +120,13 @@ async def add_player_to_team(
     return response_mapper.to_response(dto)
 
 
-@router.delete("/{team_id}/players", response_model=BaseResponse)
+@router.delete("/{team_id}/players")
 @inject
 async def remove_player_from_team(
     team_id: UUID,
     team_use_cases: FromDishka[TeamUseCases],
-    position: str = Query(..., description="Позиция игрока"),  # noqa: B008
-    player_id: UUID = Query(..., description="ID игрока"),  # noqa: B008
+    position: Annotated[str, Query(description="Позиция игрока")],
+    player_id: Annotated[UUID, Query(description="ID игрока")],
 ) -> BaseResponse:
     """Удалить игрока из команды"""
     dto = await team_use_cases.remove_player_from_team(
@@ -142,7 +142,7 @@ async def remove_player_from_team(
     return BaseResponse(message="Player removed from team")
 
 
-@router.delete("/{team_id}", response_model=BaseResponse)
+@router.delete("/{team_id}")
 @inject
 async def delete_team(
     team_id: UUID,
@@ -158,14 +158,15 @@ async def delete_team(
     return BaseResponse(message="Team deleted successfully")
 
 
-@router.post("/{team_id}/shadow-team", response_model=ShadowTeamResponse)
+@router.post("/{team_id}/shadow-team")
 @inject
 async def build_shadow_team(
     team_id: UUID,
     team_use_cases: FromDishka[TeamUseCases],
-    budget: Optional[float] = Query(  # noqa: B008
-        None, ge=0, description="Бюджет на трансферы"
-    ),
+    budget: Annotated[
+        float | None,
+        Query(ge=0, description="Бюджет на трансферы"),
+    ] = None,
 ) -> ShadowTeamResponse:
     """Построить shadow-team для усиления состава"""
     shadow_team = await team_use_cases.build_shadow_team(

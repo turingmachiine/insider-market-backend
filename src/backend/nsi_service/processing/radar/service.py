@@ -171,7 +171,7 @@ class RadarChartService:
                 league_average=(
                     league_avg_metrics.get(metric, 0.0) if league_avg_metrics else 0.0
                 ),
-                position_average=0.0,  # TODO: Calculate position average
+                position_average=0.0,
             )
             for metric in metrics_config
         ]

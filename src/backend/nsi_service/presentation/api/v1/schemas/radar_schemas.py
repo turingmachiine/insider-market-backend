@@ -39,7 +39,7 @@ class SimilarPlayerResponse(BaseModel):
     age: int
     nationality: str
     similarity_score: float
-    market_value: Optional[Decimal]
+    market_value: Optional[Decimal] = None
     key_stats: dict
 
 

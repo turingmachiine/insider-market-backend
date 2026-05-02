@@ -1,6 +1,7 @@
 """API endpoints для игроков"""
 
 import logging
+from typing import Annotated
 from uuid import UUID
 
 from dishka.integrations.fastapi import FromDishka, inject
@@ -24,15 +25,16 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/players", tags=["Players"])
 
 
-@router.get("", response_model=PlayerListResponse)
+@router.get("")
 @inject
 async def get_all_players(
     player_use_cases: FromDishka[PlayerUseCases],
     response_mapper: FromDishka[IPlayerResponseMapper],
-    limit: int = Query(  # noqa: B008
-        100, ge=1, le=500, description="Максимальное количество результатов"
-    ),
-    offset: int = Query(0, ge=0, description="Смещение"),  # noqa: B008
+    limit: Annotated[
+        int,
+        Query(ge=1, le=500, description="Максимальное количество результатов"),
+    ] = 100,
+    offset: Annotated[int, Query(ge=0, description="Смещение")] = 0,
 ) -> PlayerListResponse:
     """Получить всех игроков с пагинацией"""
     dtos = await player_use_cases.get_all_players(limit=limit, offset=offset)
@@ -44,21 +46,22 @@ async def get_all_players(
     )
 
 
-@router.get("/search", response_model=list[PlayerResponse])
+@router.get("/search")
 @inject
 async def search_players(
     player_use_cases: FromDishka[PlayerUseCases],
     response_mapper: FromDishka[IPlayerResponseMapper],
-    name: str = Query(  # noqa: B008
-        ..., min_length=2, description="Имя игрока для поиска"
-    ),
+    name: Annotated[
+        str,
+        Query(min_length=2, description="Имя игрока для поиска"),
+    ],
 ) -> list[PlayerResponse]:
     """Поиск игроков по имени"""
     dtos = await player_use_cases.search_players(name=name)
     return [response_mapper.to_response(dto) for dto in dtos]
 
 
-@router.get("/{player_id}", response_model=PlayerResponse)
+@router.get("/{player_id}")
 @inject
 async def get_player(
     player_id: UUID,
@@ -75,7 +78,7 @@ async def get_player(
     return response_mapper.to_response(dto)
 
 
-@router.post("", response_model=PlayerResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 @inject
 async def create_player(
     player_data: PlayerCreate,
@@ -88,7 +91,7 @@ async def create_player(
     return response_mapper.to_response(result_dto)
 
 
-@router.patch("/{player_id}", response_model=PlayerResponse)
+@router.patch("/{player_id}")
 @inject
 async def update_player(
     player_id: UUID,
@@ -107,7 +110,7 @@ async def update_player(
     return response_mapper.to_response(result_dto)
 
 
-@router.delete("/{player_id}", response_model=BaseResponse)
+@router.delete("/{player_id}")
 @inject
 async def delete_player(
     player_id: UUID,
@@ -123,14 +126,15 @@ async def delete_player(
     return BaseResponse(message="Player deleted successfully")
 
 
-@router.get("/{player_id}/radar", response_model=PlayerRadarResponse)
+@router.get("/{player_id}/radar")
 @inject
 async def get_player_radar(
     player_id: UUID,
     player_use_cases: FromDishka[PlayerUseCases],
-    include_league_average: bool = Query(  # noqa: B008
-        True, description="Включить средние значения по лиге"
-    ),
+    include_league_average: Annotated[
+        bool,
+        Query(description="Включить средние значения по лиге"),
+    ] = True,
 ) -> PlayerRadarResponse:
     """Получить данные для радар-чарта игрока"""
     radar = await player_use_cases.get_player_radar(
@@ -144,20 +148,23 @@ async def get_player_radar(
     return PlayerRadarResponse(**radar.__dict__)
 
 
-@router.get("/{player_id}/similar", response_model=list[SimilarPlayerResponse])
+@router.get("/{player_id}/similar")
 @inject
 async def find_similar_players(
     player_id: UUID,
     player_use_cases: FromDishka[PlayerUseCases],
-    limit: int = Query(  # noqa: B008
-        10, ge=1, le=50, description="Максимальное количество результатов"
-    ),
-    min_similarity: float = Query(  # noqa: B008
-        0.7, ge=0.0, le=1.0, description="Минимальная схожесть"
-    ),
-    consider_league_strength: bool = Query(  # noqa: B008
-        True, description="Учитывать силу лиги при подборе"
-    ),
+    limit: Annotated[
+        int,
+        Query(ge=1, le=50, description="Максимальное количество результатов"),
+    ] = 10,
+    min_similarity: Annotated[
+        float,
+        Query(ge=0.0, le=1.0, description="Минимальная схожесть"),
+    ] = 0.7,
+    consider_league_strength: Annotated[
+        bool,
+        Query(description="Учитывать силу лиги при подборе"),
+    ] = True,
 ) -> list[SimilarPlayerResponse]:
     """Найти похожих игроков"""
     similar_players = await player_use_cases.find_similar_players(
@@ -172,13 +179,13 @@ async def find_similar_players(
     ]
 
 
-@router.get("/position/{position}", response_model=list[PlayerResponse])
+@router.get("/position/{position}")
 @inject
 async def get_players_by_position(
     position: str,
     player_use_cases: FromDishka[PlayerUseCases],
     response_mapper: FromDishka[IPlayerResponseMapper],
-    limit: int = Query(50, ge=1, le=200),  # noqa: B008
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
 ) -> list[PlayerResponse]:
     """Получить игроков по позиции"""
     dtos = await player_use_cases.get_players_by_position(
@@ -187,13 +194,13 @@ async def get_players_by_position(
     return [response_mapper.to_response(dto) for dto in dtos]
 
 
-@router.get("/league/{league_id}", response_model=list[PlayerResponse])
+@router.get("/league/{league_id}")
 @inject
 async def get_players_by_league(
     league_id: UUID,
     player_use_cases: FromDishka[PlayerUseCases],
     response_mapper: FromDishka[IPlayerResponseMapper],
-    limit: int = Query(100, ge=1, le=500),  # noqa: B008
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
 ) -> list[PlayerResponse]:
     """Получить игроков лиги"""
     dtos = await player_use_cases.get_players_by_league(
@@ -202,13 +209,13 @@ async def get_players_by_league(
     return [response_mapper.to_response(dto) for dto in dtos]
 
 
-@router.get("/club/{club_id}", response_model=list[PlayerResponse])
+@router.get("/club/{club_id}")
 @inject
 async def get_players_by_club(
     club_id: UUID,
     player_use_cases: FromDishka[PlayerUseCases],
     response_mapper: FromDishka[IPlayerResponseMapper],
-    limit: int = Query(50, ge=1, le=200),  # noqa: B008
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
 ) -> list[PlayerResponse]:
     """Получить игроков клуба"""
     dtos = await player_use_cases.get_players_by_club(club_id=club_id, limit=limit)

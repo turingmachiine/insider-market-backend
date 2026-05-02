@@ -1,6 +1,7 @@
 """API endpoints для лиг"""
 
 import logging
+from typing import Annotated
 from uuid import UUID
 
 from dishka.integrations.fastapi import FromDishka, inject
@@ -20,15 +21,16 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/leagues", tags=["Leagues"])
 
 
-@router.get("", response_model=LeagueListResponse)
+@router.get("")
 @inject
 async def get_all_leagues(
     league_use_cases: FromDishka[LeagueUseCases],
     response_mapper: FromDishka[ILeagueResponseMapper],
-    limit: int = Query(  # noqa: B008
-        50, ge=1, le=200, description="Максимальное количество результатов"
-    ),
-    offset: int = Query(0, ge=0, description="Смещение"),  # noqa: B008
+    limit: Annotated[
+        int,
+        Query(ge=1, le=200, description="Максимальное количество результатов"),
+    ] = 50,
+    offset: Annotated[int, Query(ge=0, description="Смещение")] = 0,
 ) -> LeagueListResponse:
     """Получить все лиги с пагинацией"""
     dtos = await league_use_cases.get_all_leagues(limit=limit, offset=offset)
@@ -40,35 +42,37 @@ async def get_all_leagues(
     )
 
 
-@router.get("/top", response_model=list[LeagueResponse])
+@router.get("/top")
 @inject
 async def get_top_leagues(
     league_use_cases: FromDishka[LeagueUseCases],
     response_mapper: FromDishka[ILeagueResponseMapper],
-    limit: int = Query(  # noqa: B008
-        10, ge=1, le=50, description="Максимальное количество результатов"
-    ),
+    limit: Annotated[
+        int,
+        Query(ge=1, le=50, description="Максимальное количество результатов"),
+    ] = 10,
 ) -> list[LeagueResponse]:
     """Получить топ лиги"""
     dtos = await league_use_cases.get_top_leagues(limit=limit)
     return [response_mapper.to_response(dto) for dto in dtos]
 
 
-@router.get("/search", response_model=list[LeagueResponse])
+@router.get("/search")
 @inject
 async def search_leagues(
     league_use_cases: FromDishka[LeagueUseCases],
     response_mapper: FromDishka[ILeagueResponseMapper],
-    name: str = Query(  # noqa: B008
-        ..., min_length=2, description="Название лиги для поиска"
-    ),
+    name: Annotated[
+        str,
+        Query(min_length=2, description="Название лиги для поиска"),
+    ],
 ) -> list[LeagueResponse]:
     """Поиск лиг по названию"""
     dtos = await league_use_cases.search_leagues(name=name)
     return [response_mapper.to_response(dto) for dto in dtos]
 
 
-@router.get("/{league_id}", response_model=LeagueResponse)
+@router.get("/{league_id}")
 @inject
 async def get_league(
     league_id: UUID,
@@ -85,7 +89,7 @@ async def get_league(
     return response_mapper.to_response(dto)
 
 
-@router.post("", response_model=LeagueResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 @inject
 async def create_league(
     league_data: LeagueCreate,

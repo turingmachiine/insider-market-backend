@@ -33,7 +33,7 @@ class LeagueResponse(LeagueBase):
     model_config = {"from_attributes": True}
 
     id: UUID
-    logo_url: Optional[str]
+    logo_url: Optional[str] = None
     strength_coefficient: float
-    current_season: Optional[str]
+    current_season: Optional[str] = None
     is_top_league: bool

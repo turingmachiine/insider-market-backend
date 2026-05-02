@@ -66,6 +66,9 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
     JSON_LOGS: bool = True
+    LOG_BROKER_ENABLED: bool = False
+    LOG_REDIS_URL: str | None = None
+    LOG_REDIS_KEY: str = "logs:football"
 
     # Cache
     REDIS_URL: str | None = None

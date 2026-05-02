@@ -1,10 +1,9 @@
-import logging
-import sys
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
 import httpx
 import redis.asyncio as redis
+import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -19,18 +18,11 @@ from src.backend.api_gateway.services.cache import GatewayCache
 from src.backend.api_gateway.services.headers import HeaderPolicy
 from src.backend.api_gateway.services.proxy import UpstreamProxy
 from src.backend.api_gateway.services.service_registry import ServiceRegistry
-
-
-class JsonStdoutLogging:
-    def configure(self) -> None:
-        logger = logging.getLogger("api_gateway")
-        if logger.handlers:
-            return
-        handler = logging.StreamHandler(sys.stdout)
-        handler.setFormatter(logging.Formatter("%(message)s"))
-        logger.addHandler(handler)
-        logger.setLevel(logging.INFO)
-        logger.propagate = False
+from src.backend.common.logging import (
+    RequestContextMiddleware,
+    setup_logging,
+    shutdown_logging,
+)
 
 
 class GatewayApplicationFactory:
@@ -47,7 +39,18 @@ class GatewayApplicationFactory:
         self._swagger_page = SwaggerLandingPage()
 
     def create(self) -> FastAPI:
-        JsonStdoutLogging().configure()
+        log_broker_url = (
+            self._settings.LOG_REDIS_URL or self._settings.REDIS_URL
+            if self._settings.LOG_BROKER_ENABLED
+            else None
+        )
+        setup_logging(
+            service_name="api_gateway",
+            json_logs=self._settings.JSON_LOGS,
+            log_level=self._settings.LOG_LEVEL,
+            broker_url=log_broker_url,
+            broker_key=self._settings.LOG_REDIS_KEY,
+        )
         app = FastAPI(
             title=self._settings.APP_NAME,
             version=self._settings.APP_VERSION,
@@ -90,21 +93,24 @@ class GatewayApplicationFactory:
             max_body_size_bytes=self._settings.max_body_size_bytes,
         )
         app.add_middleware(
+            JsonAccessLogMiddleware,
+            stats_ttl_seconds=self._settings.STATS_TTL_SECONDS,
+            jwt_secret=self._settings.JWT_SECRET,
+            jwt_algorithm=self._settings.JWT_ALGORITHM,
+        )
+        app.add_middleware(RequestContextMiddleware)
+        app.add_middleware(
             CORSMiddleware,
             allow_origins=self._settings.CORS_ORIGINS,
             allow_credentials=True,
             allow_methods=["*"],
             allow_headers=["*"],
         )
-        app.add_middleware(
-            JsonAccessLogMiddleware,
-            stats_ttl_seconds=self._settings.STATS_TTL_SECONDS,
-            jwt_secret=self._settings.JWT_SECRET,
-            jwt_algorithm=self._settings.JWT_ALGORITHM,
-        )
 
     @asynccontextmanager
     async def _lifespan(self, app: FastAPI) -> AsyncIterator[None]:
+        logger = structlog.get_logger("api_gateway")
+        logger.info("Starting API Gateway", version=self._settings.APP_VERSION)
         app.state.swagger_page.load()
         if app.state.redis is None:
             app.state.redis = redis.from_url(self._settings.REDIS_URL)
@@ -117,10 +123,12 @@ class GatewayApplicationFactory:
 
         yield
 
+        logger.info("Shutting down API Gateway")
         if app.state.owns_http_client:
             await app.state.http_client.aclose()
         if app.state.owns_redis:
             await app.state.redis.aclose()
+        shutdown_logging()
 
     def _configure_gateway_services(self, app: FastAPI) -> None:
         cache = GatewayCache(app.state.redis, self._settings.CACHE_TTL_SECONDS)

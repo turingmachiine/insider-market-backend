@@ -56,6 +56,56 @@ services:
       - football_network
     restart: unless-stopped
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: football_research_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "${ELASTICSEARCH_PORT:-9200}:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health >/dev/null || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+    networks:
+      - football_network
+    restart: unless-stopped
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: football_research_kibana
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - "${KIBANA_PORT:-5601}:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - football_network
+    restart: unless-stopped
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: football_research_logstash
+    environment:
+      LS_JAVA_OPTS: "-Xms256m -Xmx256m"
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - football_network
+    restart: unless-stopped
+
   migrations_nsi:
     build:
       context: .
@@ -104,7 +154,10 @@ services:
       APP_NAME: "${APP_NAME:-Football Research API}"
       APP_VERSION: "${APP_VERSION:-1.0.0}"
       LOG_LEVEL: "${LOG_LEVEL:-INFO}"
-      JSON_LOGS: "${JSON_LOGS:-true}"
+      JSON_LOGS: "true"
+      LOG_BROKER_ENABLED: "${LOG_BROKER_ENABLED:-true}"
+      LOG_REDIS_URL: redis://redis:6379/0
+      LOG_REDIS_KEY: "${LOG_REDIS_KEY:-logs:football}"
     expose:
       - "8001"
     depends_on:
@@ -137,6 +190,11 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-me}
       JWT_TTL: ${JWT_TTL:-3600}
       DEBUG: "false"
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+      JSON_LOGS: "true"
+      LOG_BROKER_ENABLED: "${LOG_BROKER_ENABLED:-true}"
+      LOG_REDIS_URL: redis://redis:6379/0
+      LOG_REDIS_KEY: "${LOG_REDIS_KEY:-logs:football}"
     expose:
       - "8002"
     depends_on:
@@ -174,6 +232,11 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000"]}
       MAX_BODY_SIZE_MB: ${MAX_BODY_SIZE_MB:-10}
       DEBUG: "false"
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+      JSON_LOGS: "true"
+      LOG_BROKER_ENABLED: "${LOG_BROKER_ENABLED:-true}"
+      LOG_REDIS_URL: redis://redis:6379/0
+      LOG_REDIS_KEY: "${LOG_REDIS_KEY:-logs:football}"
     ports:
       - "${GATEWAY_PORT:-8000}:8000"
     depends_on:
@@ -201,6 +264,8 @@ volumes:
   postgres_auth_data:
     driver: local
   redis_data:
+    driver: local
+  elasticsearch_data:
     driver: local
 
 networks:

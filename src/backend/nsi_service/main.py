@@ -1,14 +1,15 @@
 """Точка входа приложения FastAPI"""
 
-import logging.config
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
+import structlog
 from dishka.integrations.fastapi import AsyncContainer, setup_dishka
 from fastapi import FastAPI
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.responses import HTMLResponse
 
+from src.backend.common.logging import RequestContextMiddleware, shutdown_logging
 from src.backend.nsi_service.core.config import settings
 from src.backend.nsi_service.infrastructure.db import setup_mapping
 from src.backend.nsi_service.infrastructure.di import create_container
@@ -22,18 +23,26 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """LifeSpan контекст менеджера приложения"""
     # Startup
     setup_mapping()
-    setup_logging(json_logs=settings.JSON_LOGS, log_level=settings.LOG_LEVEL)
-    logger = logging.getLogger("football_research")
-    logger.info(
-        "Starting Football Research API", extra={"version": settings.APP_VERSION}
+    log_broker_url = (
+        settings.LOG_REDIS_URL or settings.REDIS_URL
+        if settings.LOG_BROKER_ENABLED
+        else None
     )
+    setup_logging(
+        json_logs=settings.JSON_LOGS,
+        log_level=settings.LOG_LEVEL,
+        broker_url=log_broker_url,
+        broker_key=settings.LOG_REDIS_KEY,
+    )
+    logger = structlog.get_logger("football_research")
+    logger.info("Starting Football Research API", version=settings.APP_VERSION)
 
     yield
 
     # Shutdown
-    logger = logging.getLogger("football_research")
     logger.info("Shutting down Football Research API")
     await app.state.dishka_container.close()  # noqa
+    shutdown_logging()
 
 
 def create_app(container: AsyncContainer | None = None) -> FastAPI:
@@ -56,6 +65,7 @@ def create_app(container: AsyncContainer | None = None) -> FastAPI:
     )
 
     app.middleware("http")(jwt_auth_middleware)
+    app.add_middleware(RequestContextMiddleware)
 
     # Swagger UI
     @app.get("/api/docs", response_class=HTMLResponse, include_in_schema=False)

@@ -1,9 +1,7 @@
-import json
-import logging
 import time
-from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 
+import structlog
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
@@ -13,18 +11,35 @@ from src.backend.api_gateway.services.identity import JwtIdentityExtractor
 from src.backend.api_gateway.services.statistics import RedisGatewayStatistics
 
 
-@dataclass(frozen=True)
 class AccessLogRecord:
-    timestamp: str
-    method: str
-    path: str
-    status: int
-    duration_ms: float
-    client_ip: str | None
-    user_id: str | None
+    def __init__(
+        self,
+        timestamp: str,
+        method: str,
+        path: str,
+        status: int,
+        duration_ms: float,
+        client_ip: str | None,
+        user_id: str | None,
+    ) -> None:
+        self.timestamp = timestamp
+        self.method = method
+        self.path = path
+        self.status = status
+        self.duration_ms = duration_ms
+        self.client_ip = client_ip
+        self.user_id = user_id
 
-    def to_json(self) -> str:
-        return json.dumps(asdict(self), separators=(",", ":"))
+    def to_log_fields(self) -> dict[str, object]:
+        return {
+            "access_timestamp": self.timestamp,
+            "method": self.method,
+            "path": self.path,
+            "status": self.status,
+            "duration_ms": self.duration_ms,
+            "client_ip": self.client_ip,
+            "user_id": self.user_id,
+        }
 
 
 class AccessLogRecordFactory:
@@ -60,7 +75,7 @@ class JsonAccessLogMiddleware(BaseHTTPMiddleware):
     ) -> None:
         super().__init__(app)
         identity_extractor = JwtIdentityExtractor(jwt_secret, jwt_algorithm)
-        self._logger = logging.getLogger("api_gateway")
+        self._logger = structlog.get_logger("api_gateway")
         self._record_factory = AccessLogRecordFactory(identity_extractor)
         self._statistics = RedisGatewayStatistics(stats_ttl_seconds)
 
@@ -78,7 +93,8 @@ class JsonAccessLogMiddleware(BaseHTTPMiddleware):
             duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
             status_code = response.status_code if response is not None else 500
             record = self._record_factory.create(request, status_code, duration_ms)
-            self._logger.info(record.to_json())
+            if record.user_id is not None:
+                structlog.contextvars.bind_contextvars(user_id=record.user_id)
 
             redis_client = getattr(request.app.state, "redis", None)
             await self._statistics.increment(

@@ -1,13 +1,17 @@
 """Настройка логирования приложения"""
 
-import logging
-import sys
-from typing import Any
+from src.backend.common.logging import get_logger
+from src.backend.common.logging import setup_logging as setup_common_logging
 
-import structlog
+__all__ = ["get_logger", "setup_logging"]
 
 
-def setup_logging(json_logs: bool = True, log_level: str = "INFO") -> None:
+def setup_logging(
+    json_logs: bool = True,
+    log_level: str = "INFO",
+    broker_url: str | None = None,
+    broker_key: str = "logs:football",
+) -> None:
     """
     Настройка логирования с использованием structlog.
 
@@ -15,54 +19,10 @@ def setup_logging(json_logs: bool = True, log_level: str = "INFO") -> None:
         json_logs: Использовать JSON формат для логов
         log_level: Уровень логирования
     """
-    # Настройка logging
-    logging.basicConfig(
-        format="%(message)s",
-        stream=sys.stdout,
-        level=getattr(logging, log_level.upper()),
+    setup_common_logging(
+        service_name="nsi_service",
+        json_logs=json_logs,
+        log_level=log_level,
+        broker_url=broker_url,
+        broker_key=broker_key,
     )
-
-    # Настройка structlog
-    shared_processors: list[Any] = [
-        structlog.contextvars.merge_contextvars,
-        structlog.processors.add_log_level,
-        structlog.processors.StackInfoRenderer(),
-        structlog.dev.set_exc_info,
-        structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=False),
-    ]
-
-    if json_logs:
-        structlog.configure(
-            processors=shared_processors
-            + [
-                structlog.processors.dict_tracebacks,
-                structlog.processors.JSONRenderer(),
-            ],
-            wrapper_class=structlog.make_filtering_bound_logger(
-                getattr(logging, log_level.upper())
-            ),
-            context_class=dict,
-            logger_factory=structlog.PrintLoggerFactory(),
-            cache_logger_on_first_use=True,
-        )
-    else:
-        structlog.configure(
-            processors=shared_processors
-            + [
-                structlog.dev.ConsoleRenderer(
-                    colors=True,
-                    exception_formatter=structlog.dev.plain_traceback,
-                ),
-            ],
-            wrapper_class=structlog.make_filtering_bound_logger(
-                getattr(logging, log_level.upper())
-            ),
-            context_class=dict,
-            logger_factory=structlog.PrintLoggerFactory(),
-            cache_logger_on_first_use=True,
-        )
-
-
-def get_logger(name: str):  # type: ignore[no-untyped-def]
-    """Получить логгер с именем"""
-    return structlog.get_logger(name)

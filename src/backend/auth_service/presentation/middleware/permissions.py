@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from typing import Annotated, Any
 
+import structlog
 from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -48,6 +49,7 @@ def require_permission(
             )
         request.state.user_id = payload["sub"]
         request.state.permissions = permissions
+        structlog.contextvars.bind_contextvars(user_id=str(payload["sub"]))
         return payload
 
     return dependency

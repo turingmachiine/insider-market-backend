@@ -31,6 +31,12 @@ class AuthSettings(BaseSettings):
     REDIS_URL: str | None = None
     PERMISSIONS_CACHE_TTL: int = 300
 
+    LOG_LEVEL: str = "INFO"
+    JSON_LOGS: bool = True
+    LOG_BROKER_ENABLED: bool = False
+    LOG_REDIS_URL: str | None = None
+    LOG_REDIS_KEY: str = "logs:football"
+
     @field_validator("DATABASE_URL_AUTH", mode="before")
     @classmethod
     def assemble_db_connection(cls, v: str | None, info: ValidationInfo) -> str:

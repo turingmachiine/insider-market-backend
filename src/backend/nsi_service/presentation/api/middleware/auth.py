@@ -1,5 +1,6 @@
 from collections.abc import Awaitable, Callable
 
+import structlog
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
 from jose import JWTError, jwt
@@ -46,4 +47,6 @@ async def jwt_auth_middleware(
 
     request.state.user_id = payload.get("sub")
     request.state.permissions = set(payload.get("permissions", []))
+    if request.state.user_id is not None:
+        structlog.contextvars.bind_contextvars(user_id=str(request.state.user_id))
     return await call_next(request)

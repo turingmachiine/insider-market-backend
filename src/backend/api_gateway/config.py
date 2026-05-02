@@ -31,6 +31,12 @@ class GatewaySettings(BaseSettings):
     JWT_SECRET: str = "change-me"
     JWT_ALGORITHM: str = "HS256"
 
+    LOG_LEVEL: str = "INFO"
+    JSON_LOGS: bool = True
+    LOG_BROKER_ENABLED: bool = False
+    LOG_REDIS_URL: str | None = None
+    LOG_REDIS_KEY: str = "logs:football"
+
     SERVICE_TIMEOUT_SECONDS: float = 5.0
     TOTAL_TIMEOUT_SECONDS: float = 10.0
     STATS_TTL_SECONDS: int = 300

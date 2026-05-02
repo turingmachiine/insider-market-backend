@@ -1,31 +1,21 @@
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
-import redis.asyncio as redis
+from dishka.integrations.fastapi import AsyncContainer, setup_dishka
 from fastapi import FastAPI
 
 from src.backend.auth_service.core.config import settings
-from src.backend.auth_service.infrastructure.db import (
-    create_engine,
-    create_session_factory,
-)
+from src.backend.auth_service.infrastructure.di import create_container
 from src.backend.auth_service.presentation.api.v1.routes import router as v1_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    engine = create_engine(settings)
-    session_factory = create_session_factory(engine)
-    redis_client = redis.from_url(settings.REDIS_URL) if settings.REDIS_URL else None
-    app.state.session_factory = session_factory
-    app.state.redis = redis_client
     yield
-    if redis_client is not None:
-        await redis_client.aclose()
-    await engine.dispose()
+    await app.state.dishka_container.close()  # noqa
 
 
-def create_app() -> FastAPI:
+def create_app(container: AsyncContainer | None = None) -> FastAPI:
     app = FastAPI(
         title=settings.APP_NAME,
         version=settings.APP_VERSION,
@@ -41,6 +31,10 @@ def create_app() -> FastAPI:
         return {"status": "healthy", "version": settings.APP_VERSION}
 
     app.include_router(v1_router, prefix="/api")
+
+    if container is None:
+        container = create_container(settings)
+    setup_dishka(container, app)
 
     return app
 

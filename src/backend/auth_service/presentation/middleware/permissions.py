@@ -1,6 +1,7 @@
 from collections.abc import Awaitable, Callable
 from typing import Annotated, Any
 
+from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
@@ -8,7 +9,7 @@ from src.backend.auth_service.application.security import (
     TokenError,
     decode_access_token,
 )
-from src.backend.auth_service.core.config import AuthSettings, settings
+from src.backend.auth_service.core.config import AuthSettings
 
 bearer_scheme = HTTPBearer(auto_error=False)
 BearerCredentials = Annotated[
@@ -19,11 +20,12 @@ BearerCredentials = Annotated[
 
 def require_permission(
     permission: str,
-    auth_settings: AuthSettings = settings,
-) -> Callable[[Request, BearerCredentials], Awaitable[dict[str, Any]]]:
+) -> Callable[..., Awaitable[dict[str, Any]]]:
+    @inject
     async def dependency(
         request: Request,
         credentials: BearerCredentials,
+        auth_settings: FromDishka[AuthSettings],
     ) -> dict[str, Any]:
         if credentials is None:
             raise HTTPException(

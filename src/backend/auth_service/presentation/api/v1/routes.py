@@ -1,14 +1,10 @@
-from typing import Annotated, AsyncIterator
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from dishka.integrations.fastapi import FromDishka, inject
+from fastapi import APIRouter, Depends, HTTPException, status
 
-from src.backend.auth_service.application.repository import AuthRepository
 from src.backend.auth_service.application.service import AuthError, AuthService
-from src.backend.auth_service.core.config import settings
-from src.backend.auth_service.infrastructure.cache.permissions_cache import (
-    PermissionsCache,
-)
+from src.backend.auth_service.core.config import AuthSettings
 from src.backend.auth_service.presentation.api.v1.schemas import (
     LoginRequest,
     RegisterRequest,
@@ -22,38 +18,15 @@ from src.backend.auth_service.presentation.middleware.permissions import (
 router = APIRouter(prefix="/v1")
 
 
-async def get_session(request: Request) -> AsyncIterator[AsyncSession]:
-    session_factory: async_sessionmaker[
-        AsyncSession
-    ] = request.app.state.session_factory
-    async with session_factory() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-
-
-def get_auth_service(
-    request: Request,
-    session: Annotated[AsyncSession, Depends(get_session)],
-) -> AuthService:
-    cache = PermissionsCache(
-        request.app.state.redis,
-        ttl_seconds=settings.PERMISSIONS_CACHE_TTL,
-    )
-    return AuthService(AuthRepository(session), cache, settings)
-
-
 @router.post(
     "/register",
     response_model=RegisterResponse,
     status_code=status.HTTP_201_CREATED,
 )
+@inject
 async def register(
     request: RegisterRequest,
-    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+    auth_service: FromDishka[AuthService],
 ) -> RegisterResponse:
     try:
         user_id = await auth_service.register(request.email, request.password)
@@ -63,9 +36,11 @@ async def register(
 
 
 @router.post("/login", response_model=TokenResponse)
+@inject
 async def login(
     request: LoginRequest,
-    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+    auth_service: FromDishka[AuthService],
+    settings: FromDishka[AuthSettings],
 ) -> TokenResponse:
     try:
         token, user_id, permissions = await auth_service.login(
@@ -89,7 +64,7 @@ async def login(
 async def get_my_permissions(
     payload: Annotated[
         dict[str, object],
-        Depends(require_permission("nsi:read", settings)),
+        Depends(require_permission("nsi:read")),
     ],
 ) -> dict[str, object]:
     return {

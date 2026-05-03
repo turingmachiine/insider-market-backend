@@ -32,7 +32,7 @@ check_alembic() {
 
 # Show help
 show_help() {
-    echo "Usage: $0 [nsi|auth] <command> [options]"
+    echo "Usage: $0 [nsi|auth|rumor] <command> [options]"
     echo ""
     echo "Commands:"
     echo "  init              Initialize alembic (already done)"
@@ -48,11 +48,12 @@ show_help() {
     echo "Examples:"
     echo "  $0 nsi migrate 'Add players index'"
     echo "  $0 auth upgrade"
+    echo "  $0 rumor upgrade"
     echo "  $0 nsi downgrade 1"
 }
 
 service="${1:-nsi}"
-if [ "$service" = "nsi" ] || [ "$service" = "auth" ]; then
+if [ "$service" = "nsi" ] || [ "$service" = "auth" ] || [ "$service" = "rumor" ]; then
     shift || true
 else
     service="nsi"

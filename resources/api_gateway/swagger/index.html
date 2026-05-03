@@ -19,6 +19,7 @@
         <nav class="nav" aria-label="Documentation">
           <a href="/docs?url=/swagger/nsi/swagger.json">NSI Swagger</a>
           <a href="/docs?url=/swagger/auth/swagger.json">Auth Swagger</a>
+          <a href="/docs?url=/swagger/rumor/swagger.json">Rumor Swagger</a>
           <a href="/health">Health</a>
         </nav>
       </div>
@@ -42,6 +43,9 @@
               <a class="button" href="/docs?url=/swagger/auth/swagger.json">
                 Open Auth documentation
               </a>
+              <a class="button" href="/docs?url=/swagger/rumor/swagger.json">
+                Open Rumor documentation
+              </a>
             </div>
           </div>
 
@@ -52,7 +56,7 @@
             </div>
             <div class="metric-grid">
               <div class="metric">
-                <strong>2</strong>
+                <strong>3</strong>
                 <span>Upstream services routed through the gateway</span>
               </div>
               <div class="metric">
@@ -140,6 +144,35 @@
                 <a class="button" href="/swagger/auth/swagger.json">OpenAPI JSON</a>
               </div>
             </article>
+
+            <article class="service-card">
+              <header>
+                <h3 class="service-name">Rumor Service</h3>
+                <span class="badge">Cached GET</span>
+              </header>
+              <p class="service-desc">
+                Sources, raw insider publications, normalized rumors,
+                confidence scores, and event candidate payloads.
+              </p>
+              <div class="method-list" aria-label="Rumor gateway routes">
+                <div class="method">
+                  <span class="verb get">GET</span>
+                  <span class="path">/rumor/api/v1/rumors</span>
+                </div>
+                <div class="method">
+                  <span class="verb post">POST</span>
+                  <span class="path">/rumor/api/v1/sources</span>
+                </div>
+                <div class="method">
+                  <span class="verb post">POST</span>
+                  <span class="path">/rumor/api/v1/raw-publications</span>
+                </div>
+              </div>
+              <div class="card-actions">
+                <a class="button primary" href="/docs?url=/swagger/rumor/swagger.json">Swagger UI</a>
+                <a class="button" href="/swagger/rumor/swagger.json">OpenAPI JSON</a>
+              </div>
+            </article>
           </div>
         </div>
       </section>
@@ -147,8 +180,9 @@
 
     <footer class="footer-note">
       <div class="shell">
-        Public entry point: <strong>/nsi</strong> and
-        <strong>/auth</strong>. Gateway protections include
+        Public entry point: <strong>/nsi</strong>,
+        <strong>/auth</strong>, and <strong>/rumor</strong>.
+        Gateway protections include
         CORS, path validation, body size limits, Redis-backed rate limiting,
         JSON access logs, and upstream timeout handling.
       </div>

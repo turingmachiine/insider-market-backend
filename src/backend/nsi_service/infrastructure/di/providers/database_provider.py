@@ -3,16 +3,12 @@ from collections.abc import AsyncIterable
 from dishka import Provider, Scope, provide
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
+from src.backend.common.domain.interfaces import TransactionManager
+from src.backend.common.infrastructure.db import SQLAlchemyTransactionManager
 from src.backend.nsi_service.core.config import Settings
-from src.backend.nsi_service.domain.interfaces.transaction_manager import (
-    TransactionManager,
-)
 from src.backend.nsi_service.infrastructure.db.database import (
     create_engine,
     create_session_factory,
-)
-from src.backend.nsi_service.infrastructure.db.transaction_manager import (
-    SQLAlchemyTransactionManager,
 )
 
 

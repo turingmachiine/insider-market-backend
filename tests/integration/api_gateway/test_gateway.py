@@ -22,6 +22,19 @@ async def test_routes_request_to_expected_service(gateway_client) -> None:
 
 
 @pytest.mark.asyncio
+async def test_rumor_route_request_to_expected_service(gateway_client) -> None:
+    client, calls, _, _ = gateway_client
+
+    response = await client.get("/rumor/api/v1/rumors?status=new")
+
+    assert response.status_code == 200
+    assert response.json()["host"] == "rumor.test"
+    assert response.json()["path"] == "/api/v1/rumors"
+    assert response.json()["query"] == "status=new"
+    assert calls["rumor.test/api/v1/rumors"] == 1
+
+
+@pytest.mark.asyncio
 async def test_rate_limit_returns_429_on_101st_request(gateway_client) -> None:
     client, _, _, _ = gateway_client
 
@@ -56,6 +69,17 @@ async def test_swagger_auth_json_is_proxied(gateway_client) -> None:
     assert response.status_code == 200
     assert response.json()["openapi"] == "3.1.0"
     assert calls["auth.test/openapi.json"] == 1
+
+
+@pytest.mark.asyncio
+async def test_swagger_rumor_json_is_proxied(gateway_client) -> None:
+    client, calls, _, _ = gateway_client
+
+    response = await client.get("/swagger/rumor/swagger.json")
+
+    assert response.status_code == 200
+    assert response.json()["openapi"] == "3.1.0"
+    assert calls["rumor.test/openapi.json"] == 1
 
 
 @pytest.mark.asyncio
@@ -193,8 +217,10 @@ async def test_swagger_index_returns_service_selector(gateway_client) -> None:
     assert "Gateway capabilities" in response.text
     assert "/swagger/auth/swagger.json" in response.text
     assert "/swagger/nsi/swagger.json" in response.text
+    assert "/swagger/rumor/swagger.json" in response.text
     assert "/docs?url=/swagger/auth/swagger.json" in response.text
     assert "/docs?url=/swagger/nsi/swagger.json" in response.text
+    assert "/docs?url=/swagger/rumor/swagger.json" in response.text
 
 
 @pytest.mark.asyncio

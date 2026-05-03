@@ -117,7 +117,7 @@ Backend разделен на сервисы с отдельными зонам�
 | `auth_service` | Аутентификация, пользователи как учетные записи, роли, permissions, JWT | Существует |
 | `nsi_service` | Футбольный справочник и аналитическая база: игроки, клубы, лиги, команды, радары, похожие игроки, shadow-team | Существует |
 | `etl_service` | ETL-пайплайны сбора Telegram/СМИ/спортивных API и подготовки сырых данных | Запланирован |
-| `rumor_service` | Слухи и инсайды: источники, тексты публикаций, confidence score, кандидаты событий | Запланирован |
+| `rumor_service` | Слухи и инсайды: источники, тексты публикаций, confidence score, кандидаты событий | Существует |
 | `event_service` | События prediction market: модерация, жизненный цикл, дедлайны, резолюция исходов | Запланирован |
 | `market_service` | Prediction Market и AMM: рынки, коэффициенты, ставки, ликвидность | Запланирован |
 | `rating_service` | Рейтинги, accuracy, ELO, периодические лидерборды и расчет результатов | Запланирован |
@@ -319,6 +319,9 @@ uv run python -m uvicorn src.backend.nsi_service.main:app --reload
 # Применить все миграции
 ./scripts/migrate.sh upgrade
 
+# Применить миграции Rumor Service
+./scripts/migrate.sh rumor upgrade
+
 # Откатить последнюю миграцию
 ./scripts/migrate.sh downgrade
 
@@ -334,6 +337,9 @@ uv run python -m uvicorn src.backend.nsi_service.main:app --reload
 ```bash
 # Создать миграцию
 alembic -c migrations/nsi_service/alembic.ini revision --autogenerate -m "Description"
+
+# Создать миграцию Rumor Service
+alembic -c migrations/rumor_service/alembic.ini revision --autogenerate -m "Description"
 
 # Применить миграции
 alembic -c migrations/nsi_service/alembic.ini upgrade head

@@ -8,6 +8,7 @@ from src.backend.api_gateway.config import GatewaySettings
 class ServiceName(StrEnum):
     AUTH = "auth"
     NSI = "nsi"
+    RUMOR = "rumor"
 
 
 @dataclass(frozen=True)
@@ -35,6 +36,12 @@ class ServiceRegistry:
             ServiceName.NSI: UpstreamService(
                 name=ServiceName.NSI,
                 base_url=str(settings.SERVICE_NSI_URL),
+                cache_get=True,
+                invalidate_on_mutation=True,
+            ),
+            ServiceName.RUMOR: UpstreamService(
+                name=ServiceName.RUMOR,
+                base_url=str(settings.SERVICE_RUMOR_URL),
                 cache_get=True,
                 invalidate_on_mutation=True,
             ),

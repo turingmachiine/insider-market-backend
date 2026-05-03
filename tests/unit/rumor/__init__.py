@@ -1,0 +1,1 @@
+"""Rumor service unit tests."""

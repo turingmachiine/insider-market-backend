@@ -2,16 +2,14 @@ import logging
 from typing import Optional
 from uuid import UUID
 
-from src.backend.nsi_service.application.decorators import transactional, use_case
+from src.backend.common.application.decorators import transactional, use_case
+from src.backend.common.application.protocols import HasTransactionManager
+from src.backend.common.domain.interfaces import TransactionManager
 from src.backend.nsi_service.application.dto import ClubDTO, CreateClubDTO
 from src.backend.nsi_service.application.mappers import IClubMapper
-from src.backend.nsi_service.application.protocols import HasTransactionManager
 from src.backend.nsi_service.domain.interfaces.repositories import (
     IClubRepository,
     IPlayerRepository,
-)
-from src.backend.nsi_service.domain.interfaces.transaction_manager import (
-    TransactionManager,
 )
 
 logger = logging.getLogger(__name__)

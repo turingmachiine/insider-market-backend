@@ -4,16 +4,14 @@ import logging
 from typing import Optional
 from uuid import UUID
 
-from src.backend.nsi_service.application.decorators import transactional, use_case
+from src.backend.common.application.decorators import transactional, use_case
+from src.backend.common.application.protocols import HasTransactionManager
+from src.backend.common.domain.interfaces import TransactionManager
 from src.backend.nsi_service.application.dto import ShadowTeamDTO, TeamDTO
 from src.backend.nsi_service.application.mappers import ITeamMapper
-from src.backend.nsi_service.application.protocols import HasTransactionManager
 from src.backend.nsi_service.domain.interfaces.repositories import (
     IPlayerRepository,
     ITeamRepository,
-)
-from src.backend.nsi_service.domain.interfaces.transaction_manager import (
-    TransactionManager,
 )
 from src.backend.nsi_service.domain.services import TeamService
 from src.backend.nsi_service.processing.shadow_team.service import ShadowTeamService

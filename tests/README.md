@@ -8,6 +8,7 @@
 - `unit/nsi/domain/` содержит тесты доменных сущностей и сервисов NSI.
 - `unit/nsi/processing/` содержит тесты расчетных сервисов NSI.
 - `unit/nsi/presentation/` содержит тесты presentation-слоя NSI.
+- `unit/rumor/` содержит тесты доменных сущностей, use cases и API-контракта Rumor Service.
 - `integration/{service}/` содержит тесты API, DI, репозиториев, БД и сервисных сценариев.
 - `integration/api_gateway/` содержит тесты proxy, cache, rate-limit и swagger gateway.
 - `integration/auth/` содержит интеграционные тесты auth API.

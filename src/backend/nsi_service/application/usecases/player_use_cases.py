@@ -2,7 +2,9 @@ import logging
 from typing import Optional
 from uuid import UUID
 
-from src.backend.nsi_service.application.decorators import transactional, use_case
+from src.backend.common.application.decorators import transactional, use_case
+from src.backend.common.application.protocols import HasTransactionManager
+from src.backend.common.domain.interfaces import TransactionManager
 from src.backend.nsi_service.application.dto import (
     CreatePlayerDTO,
     PlayerDTO,
@@ -15,14 +17,10 @@ from src.backend.nsi_service.application.mappers import (
     IPlayerMapper,
     IUpdatePlayerMapper,
 )
-from src.backend.nsi_service.application.protocols import HasTransactionManager
 from src.backend.nsi_service.domain.interfaces.repositories import (
     IClubRepository,
     ILeagueRepository,
     IPlayerRepository,
-)
-from src.backend.nsi_service.domain.interfaces.transaction_manager import (
-    TransactionManager,
 )
 from src.backend.nsi_service.domain.value_objects.position import Position
 from src.backend.nsi_service.processing.matching.service import PlayerMatchingService

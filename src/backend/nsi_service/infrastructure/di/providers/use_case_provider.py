@@ -1,5 +1,6 @@
 from dishka import Provider, Scope, provide
 
+from src.backend.common.domain.interfaces import TransactionManager
 from src.backend.nsi_service.application.mappers import (
     IClubMapper,
     ICreatePlayerMapper,
@@ -19,9 +20,6 @@ from src.backend.nsi_service.domain.interfaces.repositories import (
     ILeagueRepository,
     IPlayerRepository,
     ITeamRepository,
-)
-from src.backend.nsi_service.domain.interfaces.transaction_manager import (
-    TransactionManager,
 )
 from src.backend.nsi_service.domain.services import TeamService
 from src.backend.nsi_service.processing.matching.service import PlayerMatchingService

@@ -58,6 +58,7 @@ def gateway_settings() -> GatewaySettings:
     return GatewaySettings(
         SERVICE_NSI_URL=AnyHttpUrl(url="http://nsi.test"),
         SERVICE_AUTH_URL=AnyHttpUrl(url="http://auth.test"),
+        SERVICE_RUMOR_URL=AnyHttpUrl(url="http://rumor.test"),
         REDIS_URL="redis://redis.test:6379/0",
         RATE_LIMIT="100/minute",
         RATE_LIMIT_BY_JWT=True,

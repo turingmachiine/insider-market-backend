@@ -16,6 +16,7 @@ from src.backend.api_gateway.presentation.swagger_page import SwaggerLandingPage
 from src.backend.api_gateway.routes import router
 from src.backend.api_gateway.services.cache import GatewayCache
 from src.backend.api_gateway.services.headers import HeaderPolicy
+from src.backend.api_gateway.services.openapi import OpenAPIAggregator
 from src.backend.api_gateway.services.proxy import UpstreamProxy
 from src.backend.api_gateway.services.service_registry import ServiceRegistry
 from src.backend.common.logging import (
@@ -79,6 +80,11 @@ class GatewayApplicationFactory:
             StaticFiles(directory=self._swagger_page.resource_paths.static_root),
             name="swagger-assets",
         )
+        app.mount(
+            "/docs/assets",
+            StaticFiles(directory=self._swagger_page.resource_paths.static_root),
+            name="docs-assets",
+        )
 
     def _configure_middleware(self, app: FastAPI) -> None:
         app.add_middleware(
@@ -135,9 +141,15 @@ class GatewayApplicationFactory:
         service_registry = ServiceRegistry(self._settings)
         header_policy = HeaderPolicy()
         app.state.cache = cache
+        app.state.service_registry = service_registry
         if app.state.http_client is None:
             app.state.proxy = None
+            app.state.openapi_aggregator = None
             return
+        app.state.openapi_aggregator = OpenAPIAggregator(
+            http_client=app.state.http_client,
+            service_registry=service_registry,
+        )
         app.state.proxy = UpstreamProxy(
             settings=self._settings,
             http_client=app.state.http_client,

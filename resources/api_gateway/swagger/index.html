@@ -1,26 +1,40 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Football Research Insider Market Docs</title>
-    <link rel="stylesheet" href="/swagger/assets/styles.css">
+    <title>Football Research API Gateway</title>
+    <link rel="stylesheet" href="/docs/assets/styles.css">
   </head>
   <body>
     <header class="topbar">
       <div class="shell topbar-inner">
-        <a class="brand" href="/swagger/">
+        <a class="brand" href="/docs">
           <span class="brand-mark">FR</span>
           <span>
-            <span class="brand-title">Football Research Insider Market</span>
-            <span class="brand-subtitle">Gateway documentation</span>
+            <span class="brand-title">Football Research</span>
+            <span class="brand-subtitle">единая точка входа в API</span>
           </span>
         </a>
-        <nav class="nav" aria-label="Documentation">
-          <a href="/docs?url=/swagger/nsi/swagger.json">NSI Swagger</a>
-          <a href="/docs?url=/swagger/auth/swagger.json">Auth Swagger</a>
-          <a href="/docs?url=/swagger/rumor/swagger.json">Rumor Swagger</a>
-          <a href="/health">Health</a>
+        <nav class="nav" aria-label="Документация сервисов">
+          <a href="/swagger-ui">Общий Swagger</a>
+          <a href="/swagger-ui?url=/swagger/nsi/swagger.json">NSI</a>
+          <a href="/swagger-ui?url=/swagger/auth/swagger.json">Auth</a>
+          <a href="/swagger-ui?url=/swagger/rumor/swagger.json">Rumor</a>
+          <div class="service-statuses" aria-label="Текущий статус сервисов">
+            <span class="status-chip" data-health-service="nsi">
+              <span class="status-dot"></span>
+              NSI
+            </span>
+            <span class="status-chip" data-health-service="auth">
+              <span class="status-dot"></span>
+              Auth
+            </span>
+            <span class="status-chip" data-health-service="rumor">
+              <span class="status-dot"></span>
+              Rumor
+            </span>
+          </div>
         </nav>
       </div>
     </header>
@@ -28,51 +42,90 @@
     <main>
       <section class="hero">
         <div class="shell hero-grid">
-          <div>
-            <div class="eyebrow">OpenAPI Gateway</div>
-            <h1>Football analytics APIs from one entry point.</h1>
+          <div class="hero-copy">
+            <div class="eyebrow">Insider Market API</div>
+            <h1>Платформа прогнозов, где футбольные инсайды превращаются в игру.</h1>
             <p class="lead">
-              Explore authentication, reference data, player analytics,
-              squad workflows, and service contracts through a single
-              gateway built for public API consumers.
+              Football Research собирает слухи из Telegram-каналов и спортивных СМИ,
+              превращает публикации в кандидаты событий, помогает модераторам
+              готовить рынки прогнозов и считает точность пользователей.
             </p>
             <div class="hero-actions">
-              <a class="button primary" href="/docs?url=/swagger/nsi/swagger.json">
-                Open NSI documentation
+              <a class="button primary" href="/swagger-ui">
+                Открыть общий Swagger
               </a>
-              <a class="button" href="/docs?url=/swagger/auth/swagger.json">
-                Open Auth documentation
+              <a class="button" href="/swagger/swagger.json">
+                Общий OpenAPI JSON
               </a>
-              <a class="button" href="/docs?url=/swagger/rumor/swagger.json">
-                Open Rumor documentation
+            </div>
+            <div class="hero-actions secondary-actions">
+              <a class="button primary" href="/swagger-ui?url=/swagger/nsi/swagger.json">
+                NSI Swagger
+              </a>
+              <a class="button primary" href="/swagger-ui?url=/swagger/auth/swagger.json">
+                Auth Swagger
+              </a>
+              <a class="button primary" href="/swagger-ui?url=/swagger/rumor/swagger.json">
+                Rumor Swagger
               </a>
             </div>
           </div>
 
-          <aside class="status-panel" aria-label="Gateway capabilities">
-            <div class="status-title">
-              <span>Gateway capabilities</span>
-              <span class="badge">Active</span>
+          <aside class="pitch-panel" aria-label="Схема сервисов проекта">
+            <div class="scoreboard">
+              <span>Backend XI</span>
+              <strong>4-3-3</strong>
             </div>
-            <div class="metric-grid">
-              <div class="metric">
-                <strong>3</strong>
-                <span>Upstream services routed through the gateway</span>
-              </div>
-              <div class="metric">
-                <strong>JWT</strong>
-                <span>Authorization header forwarding and user rate limits</span>
-              </div>
-              <div class="metric">
-                <strong>Redis</strong>
-                <span>Rate limiting, statistics, and first-level cache</span>
-              </div>
-              <div class="metric">
-                <strong>10 MB</strong>
-                <span>Request body protection at the gateway boundary</span>
+            <div class="pitch">
+              <div class="center-circle"></div>
+              <div class="penalty penalty-left"></div>
+              <div class="penalty penalty-right"></div>
+              <div class="tactic-board" aria-label="Backend services formation">
+                <div class="tactic-line line-gk">
+                  <div class="player-node node-gk">Gateway</div>
+                </div>
+                <div class="tactic-line line-defense">
+                  <div class="player-node">Auth</div>
+                  <div class="player-node">NSI</div>
+                  <div class="player-node">Rumor</div>
+                  <div class="player-node">ETL</div>
+                </div>
+                <div class="tactic-line line-midfield">
+                  <div class="player-node">Event</div>
+                  <div class="player-node node-cm">Market</div>
+                  <div class="player-node">Rating</div>
+                </div>
+                <div class="tactic-line line-attack">
+                  <div class="player-node">Profile</div>
+                  <div class="player-node node-st">Admin</div>
+                  <div class="player-node">Notify</div>
+                </div>
               </div>
             </div>
           </aside>
+        </div>
+      </section>
+
+      <section class="section overview-section">
+        <div class="shell">
+          <div class="overview-grid" aria-label="Возможности gateway">
+            <div class="overview-item">
+              <strong>ETL</strong>
+              <span>сбор инсайдов из Telegram и спортивных медиа для дальнейшей обработки</span>
+            </div>
+            <div class="overview-item">
+              <strong>AMM</strong>
+              <span>основа prediction market с коэффициентами, которые меняются после ставок</span>
+            </div>
+            <div class="overview-item">
+              <strong>Score</strong>
+              <span>рейтинги игроков по точности прогнозов, риску и активности</span>
+            </div>
+            <div class="overview-item">
+              <strong>Admin</strong>
+              <span>модерация событий, источников, весов инсайдеров и спорных исходов</span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -80,22 +133,134 @@
         <div class="shell">
           <div class="section-header">
             <div>
-              <h2>Service contracts</h2>
-              <p>Choose a service to open the interactive Swagger UI or raw OpenAPI schema.</p>
+              <h2>Как работает продукт</h2>
+              <p>
+                Backend собирает футбольные инсайды, нормализует их в события и
+                готовит основу для рынка прогнозов с рейтингами участников.
+              </p>
+            </div>
+          </div>
+
+          <div class="flow-grid" aria-label="Основной цикл Insider Market">
+            <article class="flow-step">
+              <span class="step-index">01</span>
+              <h3>Сбор публикаций</h3>
+              <p>
+                ETL-пайплайн забирает посты из Telegram-каналов инсайдеров и
+                спортивных медиа. В проектной модели это сырье для дальнейшей
+                проверки, дедупликации и анализа.
+              </p>
+            </article>
+            <article class="flow-step">
+              <span class="step-index">02</span>
+              <h3>Извлечение событий</h3>
+              <p>
+                Rule-based логика выделяет из текста потенциальные события:
+                трансферы, назначения, увольнения, конфликты и другие инфоповоды
+                российского футбола.
+              </p>
+            </article>
+            <article class="flow-step">
+              <span class="step-index">03</span>
+              <h3>Модерация и рынок</h3>
+              <p>
+                Администратор проверяет кандидаты, уточняет формулировки и
+                публикует рынки. AMM-логика должна менять коэффициенты после
+                ставок пользователей.
+              </p>
+            </article>
+            <article class="flow-step">
+              <span class="step-index">04</span>
+              <h3>Резолюция и рейтинг</h3>
+              <p>
+                После наступления исхода система обновляет результаты, accuracy,
+                ELO и композитный score, чтобы сравнивать участников и источники
+                по исторической точности.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section audience-section">
+        <div class="shell split-layout">
+          <div>
+            <h2>Для кого строится система</h2>
+            <p class="section-lead">
+              Проект закрывает разрыв между хаотичным потоком инсайдов и
+              проверяемой историей прогнозов.
+            </p>
+          </div>
+          <div class="audience-list">
+            <div class="audience-item">
+              <strong>Футбольные фанаты</strong>
+              <span>соревнуются в точности прогнозов и следят за рынком слухов</span>
+            </div>
+            <div class="audience-item">
+              <strong>Журналисты</strong>
+              <span>получают базу подтвержденных слухов и рейтинг источников</span>
+            </div>
+            <div class="audience-item">
+              <strong>Аналитики и клубы</strong>
+              <span>видят тренды, надежность источников и движение трансферных ожиданий</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section services-section">
+        <div class="shell">
+          <div class="section-header">
+            <div>
+              <h2>Контракты сервисов</h2>
+              <p>
+                Откройте общий Swagger для всех реализованных сервисов или выберите
+                отдельный контракт микросервиса.
+              </p>
             </div>
           </div>
 
           <div class="service-grid">
+            <article class="service-card featured-service">
+              <header>
+                <h3 class="service-name">Football Research API</h3>
+                <span class="badge">gateway</span>
+              </header>
+              <p class="service-desc">
+                Единая OpenAPI-схема, собранная из NSI, Auth и Rumor. Gateway
+                добавляет к каждому path публичный префикс микросервиса:
+                <strong>/nsi</strong>, <strong>/auth</strong>, <strong>/rumor</strong>.
+              </p>
+              <div class="method-list" aria-label="Общие маршруты gateway">
+                <div class="method">
+                  <span class="verb get">GET</span>
+                  <span class="path">/nsi/...</span>
+                </div>
+                <div class="method">
+                  <span class="verb get">GET</span>
+                  <span class="path">/auth/...</span>
+                </div>
+                <div class="method">
+                  <span class="verb get">GET</span>
+                  <span class="path">/rumor/...</span>
+                </div>
+              </div>
+              <div class="card-actions">
+                <a class="button primary" href="/swagger-ui">Swagger UI</a>
+                <a class="button" href="/swagger/swagger.json">OpenAPI JSON</a>
+              </div>
+            </article>
+
             <article class="service-card">
               <header>
                 <h3 class="service-name">NSI Service</h3>
-                <span class="badge">Cached GET</span>
+                <span class="badge">кеш GET</span>
               </header>
               <p class="service-desc">
-                Football reference data, players, clubs, leagues, radar
-                charts, matching, and shadow-team workflows.
+                Футбольная база проекта: игроки, клубы, лиги, команды и аналитические
+                сценарии вроде радаров, похожих игроков и shadow-team.
               </p>
-              <div class="method-list" aria-label="NSI gateway routes">
+              <div class="method-list" aria-label="Маршруты NSI">
                 <div class="method">
                   <span class="verb get">GET</span>
                   <span class="path">/nsi/api/v1/...</span>
@@ -110,7 +275,7 @@
                 </div>
               </div>
               <div class="card-actions">
-                <a class="button primary" href="/docs?url=/swagger/nsi/swagger.json">Swagger UI</a>
+                <a class="button primary" href="/swagger-ui?url=/swagger/nsi/swagger.json">Swagger UI</a>
                 <a class="button" href="/swagger/nsi/swagger.json">OpenAPI JSON</a>
               </div>
             </article>
@@ -121,11 +286,10 @@
                 <span class="badge">JWT</span>
               </header>
               <p class="service-desc">
-                Registration, login, token issuing, permission checks,
-                and authenticated user context for downstream services.
+                Учетные записи пользователей, роли, permissions и JWT-контекст,
+                который gateway передает во внутренние сервисы.
               </p>
-              </p>
-              <div class="method-list" aria-label="Auth gateway routes">
+              <div class="method-list" aria-label="Маршруты Auth">
                 <div class="method">
                   <span class="verb post">POST</span>
                   <span class="path">/auth/api/v1/login</span>
@@ -140,7 +304,7 @@
                 </div>
               </div>
               <div class="card-actions">
-                <a class="button primary" href="/docs?url=/swagger/auth/swagger.json">Swagger UI</a>
+                <a class="button primary" href="/swagger-ui?url=/swagger/auth/swagger.json">Swagger UI</a>
                 <a class="button" href="/swagger/auth/swagger.json">OpenAPI JSON</a>
               </div>
             </article>
@@ -148,13 +312,13 @@
             <article class="service-card">
               <header>
                 <h3 class="service-name">Rumor Service</h3>
-                <span class="badge">Cached GET</span>
+                <span class="badge">инсайды</span>
               </header>
               <p class="service-desc">
-                Sources, raw insider publications, normalized rumors,
-                confidence scores, and event candidate payloads.
+                Источники, сырые публикации, нормализованные слухи, confidence score
+                и кандидаты событий для последующей модерации prediction market.
               </p>
-              <div class="method-list" aria-label="Rumor gateway routes">
+              <div class="method-list" aria-label="Маршруты Rumor">
                 <div class="method">
                   <span class="verb get">GET</span>
                   <span class="path">/rumor/api/v1/rumors</span>
@@ -169,9 +333,71 @@
                 </div>
               </div>
               <div class="card-actions">
-                <a class="button primary" href="/docs?url=/swagger/rumor/swagger.json">Swagger UI</a>
+                <a class="button primary" href="/swagger-ui?url=/swagger/rumor/swagger.json">Swagger UI</a>
                 <a class="button" href="/swagger/rumor/swagger.json">OpenAPI JSON</a>
               </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section roadmap-section">
+        <div class="shell">
+          <div class="section-header">
+            <div>
+              <h2>Карта backend-сервисов</h2>
+              <p>
+                Сейчас через gateway доступны реализованные сервисы. Остальные
+                зоны ответственности описаны в README и запланированы для развития
+                prediction market.
+              </p>
+            </div>
+          </div>
+
+          <div class="roadmap-grid">
+            <article class="roadmap-card is-ready">
+              <strong>api_gateway</strong>
+              <span>единая публичная точка входа, CORS, rate limit, проксирование</span>
+            </article>
+            <article class="roadmap-card is-ready">
+              <strong>auth_service</strong>
+              <span>пользователи, роли, permissions, JWT</span>
+            </article>
+            <article class="roadmap-card is-ready">
+              <strong>nsi_service</strong>
+              <span>футбольные справочники и аналитическая база</span>
+            </article>
+            <article class="roadmap-card is-ready">
+              <strong>rumor_service</strong>
+              <span>источники, публикации, слухи, confidence score</span>
+            </article>
+            <article class="roadmap-card">
+              <strong>etl_service</strong>
+              <span>сбор Telegram, СМИ и внешних спортивных API</span>
+            </article>
+            <article class="roadmap-card">
+              <strong>event_service</strong>
+              <span>жизненный цикл событий, дедлайны и резолюция исходов</span>
+            </article>
+            <article class="roadmap-card">
+              <strong>market_service</strong>
+              <span>prediction market, AMM, ставки и ликвидность</span>
+            </article>
+            <article class="roadmap-card">
+              <strong>rating_service</strong>
+              <span>accuracy, ELO, лидерборды и периодические рейтинги</span>
+            </article>
+            <article class="roadmap-card">
+              <strong>profile_service</strong>
+              <span>публичные профили, достижения и социальные связи</span>
+            </article>
+            <article class="roadmap-card">
+              <strong>notification_service</strong>
+              <span>WebSocket, live updates и уведомления</span>
+            </article>
+            <article class="roadmap-card">
+              <strong>admin_service</strong>
+              <span>операционные сценарии модерации и управления событиями</span>
             </article>
           </div>
         </div>
@@ -180,12 +406,41 @@
 
     <footer class="footer-note">
       <div class="shell">
-        Public entry point: <strong>/nsi</strong>,
-        <strong>/auth</strong>, and <strong>/rumor</strong>.
-        Gateway protections include
-        CORS, path validation, body size limits, Redis-backed rate limiting,
-        JSON access logs, and upstream timeout handling.
+        Публичные префиксы: <strong>/nsi</strong>, <strong>/auth</strong> и
+        <strong>/rumor</strong>. Gateway отвечает за CORS, security headers,
+        валидацию путей, лимиты размера запроса, Redis-backed rate limiting,
+        JSON access logs и обработку upstream timeout.
       </div>
     </footer>
+    <script>
+      const healthServices = [
+        { name: "nsi", url: "/nsi/health" },
+        { name: "auth", url: "/auth/health" },
+        { name: "rumor", url: "/rumor/health" },
+      ];
+
+      const markServiceStatus = (name, isHealthy) => {
+        const chip = document.querySelector(`[data-health-service="${name}"]`);
+        if (!chip) {
+          return;
+        }
+        chip.classList.toggle("is-healthy", isHealthy);
+        chip.classList.toggle("is-down", !isHealthy);
+        chip.setAttribute(
+          "title",
+          isHealthy ? "Сервис healthy" : "Сервис недоступен"
+        );
+      };
+
+      healthServices.forEach(async ({ name, url }) => {
+        try {
+          const response = await fetch(url, { cache: "no-store" });
+          const payload = await response.json();
+          markServiceStatus(name, response.ok && payload.status === "healthy");
+        } catch {
+          markServiceStatus(name, false);
+        }
+      });
+    </script>
   </body>
 </html>

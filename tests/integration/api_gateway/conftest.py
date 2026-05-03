@@ -90,7 +90,43 @@ def gateway_upstream_handler(
             raise httpx.ConnectError("service unavailable", request=request)
         if request.url.path == "/openapi.json":
             return httpx.Response(
-                200, json={"openapi": "3.1.0", "info": {"title": key}}
+                200,
+                json={
+                    "openapi": "3.1.0",
+                    "info": {"title": key, "version": "1.0.0"},
+                    "tags": [{"name": "Health"}],
+                    "paths": {
+                        "/health": {
+                            "get": {
+                                "tags": ["Health"],
+                                "operationId": "health_check",
+                                "responses": {
+                                    "200": {
+                                        "description": "OK",
+                                        "content": {
+                                            "application/json": {
+                                                "schema": {
+                                                    "$ref": (
+                                                        "#/components/schemas/"
+                                                        "HealthResponse"
+                                                    )
+                                                }
+                                            }
+                                        },
+                                    }
+                                },
+                            }
+                        }
+                    },
+                    "components": {
+                        "schemas": {
+                            "HealthResponse": {
+                                "type": "object",
+                                "properties": {"status": {"type": "string"}},
+                            }
+                        }
+                    },
+                },
             )
         return httpx.Response(
             200,

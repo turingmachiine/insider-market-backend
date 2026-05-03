@@ -83,6 +83,37 @@ async def test_swagger_rumor_json_is_proxied(gateway_client) -> None:
 
 
 @pytest.mark.asyncio
+async def test_aggregate_swagger_json_prefixes_service_paths(gateway_client) -> None:
+    client, calls, _, _ = gateway_client
+
+    response = await client.get("/swagger/swagger.json")
+
+    assert response.status_code == 200
+    schema = response.json()
+    assert schema["openapi"] == "3.1.0"
+    assert "/nsi/health" in schema["paths"]
+    assert "/auth/health" in schema["paths"]
+    assert "/rumor/health" in schema["paths"]
+    assert "NsiHealthResponse" in schema["components"]["schemas"]
+    assert "AuthHealthResponse" in schema["components"]["schemas"]
+    assert "RumorHealthResponse" in schema["components"]["schemas"]
+    assert schema["tags"] == [{"name": "Health"}]
+    assert schema["paths"]["/nsi/health"]["get"]["tags"] == ["Health"]
+    assert schema["paths"]["/auth/health"]["get"]["tags"] == ["Health"]
+    assert schema["paths"]["/rumor/health"]["get"]["tags"] == ["Health"]
+    assert (
+        schema["paths"]["/nsi/health"]["get"]["responses"]["200"]["content"][
+            "application/json"
+        ]["schema"]["$ref"]
+        == "#/components/schemas/NsiHealthResponse"
+    )
+    assert schema["paths"]["/nsi/health"]["get"]["operationId"] == ("nsi_health_check")
+    assert calls["nsi.test/openapi.json"] == 1
+    assert calls["auth.test/openapi.json"] == 1
+    assert calls["rumor.test/openapi.json"] == 1
+
+
+@pytest.mark.asyncio
 async def test_query_string_and_body_are_forwarded(gateway_client) -> None:
     client, _, upstream_requests, _ = gateway_client
 
@@ -205,29 +236,42 @@ async def test_cors_preflight_uses_configured_origin(gateway_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_swagger_index_returns_service_selector(gateway_client) -> None:
+async def test_docs_page_returns_project_documentation(gateway_client) -> None:
     client, _, _, _ = gateway_client
 
-    response = await client.get("/swagger/")
+    response = await client.get("/docs")
 
     assert response.status_code == 200
-    assert '<link rel="stylesheet" href="/swagger/assets/styles.css">' in response.text
-    assert "Football analytics APIs from one entry point." in response.text
-    assert "OpenAPI Gateway" in response.text
-    assert "Gateway capabilities" in response.text
+    assert '<link rel="stylesheet" href="/docs/assets/styles.css">' in response.text
+    assert "Платформа прогнозов" in response.text
+    assert "Как работает продукт" in response.text
+    assert "Карта backend-сервисов" in response.text
+    assert "prediction market" in response.text
+    assert "/swagger/swagger.json" in response.text
+    assert "/swagger-ui" in response.text
     assert "/swagger/auth/swagger.json" in response.text
     assert "/swagger/nsi/swagger.json" in response.text
     assert "/swagger/rumor/swagger.json" in response.text
-    assert "/docs?url=/swagger/auth/swagger.json" in response.text
-    assert "/docs?url=/swagger/nsi/swagger.json" in response.text
-    assert "/docs?url=/swagger/rumor/swagger.json" in response.text
+    assert "/swagger-ui?url=/swagger/auth/swagger.json" in response.text
+    assert "/swagger-ui?url=/swagger/nsi/swagger.json" in response.text
+    assert "/swagger-ui?url=/swagger/rumor/swagger.json" in response.text
 
 
 @pytest.mark.asyncio
-async def test_swagger_stylesheet_is_served(gateway_client) -> None:
+async def test_legacy_swagger_index_redirects_to_docs(gateway_client) -> None:
     client, _, _, _ = gateway_client
 
-    response = await client.get("/swagger/assets/styles.css")
+    response = await client.get("/swagger/", follow_redirects=False)
+
+    assert response.status_code == 308
+    assert response.headers["location"] == "/docs"
+
+
+@pytest.mark.asyncio
+async def test_docs_stylesheet_is_served(gateway_client) -> None:
+    client, _, _, _ = gateway_client
+
+    response = await client.get("/docs/assets/styles.css")
 
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/css")

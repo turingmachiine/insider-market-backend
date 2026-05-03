@@ -249,7 +249,10 @@ player_dto = PlayerDTO.from_entity(player)
 
 После запуска приложения:
 
-- **Документация**: http://localhost:8000/swagger
+- **Документация проекта**: http://localhost:8000/docs
+- **Общий Swagger UI**: http://localhost:8000/swagger-ui
+- **Общий OpenAPI JSON**: http://localhost:8000/swagger/swagger.json
+- **Swagger UI отдельных сервисов**: ссылки доступны со страницы документации.
 
 ## Разработка
 

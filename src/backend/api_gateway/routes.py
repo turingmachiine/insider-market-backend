@@ -1,8 +1,10 @@
+import httpx
 from fastapi import APIRouter, Request
 from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 
 from src.backend.api_gateway.presentation.swagger_page import SwaggerLandingPage
+from src.backend.api_gateway.services.openapi import OpenAPIAggregator
 from src.backend.api_gateway.services.proxy import UpstreamProxy
 from src.backend.api_gateway.services.service_registry import ServiceName
 
@@ -21,13 +23,25 @@ class GatewayRouter:
         )
         self.router.add_api_route(
             "/swagger/",
-            self.swagger_index,
+            self.swagger_redirect,
             methods=["GET"],
             include_in_schema=False,
         )
         self.router.add_api_route(
             "/docs",
+            self.swagger_index,
+            methods=["GET"],
+            include_in_schema=False,
+        )
+        self.router.add_api_route(
+            "/swagger-ui",
             self.swagger_ui,
+            methods=["GET"],
+            include_in_schema=False,
+        )
+        self.router.add_api_route(
+            "/swagger/swagger.json",
+            self.aggregate_swagger_json,
             methods=["GET"],
             include_in_schema=False,
         )
@@ -71,13 +85,33 @@ class GatewayRouter:
         return {"status": "healthy"}
 
     @staticmethod
+    def swagger_redirect() -> RedirectResponse:
+        return RedirectResponse(url="/docs", status_code=308)
+
+    @staticmethod
     def swagger_index(request: Request) -> HTMLResponse:
         swagger_page: SwaggerLandingPage = request.app.state.swagger_page
         return HTMLResponse(swagger_page.render())
 
     @staticmethod
-    def swagger_ui(url: str = "/swagger/nsi/swagger.json") -> HTMLResponse:
+    def swagger_ui(url: str = "/swagger/swagger.json") -> HTMLResponse:
         return get_swagger_ui_html(openapi_url=url, title="Football Research Gateway")
+
+    @staticmethod
+    async def aggregate_swagger_json(request: Request) -> JSONResponse:
+        aggregator: OpenAPIAggregator | None = request.app.state.openapi_aggregator
+        if aggregator is None:
+            return JSONResponse(
+                {"detail": "OpenAPI aggregator is not configured"},
+                status_code=503,
+            )
+        try:
+            return JSONResponse(await aggregator.aggregate())
+        except httpx.HTTPError:
+            return JSONResponse(
+                {"detail": "Failed to load upstream OpenAPI schema"},
+                status_code=502,
+            )
 
     async def swagger_json(self, request: Request, service: str) -> Response:
         try:

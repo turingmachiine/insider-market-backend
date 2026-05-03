@@ -1,16 +1,98 @@
-# Football Research Application
+# Football Research Insider Market
 
-Многомодульное приложение для футбольной аналитики с чистой архитектурой.
+[![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-blue.svg)](https://postgresql.org)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## Возможности
+> **Платформа прогнозов на основе футбольных инсайдов. Превращаем слухи в игру.**
 
-- 📊 Сбор статистики с популярных платформ (FBRef, Transfermarkt, Understat)
-- 📈 Построение графиков-радаров для сравнения игроков со средними значениями в лиге
-- 🔍 Поиск похожих игроков с учетом силы чемпионата
-- 🏆 Формирование shadow-team для усиления состава
-- 📚 Полная документация API (Swagger/ReDoc)
+---
 
-## Технологии
+## 📖 Оглавление
+
+- [Описание проекта](#описание-проекта)
+- [Основная идея и концепция](#основная-идея-и-концепция)
+- [Ключевые особенности](#ключевые-особенности)
+- [Стек технологий](#стек-технологий)
+- [Архитектура и конвенции](#архитектура-и-конвенции)
+- [API Документация](#api-документация)
+- [Разработка](#разработка)
+- [Лицензия](#лицензия)
+
+---
+
+## Описание проекта
+
+**Insider Market** — это веб-платформа, где пользователи делают прогнозы (ставят виртуальные токены) на достоверность футбольных инсайдов и слухов, публикуемых в Telegram-каналах и спортивных СМИ.
+
+Система автоматически собирает инсайды, извлекает из них потенциальные события, предлагает их для модерации администратору, после чего пользователи могут делать ставки. По итогам ведется рейтинг пользователей на основе точности их прогнозов.
+
+Проект сочетает в себе:
+- Сложную **backend-архитектуру** (ETL, AMM, real-time updates)
+- **Игровую механику** (ставки, рейтинги, достижения)
+- **Интеграции с внешними сервисами** (Telegram API, спортивные API)
+- **Удобный интерфейс для администратора** (модерация, управление событиями)
+---
+
+## Основная идея и концепция
+
+### Проблема
+
+В российском футболе существует огромное количество слухов и инсайдов — трансферы, увольнения тренеров, конфликты. Фанаты активно обсуждают их, но:
+- Нет объективного способа проверить, кто из инсайдеров наиболее точен
+- Нет игрового механизма, позволяющего "конвертировать" знание футбольной тусовки в соревновательный опыт
+- Аналитика инсайдеров разрознена и не систематизирована
+
+### Решение
+
+**Insider Market** создает замкнутый цикл:
+Инсайдер пишет пост → Система извлекает событие → Пользователи делают ставки
+↓ ↓
+Историческая аналитика ← Событие разрешается ← Рейтинг пользователей
+
+
+### Ценность для разных аудиторий
+
+| Аудитория | Что получает |
+|-----------|--------------|
+| **Футбольные фанаты** | Возможность проверить свою интуицию, посоревноваться с другими, следить за трансферными слухами |
+| **Спортивные журналисты** | Объективный рейтинг точности инсайдеров, база подтвержденных слухов |
+| **Аналитики и клубы** | Данные о достоверности различных источников, тренды в трансферном рынке |
+
+
+---
+
+## Ключевые особенности
+
+### 🔄 Автоматический ETL пайплайн
+- Парсинг Telegram-каналов топ-инсайдеров (Карпов, Егоров, Казаков)
+- Rule-based извлечение событий из текста (без ML, чистая логика)
+- Расчет confidence score для автоматического создания событий
+
+### 🎮 Prediction Market с AMM
+- Автоматический маркет-мейкер для динамических коэффициентов
+- Коэффициенты меняются после каждой ставки (как на бирже)
+- WebSocket для live-обновлений
+
+### 👑 Система рейтинга
+- Композитный Score: `Accuracy² × log₂(Bets + 1) × (1 + HighRiskBonus)`
+- ELO рейтинг для более точного сравнения игроков
+- Множественные периоды (all-time, сезон, месяц, неделя)
+
+### 🛠️ Административная панель
+- Модерация событий из очереди (с confidence score)
+- Ручное создание/редактирование/резолв событий
+- Управление источниками и весами инсайдеров
+- Мониторинг "проблемных" событий (невалидные инсайды, ошибки парсинга)
+
+### 🏆 Геймификация
+- Система ачивок и достижений
+- Еженедельные турниры
+- Лиги друзей (приватные группы)
+
+---
+## Стек технологий
 
 - Python 3.12+
 - FastAPI
@@ -22,9 +104,9 @@
 - Docker / Docker Compose
 - pytest
 
-## Архитектура
+## Архитектура и конвенции
 
-Проект следует принципам чистой архитектуры:
+### Проект следует принципам чистой архитектуры:
 
 ```
 src/
@@ -50,9 +132,9 @@ src/
         └── schemas/    # Pydantic схемы
 ```
 
-## Конвенции проекта
+### Конвенции проекта
 
-### 1 файл = 1 класс
+#### 1 файл = 1 класс
 
 Каждый класс должен находиться в отдельном файле с соответствующим именем:
 
@@ -72,7 +154,7 @@ src/core/mapping/
 - Вспомогательные функции/утилиты могут быть в одном файле
 - `__init__.py` для экспортов
 
-### Внедрение зависимостей (DI)
+#### Внедрение зависимостей (DI)
 
 Все зависимости внедряются через **dishka**. Запрещено создание зависимостей внутри классов:
 
@@ -94,7 +176,7 @@ class PlayerUseCases:
         self.player_mapper = PlayerMapper()  # Нельзя создавать внутри!
 ```
 
-### Маппинг между слоями
+#### Маппинг между слоями
 
 Используйте мапперы из `src/core/mapping/` вместо методов `from_entity()`:
 
@@ -123,14 +205,14 @@ class PlayerDTO:
 player_dto = PlayerDTO.from_entity(player)
 ```
 
-### Структура мапперов
+#### Структура мапперов
 
 - **DTO мапперы**: `XxxMapper` с методами `to_dto()`, `to_entity()`
 - **ORM мапперы**: `XxxORMMapper` с методами `to_orm()`, `to_entity()`
 - **Create мапперы**: `CreateXxxMapper` с методом `create_entity()`
 - **Update мапперы**: `UpdateXxxMapper` с методом `apply_to_entity()`
 
-### Слои приложения
+#### Слои приложения
 
 - **Domain**: только бизнес-логика, нет зависимостей от других слоёв
 - **Application**: use cases, DTO, порты
@@ -139,118 +221,13 @@ player_dto = PlayerDTO.from_entity(player)
 
 Зависимости: `Presentation → Application → Domain ← Infrastructure`
 
-## Лучшие практики чистого кода
+## API Документация
 
-### Именование переменных
+После запуска приложения:
 
-```python
-# ✅ Правильно - понятные имена
-for league in leagues:
-    process(league)
+- **Документация**: http://localhost:8000/swagger
 
-# ❌ Неправильно - однобуквенные имена (кроме циклов)
-for l in leagues_list:
-    process(l)
-```
-
-### Избегайте магических чисел
-
-```python
-# ✅ Правильно
-MAX_PLAYERS_PER_TEAM = 25
-DEFAULT_PAGE_LIMIT = 50
-
-# ❌ Неправильно
-if len(players) > 25:
-    ...
-```
-
-### Функции должны делать одно дело
-
-```python
-# ✅ Правильно
-def create_player(dto: CreatePlayerDTO) -> Player:
-    player = mapper.create_entity(dto)
-    return repository.save(player)
-
-# ❌ Неправильно
-def create_player(dto):
-    # Валидация, маппинг, сохранение, логирование - всё в одной функции
-    ...
-```
-
-### Используйте Type Hints
-
-```python
-# ✅ Правильно
-def get_player(player_id: UUID) -> Optional[PlayerDTO]:
-    ...
-
-# ❌ Неправильно
-def get_player(player_id):
-    ...
-```
-
-### Избегайте глубокой вложенности
-
-```python
-# ✅ Правильно - guard clauses
-def process_player(player: Player) -> None:
-    if not player.is_active:
-        return
-    if player.age < 18:
-        return
-    # основная логика
-
-# ❌ Неправильно - глубокая вложенность
-def process_player(player: Player) -> None:
-    if player.is_active:
-        if player.age >= 18:
-            # основная логика
-```
-
-### Документирование
-
-```python
-# ✅ Правильно
-class PlayerRepository:
-    """Репозиторий для работы с игроками"""
-
-    async def get_by_id(self, player_id: UUID) -> Optional[Player]:
-        """Получить игрока по ID"""
-```
-
-### Обработка ошибок
-
-```python
-# ✅ Правильно - конкретные исключения
-try:
-    player = await repo.get_by_id(player_id)
-except PlayerNotFoundError:
-    raise HTTPException(status_code=404)
-
-# ❌ Неправильно - bare except
-try:
-    player = await repo.get_by_id(player_id)
-except:
-    pass
-```
-
-### Тесты
-
-```python
-# ✅ Правильно - один assert на концепцию
-def test_create_player():
-    player = create_player(dto)
-    assert player.id is not None
-    assert player.name == dto.name
-
-# ❌ Неправильно - слишком много проверок
-def test_everything():
-    # 50 строк с разными проверками
-```
-
-## Быстрый старт
+## Разработка
 
 ### Локальная разработка (рекомендуется)
 
@@ -309,61 +286,6 @@ cp .env.example .env
 uv run python -m uvicorn src.backend.nsi_service.main:app --reload
 ```
 
-## API Документация
-
-После запуска приложения:
-
-- **Swagger UI**: http://localhost:8000/api/docs
-- **ReDoc**: http://localhost:8000/api/redoc
-- **Health Check**: http://localhost:8000/health
-
-## Основные эндпоинты
-
-### Игроки
-| Метод | Endpoint | Описание |
-|-------|----------|----------|
-| GET | `/api/v1/players` | Список игроков с пагинацией |
-| GET | `/api/v1/players/search?name=...` | Поиск по имени |
-| GET | `/api/v1/players/{id}` | Получить игрока по ID |
-| POST | `/api/v1/players` | Создать игрока |
-| PATCH | `/api/v1/players/{id}` | Обновить игрока |
-| DELETE | `/api/v1/players/{id}` | Удалить игрока |
-| GET | `/api/v1/players/{id}/radar` | Радар-чарт игрока |
-| GET | `/api/v1/players/{id}/similar` | Похожие игроки |
-| GET | `/api/v1/players/position/{position}` | Игроки по позиции |
-| GET | `/api/v1/players/league/{league_id}` | Игроки лиги |
-| GET | `/api/v1/players/club/{club_id}` | Игроки клуба |
-
-### Клубы
-| Метод | Endpoint | Описание |
-|-------|----------|----------|
-| GET | `/api/v1/clubs` | Список клубов |
-| GET | `/api/v1/clubs/search?name=...` | Поиск клубов |
-| GET | `/api/v1/clubs/{id}` | Получить клуб |
-| POST | `/api/v1/clubs` | Создать клуб |
-| GET | `/api/v1/clubs/league/{league_id}` | Клубы лиги |
-
-### Лиги
-| Метод | Endpoint | Описание |
-|-------|----------|----------|
-| GET | `/api/v1/leagues` | Список лиг |
-| GET | `/api/v1/leagues/top` | Топ лиги |
-| GET | `/api/v1/leagues/search?name=...` | Поиск лиг |
-| GET | `/api/v1/leagues/{id}` | Получить лигу |
-| POST | `/api/v1/leagues` | Создать лигу |
-
-### Команды пользователей
-| Метод | Endpoint | Описание |
-|-------|----------|----------|
-| GET | `/api/v1/teams` | Команды пользователя |
-| GET | `/api/v1/teams/{id}` | Получить команду |
-| POST | `/api/v1/teams` | Создать команду |
-| POST | `/api/v1/teams/{id}/players` | Добавить игрока |
-| DELETE | `/api/v1/teams/{id}/players` | Удалить игрока |
-| POST | `/api/v1/teams/{id}/shadow-team` | Построить shadow-team |
-
-## Миграции базы данных
-
 ### Использование скрипта миграций
 
 ```bash
@@ -408,8 +330,6 @@ docker-compose run --rm migrations
 # Для локальной разработки
 docker-compose -f docker-compose.local.yml run --rm migrations
 ```
-
-## Разработка
 
 ### Запуск тестов
 
@@ -458,65 +378,6 @@ pre-commit run --all-files
 Хуки включают:
 - Black (форматирование)
 - isort (сортировка импортов)
-
-### Настройка PyCharm
-
-Для корректной работы импортов в PyCharm:
-
-1. Запустите скрипт настройки:
-   ```bash
-   ./scripts/setup-pycharm.sh
-   ```
-
-2. Выполните **File → Invalidate Caches... → Invalidate and Restart**
-
-3. После перезагрузки:
-   - ПКМ на `src` → **Mark Directory as** → **Sources Root**
-   - ПКМ на `tests` → **Mark Directory as** → **Tests Root**
-
-4. Проверьте **Settings → Project → Project Structure**:
-   - `src` должна быть помечена как **Sources** (синяя)
-   - `tests` должна быть помечена как **Tests** (зелёная)
-   - Вложенные папки (`core`, `domain`, etc.) **не** должны быть Sources
-
-📖 Подробная инструкция: [docs/pycharm-setup.md](docs/pycharm-setup.md)
-- flake8 (линтинг)
-- mypy (проверка типов)
-- Проверка YAML/JSON/TOML
-
-## Переменные окружения
-
-| Переменная | Описание | По умолчанию |
-|------------|----------|--------------|
-| `POSTGRES_USER` | Пользователь PostgreSQL | `postgres` |
-| `POSTGRES_PASSWORD` | Пароль PostgreSQL | `postgres` |
-| `POSTGRES_HOST` | Хост PostgreSQL | `localhost` |
-| `POSTGRES_PORT_NSI` | Порт PostgreSQL NSI | `5432` |
-| `POSTGRES_DB_NSI` | Имя базы данных NSI | `football_db` |
-| `REDIS_URL` | URL Redis | `redis://localhost:6379` |
-| `DEBUG` | Режим отладки | `false` |
-| `LOG_LEVEL` | Уровень логов | `INFO` |
-| `PORT` | Порт приложения | `8000` |
-| `WORKERS` | Количество workers | `4` |
-
-## Структура миграций
-
-```
-migrations/
-├── versions/
-│   ├── 001_initial.py    # Начальная миграция
-│   └── ...
-├── env.py                 # Конфигурация окружения
-└── script.py.mako         # Шаблон миграций
-```
-
-## Вклад в проект
-
-1. Fork репозитория
-2. Создайте feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit изменений (`git commit -m 'Add amazing feature'`)
-4. Push в branch (`git push origin feature/amazing-feature`)
-5. Откройте Pull Request
 
 ## Лицензия
 

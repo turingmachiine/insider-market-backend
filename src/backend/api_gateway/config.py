@@ -12,7 +12,7 @@ class GatewaySettings(BaseSettings):
         extra="ignore",
     )
 
-    APP_NAME: str = "Football Research API Gateway"
+    APP_NAME: str = "Football Research Insider Market Gateway"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
     HOST: str = "0.0.0.0"

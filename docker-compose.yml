@@ -151,7 +151,7 @@ services:
       JWT_TTL: ${JWT_TTL:-3600}
       DEBUG: "false"
       ENVIRONMENT: production
-      APP_NAME: "${APP_NAME:-Football Research API}"
+      APP_NAME: "${APP_NAME:-Football Research Insider Market}"
       APP_VERSION: "${APP_VERSION:-1.0.0}"
       LOG_LEVEL: "${LOG_LEVEL:-INFO}"
       JSON_LOGS: "true"

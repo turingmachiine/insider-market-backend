@@ -35,12 +35,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         broker_key=settings.LOG_REDIS_KEY,
     )
     logger = structlog.get_logger("football_research")
-    logger.info("Starting Football Research API", version=settings.APP_VERSION)
+    logger.info(
+        "Starting Football Research Insider Market", version=settings.APP_VERSION
+    )
 
     yield
 
     # Shutdown
-    logger.info("Shutting down Football Research API")
+    logger.info("Shutting down Football Research Insider Market")
     await app.state.dishka_container.close()  # noqa
     shutdown_logging()
 

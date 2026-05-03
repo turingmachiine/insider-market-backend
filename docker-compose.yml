@@ -60,6 +60,26 @@ services:
       - football_network
     restart: unless-stopped
 
+  postgres_event:
+    image: postgres:16-alpine
+    container_name: football_research_event_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER_EVENT:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_EVENT:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB_EVENT:-event_db}
+    ports:
+      - "${POSTGRES_PORT_EVENT:-5435}:5432"
+    volumes:
+      - postgres_event_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER_EVENT:-postgres} -d ${POSTGRES_DB_EVENT:-event_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - football_network
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     container_name: football_research_redis
@@ -173,6 +193,22 @@ services:
       - football_network
     command: >
       sh -c "alembic -c migrations/rumor_service/alembic.ini upgrade head"
+
+  migrations_event:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    container_name: football_research_event_migrations
+    environment:
+      DATABASE_URL_EVENT: postgresql+asyncpg://${POSTGRES_USER_EVENT:-postgres}:${POSTGRES_PASSWORD_EVENT:-postgres}@postgres_event:5432/${POSTGRES_DB_EVENT:-event_db}
+    depends_on:
+      postgres_event:
+        condition: service_healthy
+    networks:
+      - football_network
+    command: >
+      sh -c "alembic -c migrations/event_service/alembic.ini upgrade head"
 
   nsi_service:
     build:
@@ -288,6 +324,42 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  event_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    container_name: football_research_event_service
+    environment:
+      DATABASE_URL_EVENT: postgresql+asyncpg://${POSTGRES_USER_EVENT:-postgres}:${POSTGRES_PASSWORD_EVENT:-postgres}@postgres_event:5432/${POSTGRES_DB_EVENT:-event_db}
+      REDIS_URL: redis://redis:6379
+      DEBUG: "false"
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+      JSON_LOGS: "true"
+      LOG_BROKER_ENABLED: "${LOG_BROKER_ENABLED:-true}"
+      LOG_REDIS_URL: redis://redis:6379/0
+      LOG_REDIS_KEY: "${LOG_REDIS_KEY:-logs:football}"
+    expose:
+      - "8004"
+    depends_on:
+      postgres_event:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrations_event:
+        condition: service_completed_successfully
+    networks:
+      - football_network
+    command: >
+      python -m uvicorn src.backend.event_service.main:app --host 0.0.0.0 --port 8004 --workers 1
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8004/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
   api_gateway:
     build:
       context: .
@@ -298,6 +370,7 @@ services:
       SERVICE_NSI_URL: ${SERVICE_NSI_URL:-http://nsi_service:8001}
       SERVICE_AUTH_URL: ${SERVICE_AUTH_URL:-http://auth_service:8002}
       SERVICE_RUMOR_URL: ${SERVICE_RUMOR_URL:-http://rumor_service:8003}
+      SERVICE_EVENT_URL: ${SERVICE_EVENT_URL:-http://event_service:8004}
       REDIS_URL: ${GATEWAY_REDIS_URL:-redis://redis:6379/0}
       RATE_LIMIT: ${RATE_LIMIT:-100/minute}
       RATE_LIMIT_BY_JWT: ${RATE_LIMIT_BY_JWT:-true}
@@ -318,6 +391,8 @@ services:
       auth_service:
         condition: service_healthy
       rumor_service:
+        condition: service_healthy
+      event_service:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -389,6 +464,8 @@ volumes:
   postgres_auth_data:
     driver: local
   postgres_rumor_data:
+    driver: local
+  postgres_event_data:
     driver: local
   redis_data:
     driver: local

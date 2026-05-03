@@ -69,8 +69,14 @@ class UpstreamProxy:
         request: Request,
         service: UpstreamService,
     ) -> None:
-        if service.invalidate_on_mutation and request.method in {"PUT", "DELETE"}:
+        if service.invalidate_on_mutation and request.method in {
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+        }:
             await self._cache.invalidate_path(request.url.path)
+            await self._cache.invalidate_prefix(f"/{service.name.value}")
 
     async def _call_upstream(
         self,

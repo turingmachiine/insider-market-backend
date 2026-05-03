@@ -59,3 +59,13 @@ class GatewayCache:
             keys.append(key)
         if keys:
             await self._redis.delete(*keys)
+
+    async def invalidate_prefix(self, path_prefix: str) -> None:
+        if self._redis is None:
+            return
+
+        keys: list[str] = []
+        async for key in self._redis.scan_iter(match=f"cache:{path_prefix}*"):
+            keys.append(key)
+        if keys:
+            await self._redis.delete(*keys)

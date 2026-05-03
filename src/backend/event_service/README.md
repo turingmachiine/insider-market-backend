@@ -8,7 +8,7 @@
 - Хранение очереди событий, ожидающих модерации.
 - Ручное создание и редактирование событий.
 - Управление статусами и допустимыми переходами: draft,
-  pending moderation, active, resolved, cancelled.
+  pending moderation, active, rejected, resolved, cancelled.
 - Хранение дедлайнов и правил резолюции.
 - Фиксация итогового исхода события.
 - Доменные команды approve, reject, resolve и cancel для событий.
@@ -25,6 +25,23 @@
   `event_service` проверяет, что вызывающая сторона имеет право выполнить
   доменную команду.
 
+## API
+
+Базовый путь через gateway: `/event/api/v1`.
+
+- `GET /events` — список событий с фильтрами по статусу и исходному слуху.
+- `POST /events` — создать событие вручную или из rumor candidate payload.
+- `GET /events/{event_id}` — получить событие.
+- `PATCH /events/{event_id}` — обновить редактируемые детали события.
+- `GET /events/moderation-queue` — очередь событий, ожидающих модерации.
+- `POST /events/{event_id}/submit-moderation` — отправить draft на модерацию.
+- `POST /events/{event_id}/approve` — активировать событие после модерации.
+- `POST /events/{event_id}/reject` — отклонить событие на модерации.
+- `POST /events/{event_id}/resolve` — зафиксировать outcome события.
+- `POST /events/{event_id}/cancel` — отменить событие до terminal-статуса.
+
 ## Текущий статус
 
-Сервис запланирован. Сейчас создана только директория и документация.
+Сервис инициализирован как отдельный backend-сервис с собственной PostgreSQL
+базой, Alembic-миграциями, DI-контейнером, SQLAlchemy imperative mapping и
+FastAPI endpoints.

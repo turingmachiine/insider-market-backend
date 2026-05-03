@@ -21,6 +21,7 @@ class GatewaySettings(BaseSettings):
     SERVICE_NSI_URL: AnyHttpUrl = AnyHttpUrl(url="http://nsi_service:8001")
     SERVICE_AUTH_URL: AnyHttpUrl = AnyHttpUrl(url="http://auth_service:8002")
     SERVICE_RUMOR_URL: AnyHttpUrl = AnyHttpUrl(url="http://rumor_service:8003")
+    SERVICE_EVENT_URL: AnyHttpUrl = AnyHttpUrl(url="http://event_service:8004")
     REDIS_URL: str = "redis://redis:6379/0"
 
     RATE_LIMIT: str = "100/minute"

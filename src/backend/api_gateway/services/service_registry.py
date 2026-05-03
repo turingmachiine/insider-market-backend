@@ -9,6 +9,7 @@ class ServiceName(StrEnum):
     AUTH = "auth"
     NSI = "nsi"
     RUMOR = "rumor"
+    EVENT = "event"
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,12 @@ class ServiceRegistry:
             ServiceName.RUMOR: UpstreamService(
                 name=ServiceName.RUMOR,
                 base_url=str(settings.SERVICE_RUMOR_URL),
+                cache_get=True,
+                invalidate_on_mutation=True,
+            ),
+            ServiceName.EVENT: UpstreamService(
+                name=ServiceName.EVENT,
+                base_url=str(settings.SERVICE_EVENT_URL),
                 cache_get=True,
                 invalidate_on_mutation=True,
             ),

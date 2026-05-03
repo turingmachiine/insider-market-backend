@@ -26,6 +26,8 @@ dependencies = [
     "redis>=5.0.0",
     "adaptix>=3.0.0b11",
     "httpx>=0.25.0",
+    "taskiq>=0.12.2",
+    "taskiq-redis>=1.2.2",
 ]
 
 [build-system]
@@ -82,6 +84,11 @@ python_classes = "Test*"
 python_functions = "test_*"
 asyncio_mode = "auto"
 pythonpath = ["."]
+filterwarnings = [
+    "ignore:`dishka.integrations.starlette` will be removed in `dishka==2.0`:DeprecationWarning:dishka.integrations.fastapi",
+    "ignore:The @wait_container_is_ready decorator is deprecated:DeprecationWarning:testcontainers.redis",
+    "ignore:'crypt' is deprecated and slated for removal in Python 3.13:DeprecationWarning:passlib.utils",
+]
 
 [tool.coverage.run]
 source = ["src/backend/nsi_service"]

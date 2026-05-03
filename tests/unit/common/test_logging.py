@@ -1,5 +1,6 @@
 import json
 import logging
+import warnings
 
 import structlog
 
@@ -66,6 +67,21 @@ def test_stdlib_logging_uses_formatted_stdout(capsys) -> None:
     assert timestamp
     assert level == "INFO"
     assert message == "stdlib_event"
+
+    shutdown_logging()
+
+
+def test_setup_logging_does_not_route_warnings_to_stdout_under_pytest(capsys) -> None:
+    setup_logging(service_name="test_service", json_logs=True, log_level="INFO")
+
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("always")
+        warnings.warn("pytest_warning_noise", RuntimeWarning, stacklevel=1)
+
+    captured = capsys.readouterr()
+
+    assert "py.warnings" not in captured.out
+    assert "pytest_warning_noise" not in captured.out
 
     shutdown_logging()
 

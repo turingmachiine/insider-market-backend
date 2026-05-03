@@ -370,6 +370,63 @@ services:
     tty: true
     restart: unless-stopped
 
+  # ETL worker and scheduler are opt-in for local development.
+  etl_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: football_research_etl_worker_local
+    environment:
+      RUMOR_SERVICE_URL: ${RUMOR_SERVICE_URL:-http://rumor_service:8003}
+      TASKIQ_REDIS_URL: ${TASKIQ_REDIS_URL:-redis://redis:6379/0}
+      TASKIQ_QUEUE_NAME: ${TASKIQ_QUEUE_NAME:-football_research_etl}
+      RAW_IMPORT_CRON: "${RAW_IMPORT_CRON:-*/30 * * * *}"
+      RUMOR_NORMALIZATION_CRON: "${RUMOR_NORMALIZATION_CRON:-*/15 * * * *}"
+      SOURCE_FETCH_LIMIT: ${SOURCE_FETCH_LIMIT:-20}
+      RAW_PUBLICATIONS_LIMIT: ${RAW_PUBLICATIONS_LIMIT:-500}
+      EXISTING_RUMORS_LIMIT: ${EXISTING_RUMORS_LIMIT:-500}
+    volumes:
+      - .:/app:cached
+      - /app/.venv
+    depends_on:
+      rumor_service:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    networks:
+      - football_network_local
+    command: >
+      taskiq worker src.backend.etl_service.infrastructure.taskiq.broker:broker
+    restart: unless-stopped
+
+  etl_scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: football_research_etl_scheduler_local
+    environment:
+      RUMOR_SERVICE_URL: ${RUMOR_SERVICE_URL:-http://rumor_service:8003}
+      TASKIQ_REDIS_URL: ${TASKIQ_REDIS_URL:-redis://redis:6379/0}
+      TASKIQ_QUEUE_NAME: ${TASKIQ_QUEUE_NAME:-football_research_etl}
+      RAW_IMPORT_CRON: "${RAW_IMPORT_CRON:-*/30 * * * *}"
+      RUMOR_NORMALIZATION_CRON: "${RUMOR_NORMALIZATION_CRON:-*/15 * * * *}"
+      SOURCE_FETCH_LIMIT: ${SOURCE_FETCH_LIMIT:-20}
+      RAW_PUBLICATIONS_LIMIT: ${RAW_PUBLICATIONS_LIMIT:-500}
+      EXISTING_RUMORS_LIMIT: ${EXISTING_RUMORS_LIMIT:-500}
+    volumes:
+      - .:/app:cached
+      - /app/.venv
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - football_network_local
+    command: >
+      taskiq scheduler src.backend.etl_service.infrastructure.taskiq.scheduler:scheduler
+    restart: unless-stopped
+
   # pgAdmin для управления базой данных (опционально)
   pgadmin:
     image: dpage/pgadmin4:latest

@@ -59,6 +59,7 @@ def setup_logging(
     log_level: str = "INFO",
     broker_url: str | None = None,
     broker_key: str = "logs:football",
+    capture_warnings: bool | None = None,
 ) -> None:
     shutdown_logging()
 
@@ -148,7 +149,12 @@ def setup_logging(
         logger.propagate = True
         logger.setLevel(level)
 
-    logging.captureWarnings(True)
+    if capture_warnings is None:
+        capture_warnings = "pytest" not in sys.modules
+    logging.captureWarnings(capture_warnings)
+    warnings_logger = logging.getLogger("py.warnings")
+    warnings_logger.handlers.clear()
+    warnings_logger.propagate = capture_warnings
 
     structlog.configure(
         processors=shared_processors
@@ -169,6 +175,10 @@ def shutdown_logging() -> None:
     if _listener is not None:
         _listener.stop()
         _listener = None
+    logging.captureWarnings(False)
+    warnings_logger = logging.getLogger("py.warnings")
+    warnings_logger.handlers.clear()
+    warnings_logger.propagate = True
 
 
 def get_logger(name: str) -> structlog.stdlib.BoundLogger:

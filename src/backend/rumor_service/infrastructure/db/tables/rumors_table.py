@@ -34,6 +34,7 @@ rumors_table = Table(
             RumorStatus,
             name="rumor_status",
             values_callable=lambda enum: [value.value for value in enum],
+            create_type=False,
         ),
         nullable=False,
         default=RumorStatus.NEW,

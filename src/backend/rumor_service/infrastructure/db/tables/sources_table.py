@@ -18,6 +18,7 @@ sources_table = Table(
             SourceType,
             name="source_type",
             values_callable=lambda enum: [value.value for value in enum],
+            create_type=False,
         ),
         nullable=False,
     ),

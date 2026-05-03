@@ -37,8 +37,47 @@ rumor_status_enum = postgresql.ENUM(
 
 
 def upgrade() -> None:
-    source_type_enum.create(op.get_bind(), checkfirst=True)
-    rumor_status_enum.create(op.get_bind(), checkfirst=True)
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1
+                FROM pg_type
+                WHERE typname = 'source_type'
+            ) THEN
+                CREATE TYPE source_type AS ENUM (
+                    'telegram',
+                    'media',
+                    'api',
+                    'manual'
+                );
+            END IF;
+        END
+        $$;
+        """
+    )
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1
+                FROM pg_type
+                WHERE typname = 'rumor_status'
+            ) THEN
+                CREATE TYPE rumor_status AS ENUM (
+                    'new',
+                    'candidate',
+                    'approved',
+                    'rejected',
+                    'archived'
+                );
+            END IF;
+        END
+        $$;
+        """
+    )
 
     op.create_table(
         "sources",

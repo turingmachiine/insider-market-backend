@@ -71,6 +71,10 @@ class GatewayRouter:
             service=ServiceName.MARKET,
             prefix=f"/{ServiceName.MARKET}",
         )
+        self._register_proxy_routes(
+            service=ServiceName.NOTIFICATION,
+            prefix=f"/{ServiceName.NOTIFICATION}",
+        )
 
     def _register_proxy_routes(self, service: ServiceName, prefix: str) -> None:
         methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]

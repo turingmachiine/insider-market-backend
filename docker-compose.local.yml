@@ -480,6 +480,39 @@ services:
     tty: true
     restart: unless-stopped
 
+  # Notification Service
+  notification_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: football_research_notification_service_local
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      NOTIFICATION_CHANNEL_PREFIX: ${NOTIFICATION_CHANNEL_PREFIX:-notifications}
+      DEBUG: "true"
+      LOG_LEVEL: "${LOG_LEVEL:-DEBUG}"
+      JSON_LOGS: "true"
+      LOG_BROKER_ENABLED: "${LOG_BROKER_ENABLED:-true}"
+      LOG_REDIS_URL: redis://redis:6379/0
+      LOG_REDIS_KEY: "${LOG_REDIS_KEY:-logs:football}"
+    expose:
+      - "8006"
+    volumes:
+      - .:/app:cached
+      - /app/.venv
+      - ./logs:/app/logs:rw
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - football_network_local
+    command: >
+      python -m uvicorn src.backend.notification_service.main:app --host 0.0.0.0 --port 8006 --reload --log-level debug
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
   # API Gateway
   api_gateway:
     build:
@@ -493,6 +526,7 @@ services:
       SERVICE_RUMOR_URL: ${SERVICE_RUMOR_URL:-http://rumor_service:8003}
       SERVICE_EVENT_URL: ${SERVICE_EVENT_URL:-http://event_service:8004}
       SERVICE_MARKET_URL: ${SERVICE_MARKET_URL:-http://market_service:8005}
+      SERVICE_NOTIFICATION_URL: ${SERVICE_NOTIFICATION_URL:-http://notification_service:8006}
       REDIS_URL: ${GATEWAY_REDIS_URL:-redis://redis:6379/0}
       RATE_LIMIT: ${RATE_LIMIT:-100/minute}
       RATE_LIMIT_BY_JWT: ${RATE_LIMIT_BY_JWT:-true}
@@ -521,6 +555,8 @@ services:
       event_service:
         condition: service_started
       market_service:
+        condition: service_started
+      notification_service:
         condition: service_started
       redis:
         condition: service_healthy

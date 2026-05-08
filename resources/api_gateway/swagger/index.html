@@ -23,6 +23,7 @@
           <a href="/swagger-ui?url=/swagger/rumor/swagger.json">Rumor</a>
           <a href="/swagger-ui?url=/swagger/event/swagger.json">Event</a>
           <a href="/swagger-ui?url=/swagger/market/swagger.json">Market</a>
+          <a href="/swagger-ui?url=/swagger/notification/swagger.json">Notification</a>
           <div class="service-statuses" aria-label="Текущий статус сервисов">
             <span class="status-chip" data-health-service="nsi">
               <span class="status-dot"></span>
@@ -43,6 +44,10 @@
             <span class="status-chip" data-health-service="market">
               <span class="status-dot"></span>
               Market
+            </span>
+            <span class="status-chip" data-health-service="notification">
+              <span class="status-dot"></span>
+              Notification
             </span>
           </div>
         </nav>
@@ -83,6 +88,9 @@
               </a>
               <a class="button primary" href="/swagger-ui?url=/swagger/market/swagger.json">
                 Market Swagger
+              </a>
+              <a class="button primary" href="/swagger-ui?url=/swagger/notification/swagger.json">
+                Notification Swagger
               </a>
             </div>
           </div>
@@ -243,10 +251,12 @@
                 <span class="badge">gateway</span>
               </header>
               <p class="service-desc">
-                Единая OpenAPI-схема, собранная из NSI, Auth, Rumor, Event и Market.
+                Единая OpenAPI-схема, собранная из NSI, Auth, Rumor, Event, Market
+                и Notification.
                 Gateway добавляет к каждому path публичный префикс микросервиса:
                 <strong>/nsi</strong>, <strong>/auth</strong>, <strong>/rumor</strong>,
-                <strong>/event</strong>, <strong>/market</strong>.
+                <strong>/event</strong>, <strong>/market</strong>,
+                <strong>/notification</strong>.
               </p>
               <div class="method-list" aria-label="Общие маршруты gateway">
                 <div class="method">
@@ -475,7 +485,7 @@
               <strong>profile_service</strong>
               <span>публичные профили, достижения и социальные связи</span>
             </article>
-            <article class="roadmap-card">
+            <article class="roadmap-card is-ready">
               <strong>notification_service</strong>
               <span>WebSocket, live updates и уведомления</span>
             </article>
@@ -491,7 +501,8 @@
     <footer class="footer-note">
       <div class="shell">
         Публичные префиксы: <strong>/nsi</strong>, <strong>/auth</strong>,
-        <strong>/rumor</strong>, <strong>/event</strong> и <strong>/market</strong>.
+        <strong>/rumor</strong>, <strong>/event</strong>, <strong>/market</strong>
+        и <strong>/notification</strong>.
         Gateway отвечает за CORS, security headers, валидацию путей, лимиты
         размера запроса, Redis-backed rate limiting, JSON access logs и обработку
         upstream timeout.

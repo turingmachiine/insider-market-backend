@@ -23,6 +23,9 @@ class GatewaySettings(BaseSettings):
     SERVICE_RUMOR_URL: AnyHttpUrl = AnyHttpUrl(url="http://rumor_service:8003")
     SERVICE_EVENT_URL: AnyHttpUrl = AnyHttpUrl(url="http://event_service:8004")
     SERVICE_MARKET_URL: AnyHttpUrl = AnyHttpUrl(url="http://market_service:8005")
+    SERVICE_NOTIFICATION_URL: AnyHttpUrl = AnyHttpUrl(
+        url="http://notification_service:8006"
+    )
     REDIS_URL: str = "redis://redis:6379/0"
 
     RATE_LIMIT: str = "100/minute"

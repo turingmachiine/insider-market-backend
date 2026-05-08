@@ -11,6 +11,7 @@ class ServiceName(StrEnum):
     RUMOR = "rumor"
     EVENT = "event"
     MARKET = "market"
+    NOTIFICATION = "notification"
 
 
 @dataclass(frozen=True)
@@ -58,6 +59,10 @@ class ServiceRegistry:
                 base_url=str(settings.SERVICE_MARKET_URL),
                 cache_get=True,
                 invalidate_on_mutation=True,
+            ),
+            ServiceName.NOTIFICATION: UpstreamService(
+                name=ServiceName.NOTIFICATION,
+                base_url=str(settings.SERVICE_NOTIFICATION_URL),
             ),
         }
 

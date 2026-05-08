@@ -47,7 +47,8 @@ class OpenAPIAggregator:
                 "version": "0.1.0",
                 "description": (
                     "Единая OpenAPI-схема gateway для реализованных сервисов "
-                    "Football Research: NSI, Auth, Rumor, Event и Market."
+                    "Football Research: NSI, Auth, Rumor, Event, Market "
+                    "и Notification."
                 ),
             },
             "servers": [{"url": "/"}],
@@ -189,4 +190,5 @@ class OpenAPIAggregator:
             ServiceName.RUMOR: "Rumor",
             ServiceName.EVENT: "Event",
             ServiceName.MARKET: "Market",
+            ServiceName.NOTIFICATION: "Notification",
         }[service_name]

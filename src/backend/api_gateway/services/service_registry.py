@@ -13,6 +13,7 @@ class ServiceName(StrEnum):
     MARKET = "market"
     NOTIFICATION = "notification"
     PROFILE = "profile"
+    RATING = "rating"
 
 
 @dataclass(frozen=True)
@@ -68,6 +69,12 @@ class ServiceRegistry:
             ServiceName.PROFILE: UpstreamService(
                 name=ServiceName.PROFILE,
                 base_url=str(settings.SERVICE_PROFILE_URL),
+                cache_get=True,
+                invalidate_on_mutation=True,
+            ),
+            ServiceName.RATING: UpstreamService(
+                name=ServiceName.RATING,
+                base_url=str(settings.SERVICE_RATING_URL),
                 cache_get=True,
                 invalidate_on_mutation=True,
             ),

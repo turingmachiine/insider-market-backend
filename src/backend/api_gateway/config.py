@@ -27,6 +27,7 @@ class GatewaySettings(BaseSettings):
         url="http://notification_service:8006"
     )
     SERVICE_PROFILE_URL: AnyHttpUrl = AnyHttpUrl(url="http://profile_service:8007")
+    SERVICE_RATING_URL: AnyHttpUrl = AnyHttpUrl(url="http://rating_service:8008")
     REDIS_URL: str = "redis://redis:6379/0"
 
     RATE_LIMIT: str = "100/minute"

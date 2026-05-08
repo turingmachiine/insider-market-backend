@@ -48,7 +48,7 @@ class OpenAPIAggregator:
                 "description": (
                     "Единая OpenAPI-схема gateway для реализованных сервисов "
                     "Football Research: NSI, Auth, Rumor, Event, Market, "
-                    "Notification и Profile."
+                    "Notification, Profile и Rating."
                 ),
             },
             "servers": [{"url": "/"}],
@@ -192,4 +192,5 @@ class OpenAPIAggregator:
             ServiceName.MARKET: "Market",
             ServiceName.NOTIFICATION: "Notification",
             ServiceName.PROFILE: "Profile",
+            ServiceName.RATING: "Rating",
         }[service_name]

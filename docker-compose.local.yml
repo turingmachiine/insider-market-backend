@@ -408,6 +408,12 @@ services:
       - football_network_local
     command: >
       python -m uvicorn src.backend.nsi_service.main:app --host 0.0.0.0 --port 8001 --reload --log-level debug
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     stdin_open: true
     tty: true
     restart: unless-stopped
@@ -447,6 +453,12 @@ services:
       - football_network_local
     command: >
       python -m uvicorn src.backend.auth_service.main:app --host 0.0.0.0 --port 8002 --reload --log-level debug
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     stdin_open: true
     tty: true
     restart: unless-stopped
@@ -484,6 +496,12 @@ services:
       - football_network_local
     command: >
       python -m uvicorn src.backend.rumor_service.main:app --host 0.0.0.0 --port 8003 --reload --log-level debug
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     stdin_open: true
     tty: true
     restart: unless-stopped
@@ -521,6 +539,12 @@ services:
       - football_network_local
     command: >
       python -m uvicorn src.backend.event_service.main:app --host 0.0.0.0 --port 8004 --reload --log-level debug
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8004/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     stdin_open: true
     tty: true
     restart: unless-stopped
@@ -558,6 +582,12 @@ services:
       - football_network_local
     command: >
       python -m uvicorn src.backend.market_service.main:app --host 0.0.0.0 --port 8005 --reload --log-level debug
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8005/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     stdin_open: true
     tty: true
     restart: unless-stopped
@@ -591,6 +621,12 @@ services:
       - football_network_local
     command: >
       python -m uvicorn src.backend.notification_service.main:app --host 0.0.0.0 --port 8006 --reload --log-level debug
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8006/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     stdin_open: true
     tty: true
     restart: unless-stopped
@@ -628,6 +664,12 @@ services:
       - football_network_local
     command: >
       python -m uvicorn src.backend.profile_service.main:app --host 0.0.0.0 --port 8007 --reload --log-level debug
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8007/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     stdin_open: true
     tty: true
     restart: unless-stopped
@@ -670,6 +712,12 @@ services:
       - football_network_local
     command: >
       python -m uvicorn src.backend.rating_service.main:app --host 0.0.0.0 --port 8008 --reload --log-level debug
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8008/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     stdin_open: true
     tty: true
     restart: unless-stopped
@@ -763,6 +811,8 @@ services:
       - football_network_local
     command: >
       taskiq worker src.backend.etl_service.infrastructure.taskiq.broker:broker
+    healthcheck:
+      disable: true
     restart: unless-stopped
 
   etl_scheduler:
@@ -790,6 +840,8 @@ services:
       - football_network_local
     command: >
       taskiq scheduler src.backend.etl_service.infrastructure.taskiq.scheduler:scheduler
+    healthcheck:
+      disable: true
     restart: unless-stopped
 
   rating_worker:
@@ -818,6 +870,8 @@ services:
       - football_network_local
     command: >
       taskiq worker src.backend.rating_service.infrastructure.taskiq.broker:broker
+    healthcheck:
+      disable: true
     restart: unless-stopped
 
   rating_scheduler:
@@ -844,6 +898,8 @@ services:
       - football_network_local
     command: >
       taskiq scheduler src.backend.rating_service.infrastructure.taskiq.scheduler:scheduler
+    healthcheck:
+      disable: true
     restart: unless-stopped
 
   # pgAdmin для управления базой данных (опционально)

@@ -34,6 +34,7 @@ from src.backend.profile_service.presentation.api.v1.schemas import (
 )
 
 router = APIRouter(prefix="/profiles", tags=["Profiles"])
+achievements_router = APIRouter(prefix="/achievements", tags=["Achievements"])
 
 LimitQuery = Annotated[int, Query(ge=1, le=500)]
 OffsetQuery = Annotated[int, Query(ge=0)]
@@ -207,7 +208,7 @@ async def add_activity(
     return ActivityResponse(**activity.__dict__)
 
 
-@router.get("/-/achievements")
+@achievements_router.get("")
 @inject
 async def get_achievements(
     profile_use_cases: FromDishka[ProfileUseCases],
@@ -216,7 +217,7 @@ async def get_achievements(
     return [AchievementResponse(**item.__dict__) for item in achievements]
 
 
-@router.post("/-/achievements", status_code=status.HTTP_201_CREATED)
+@achievements_router.post("", status_code=status.HTTP_201_CREATED)
 @inject
 async def create_achievement(
     achievement_data: AchievementCreate,

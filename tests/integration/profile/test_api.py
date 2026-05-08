@@ -49,7 +49,7 @@ async def test_profile_balance_activity_and_achievement_flow(
     assert "balance_changed" in activity_types
 
     achievement_response = await profile_client.post(
-        "/api/v1/profiles/-/achievements",
+        "/api/v1/achievements",
         json={
             "code": "first_bet",
             "name": "First Bet",

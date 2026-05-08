@@ -24,6 +24,8 @@
           <a href="/swagger-ui?url=/swagger/event/swagger.json">Event</a>
           <a href="/swagger-ui?url=/swagger/market/swagger.json">Market</a>
           <a href="/swagger-ui?url=/swagger/notification/swagger.json">Notification</a>
+          <a href="/swagger-ui?url=/swagger/profile/swagger.json">Profile</a>
+          <a href="/swagger-ui?url=/swagger/rating/swagger.json">Rating</a>
           <div class="service-statuses" aria-label="Текущий статус сервисов">
             <span class="status-chip" data-health-service="nsi">
               <span class="status-dot"></span>
@@ -48,6 +50,14 @@
             <span class="status-chip" data-health-service="notification">
               <span class="status-dot"></span>
               Notification
+            </span>
+            <span class="status-chip" data-health-service="profile">
+              <span class="status-dot"></span>
+              Profile
+            </span>
+            <span class="status-chip" data-health-service="rating">
+              <span class="status-dot"></span>
+              Rating
             </span>
           </div>
         </nav>
@@ -91,6 +101,12 @@
               </a>
               <a class="button primary" href="/swagger-ui?url=/swagger/notification/swagger.json">
                 Notification Swagger
+              </a>
+              <a class="button primary" href="/swagger-ui?url=/swagger/profile/swagger.json">
+                Profile Swagger
+              </a>
+              <a class="button primary" href="/swagger-ui?url=/swagger/rating/swagger.json">
+                Rating Swagger
               </a>
             </div>
           </div>
@@ -251,12 +267,13 @@
                 <span class="badge">gateway</span>
               </header>
               <p class="service-desc">
-                Единая OpenAPI-схема, собранная из NSI, Auth, Rumor, Event, Market
-                и Notification.
+                Единая OpenAPI-схема, собранная из NSI, Auth, Rumor, Event, Market,
+                Notification, Profile и Rating.
                 Gateway добавляет к каждому path публичный префикс микросервиса:
                 <strong>/nsi</strong>, <strong>/auth</strong>, <strong>/rumor</strong>,
                 <strong>/event</strong>, <strong>/market</strong>,
-                <strong>/notification</strong>.
+                <strong>/notification</strong>, <strong>/profile</strong>,
+                <strong>/rating</strong>.
               </p>
               <div class="method-list" aria-label="Общие маршруты gateway">
                 <div class="method">
@@ -278,6 +295,14 @@
                 <div class="method">
                   <span class="verb get">GET</span>
                   <span class="path">/market/...</span>
+                </div>
+                <div class="method">
+                  <span class="verb get">GET</span>
+                  <span class="path">/profile/...</span>
+                </div>
+                <div class="method">
+                  <span class="verb get">GET</span>
+                  <span class="path">/rating/...</span>
                 </div>
               </div>
               <div class="card-actions">
@@ -431,6 +456,64 @@
                 <a class="button" href="/swagger/market/swagger.json">OpenAPI JSON</a>
               </div>
             </article>
+
+            <article class="service-card">
+              <header>
+                <h3 class="service-name">Profile Service</h3>
+                <span class="badge">профили</span>
+              </header>
+              <p class="service-desc">
+                Публичные профили, баланс пользователя, история операций, активность
+                и базовая витрина достижений для игровых сценариев.
+              </p>
+              <div class="method-list" aria-label="Маршруты Profile">
+                <div class="method">
+                  <span class="verb get">GET</span>
+                  <span class="path">/profile/api/v1/profiles</span>
+                </div>
+                <div class="method">
+                  <span class="verb post">POST</span>
+                  <span class="path">/profile/api/v1/profiles</span>
+                </div>
+                <div class="method">
+                  <span class="verb post">POST</span>
+                  <span class="path">/profile/api/v1/achievements</span>
+                </div>
+              </div>
+              <div class="card-actions">
+                <a class="button primary" href="/swagger-ui?url=/swagger/profile/swagger.json">Swagger UI</a>
+                <a class="button" href="/swagger/profile/swagger.json">OpenAPI JSON</a>
+              </div>
+            </article>
+
+            <article class="service-card">
+              <header>
+                <h3 class="service-name">Rating Service</h3>
+                <span class="badge">геймификация</span>
+              </header>
+              <p class="service-desc">
+                Авторасчет рейтинга, XP, статуса, серий, достижений, лидерборда и
+                pending-наград за достижения с доставкой бонусов в профильный баланс.
+              </p>
+              <div class="method-list" aria-label="Маршруты Rating">
+                <div class="method">
+                  <span class="verb post">POST</span>
+                  <span class="path">/rating/api/v1/ratings/events</span>
+                </div>
+                <div class="method">
+                  <span class="verb get">GET</span>
+                  <span class="path">/rating/api/v1/ratings/leaderboard</span>
+                </div>
+                <div class="method">
+                  <span class="verb get">GET</span>
+                  <span class="path">/rating/api/v1/ratings/achievements</span>
+                </div>
+              </div>
+              <div class="card-actions">
+                <a class="button primary" href="/swagger-ui?url=/swagger/rating/swagger.json">Swagger UI</a>
+                <a class="button" href="/swagger/rating/swagger.json">OpenAPI JSON</a>
+              </div>
+            </article>
           </div>
         </div>
       </section>
@@ -441,9 +524,9 @@
             <div>
               <h2>Карта backend-сервисов</h2>
               <p>
-                Сейчас через gateway доступны реализованные сервисы. Остальные
-                зоны ответственности описаны в README и запланированы для развития
-                prediction market.
+                Сейчас через gateway доступны реализованные сервисы. Фоновые
+                worker/scheduler-процессы обслуживают ETL и rating-пайплайны вне
+                публичного HTTP-контракта.
               </p>
             </div>
           </div>
@@ -473,17 +556,17 @@
               <strong>market_service</strong>
               <span>prediction market, AMM, виртуальные коины, ставки и выплаты</span>
             </article>
-            <article class="roadmap-card">
+            <article class="roadmap-card is-ready">
               <strong>etl_service</strong>
-              <span>сбор Telegram, СМИ и внешних спортивных API</span>
+              <span>фоновые Taskiq-задачи сбора и нормализации публикаций</span>
             </article>
-            <article class="roadmap-card">
+            <article class="roadmap-card is-ready">
               <strong>rating_service</strong>
-              <span>accuracy, ELO, лидерборды и периодические рейтинги</span>
+              <span>рейтинг, XP, статусы, достижения, лидерборды и награды</span>
             </article>
-            <article class="roadmap-card">
+            <article class="roadmap-card is-ready">
               <strong>profile_service</strong>
-              <span>публичные профили, достижения и социальные связи</span>
+              <span>публичные профили, баланс, активности и достижения</span>
             </article>
             <article class="roadmap-card is-ready">
               <strong>notification_service</strong>
@@ -502,7 +585,8 @@
       <div class="shell">
         Публичные префиксы: <strong>/nsi</strong>, <strong>/auth</strong>,
         <strong>/rumor</strong>, <strong>/event</strong>, <strong>/market</strong>
-        и <strong>/notification</strong>.
+        <strong>/notification</strong>, <strong>/profile</strong> и
+        <strong>/rating</strong>.
         Gateway отвечает за CORS, security headers, валидацию путей, лимиты
         размера запроса, Redis-backed rate limiting, JSON access logs и обработку
         upstream timeout.
@@ -515,6 +599,9 @@
         { name: "rumor", url: "/rumor/health" },
         { name: "event", url: "/event/health" },
         { name: "market", url: "/market/health" },
+        { name: "notification", url: "/notification/health" },
+        { name: "profile", url: "/profile/health" },
+        { name: "rating", url: "/rating/health" },
       ];
 
       const markServiceStatus = (name, isHealthy) => {

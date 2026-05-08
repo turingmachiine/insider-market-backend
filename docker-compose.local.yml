@@ -3,20 +3,20 @@
 
 services:
   # NSI PostgreSQL Database
-  postgres:
+  postgres_nsi:
     image: postgres:16-alpine
-    container_name: football_research_db_local
+    container_name: football_research_nsi_db_local
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER_NSI:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_NSI:-postgres}
       POSTGRES_DB: ${POSTGRES_DB_NSI:-football_db}
     ports:
       - "${POSTGRES_PORT_NSI:-5432}:5432"
     volumes:
-      - postgres_data_local:/var/lib/postgresql/data
+      - postgres_nsi_data_local:/var/lib/postgresql/data
       - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB_NSI:-football_db}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER_NSI:-postgres} -d ${POSTGRES_DB_NSI:-football_db}"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -171,22 +171,22 @@ services:
       - football_network_local
 
   # NSI Database Migrations
-  migrations:
+  migrations_nsi:
     build:
       context: .
       dockerfile: Dockerfile
       target: development
-    container_name: football_research_migrations_local
+    container_name: football_research_nsi_migrations_local
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_HOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER_NSI:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_NSI:-postgres}
+      POSTGRES_HOST: postgres_nsi
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB_NSI:-football_db}
-      DATABASE_URL_NSI: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB_NSI:-football_db}
+      DATABASE_URL_NSI: postgresql+asyncpg://${POSTGRES_USER_NSI:-postgres}:${POSTGRES_PASSWORD_NSI:-postgres}@postgres_nsi:5432/${POSTGRES_DB_NSI:-football_db}
       DEBUG: "true"
     depends_on:
-      postgres:
+      postgres_nsi:
         condition: service_healthy
     networks:
       - football_network_local
@@ -282,19 +282,19 @@ services:
       python -m alembic -c migrations/market_service/alembic.ini upgrade head
 
   # NSI Service
-  app:
+  nsi_service:
     build:
       context: .
       dockerfile: Dockerfile
       target: development
-    container_name: football_research_app_local
+    container_name: football_research_nsi_service_local
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_HOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER_NSI:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_NSI:-postgres}
+      POSTGRES_HOST: postgres_nsi
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB_NSI:-football_db}
-      DATABASE_URL_NSI: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB_NSI:-football_db}
+      DATABASE_URL_NSI: postgresql+asyncpg://${POSTGRES_USER_NSI:-postgres}:${POSTGRES_PASSWORD_NSI:-postgres}@postgres_nsi:5432/${POSTGRES_DB_NSI:-football_db}
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-change-me}
       JWT_TTL: ${JWT_TTL:-3600}
@@ -316,11 +316,11 @@ services:
       - /app/.venv
       - ./logs:/app/logs:rw
     depends_on:
-      postgres:
+      postgres_nsi:
         condition: service_healthy
       redis:
         condition: service_healthy
-      migrations:
+      migrations_nsi:
         condition: service_completed_successfully
     networks:
       - football_network_local
@@ -488,7 +488,7 @@ services:
       target: development
     container_name: football_research_api_gateway_local
     environment:
-      SERVICE_NSI_URL: ${SERVICE_NSI_URL:-http://app:8001}
+      SERVICE_NSI_URL: ${SERVICE_NSI_URL:-http://nsi_service:8001}
       SERVICE_AUTH_URL: ${SERVICE_AUTH_URL:-http://auth_service:8002}
       SERVICE_RUMOR_URL: ${SERVICE_RUMOR_URL:-http://rumor_service:8003}
       SERVICE_EVENT_URL: ${SERVICE_EVENT_URL:-http://event_service:8004}
@@ -512,7 +512,7 @@ services:
       - /app/.venv
       - ./logs:/app/logs:rw
     depends_on:
-      app:
+      nsi_service:
         condition: service_started
       auth_service:
         condition: service_started
@@ -602,7 +602,7 @@ services:
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     depends_on:
-      - postgres
+      - postgres_nsi
     networks:
       - football_network_local
     profiles:
@@ -624,7 +624,7 @@ services:
       - tools
 
 volumes:
-  postgres_data_local:
+  postgres_nsi_data_local:
     driver: local
   postgres_auth_data_local:
     driver: local

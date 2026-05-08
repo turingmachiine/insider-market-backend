@@ -3,8 +3,8 @@ services:
     image: postgres:16-alpine
     container_name: football_research_nsi_db
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER_NSI:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_NSI:-postgres}
       POSTGRES_DB: ${POSTGRES_DB_NSI:-football_db}
     ports:
       - "${POSTGRES_PORT_NSI:-5432}:5432"
@@ -12,7 +12,7 @@ services:
       - postgres_nsi_data:/var/lib/postgresql/data
       - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB_NSI:-football_db}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER_NSI:-postgres} -d ${POSTGRES_DB_NSI:-football_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -173,7 +173,7 @@ services:
       target: base
     container_name: football_research_nsi_migrations
     environment:
-      DATABASE_URL_NSI: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres_nsi:5432/${POSTGRES_DB_NSI:-football_db}
+      DATABASE_URL_NSI: postgresql+asyncpg://${POSTGRES_USER_NSI:-postgres}:${POSTGRES_PASSWORD_NSI:-postgres}@postgres_nsi:5432/${POSTGRES_DB_NSI:-football_db}
     depends_on:
       postgres_nsi:
         condition: service_healthy
@@ -253,7 +253,7 @@ services:
       target: base
     container_name: football_research_nsi_service
     environment:
-      DATABASE_URL_NSI: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres_nsi:5432/${POSTGRES_DB_NSI:-football_db}
+      DATABASE_URL_NSI: postgresql+asyncpg://${POSTGRES_USER_NSI:-postgres}:${POSTGRES_PASSWORD_NSI:-postgres}@postgres_nsi:5432/${POSTGRES_DB_NSI:-football_db}
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-change-me}
       JWT_TTL: ${JWT_TTL:-3600}

@@ -75,6 +75,10 @@ class GatewayRouter:
             service=ServiceName.NOTIFICATION,
             prefix=f"/{ServiceName.NOTIFICATION}",
         )
+        self._register_proxy_routes(
+            service=ServiceName.PROFILE,
+            prefix=f"/{ServiceName.PROFILE}",
+        )
 
     def _register_proxy_routes(self, service: ServiceName, prefix: str) -> None:
         methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]

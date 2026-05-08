@@ -12,6 +12,7 @@ class ServiceName(StrEnum):
     EVENT = "event"
     MARKET = "market"
     NOTIFICATION = "notification"
+    PROFILE = "profile"
 
 
 @dataclass(frozen=True)
@@ -63,6 +64,12 @@ class ServiceRegistry:
             ServiceName.NOTIFICATION: UpstreamService(
                 name=ServiceName.NOTIFICATION,
                 base_url=str(settings.SERVICE_NOTIFICATION_URL),
+            ),
+            ServiceName.PROFILE: UpstreamService(
+                name=ServiceName.PROFILE,
+                base_url=str(settings.SERVICE_PROFILE_URL),
+                cache_get=True,
+                invalidate_on_mutation=True,
             ),
         }
 

@@ -67,6 +67,10 @@ class GatewayRouter:
             service=ServiceName.EVENT,
             prefix=f"/{ServiceName.EVENT}",
         )
+        self._register_proxy_routes(
+            service=ServiceName.MARKET,
+            prefix=f"/{ServiceName.MARKET}",
+        )
 
     def _register_proxy_routes(self, service: ServiceName, prefix: str) -> None:
         methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
@@ -124,8 +128,8 @@ class GatewayRouter:
             return JSONResponse({"detail": "Unknown service"}, status_code=404)
         return await self._proxy(request, service_name, "openapi.json")
 
+    @staticmethod
     async def _proxy(
-        self,
         request: Request,
         service: ServiceName,
         target_path: str,

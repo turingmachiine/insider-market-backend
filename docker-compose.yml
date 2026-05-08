@@ -80,6 +80,26 @@ services:
       - football_network
     restart: unless-stopped
 
+  postgres_market:
+    image: postgres:16-alpine
+    container_name: football_research_market_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER_MARKET:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_MARKET:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB_MARKET:-market_db}
+    ports:
+      - "${POSTGRES_PORT_MARKET:-5436}:5432"
+    volumes:
+      - postgres_market_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER_MARKET:-postgres} -d ${POSTGRES_DB_MARKET:-market_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - football_network
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     container_name: football_research_redis
@@ -209,6 +229,22 @@ services:
       - football_network
     command: >
       sh -c "alembic -c migrations/event_service/alembic.ini upgrade head"
+
+  migrations_market:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    container_name: football_research_market_migrations
+    environment:
+      DATABASE_URL_MARKET: postgresql+asyncpg://${POSTGRES_USER_MARKET:-postgres}:${POSTGRES_PASSWORD_MARKET:-postgres}@postgres_market:5432/${POSTGRES_DB_MARKET:-market_db}
+    depends_on:
+      postgres_market:
+        condition: service_healthy
+    networks:
+      - football_network
+    command: >
+      sh -c "alembic -c migrations/market_service/alembic.ini upgrade head"
 
   nsi_service:
     build:
@@ -360,6 +396,42 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  market_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    container_name: football_research_market_service
+    environment:
+      DATABASE_URL_MARKET: postgresql+asyncpg://${POSTGRES_USER_MARKET:-postgres}:${POSTGRES_PASSWORD_MARKET:-postgres}@postgres_market:5432/${POSTGRES_DB_MARKET:-market_db}
+      REDIS_URL: redis://redis:6379
+      DEBUG: "false"
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+      JSON_LOGS: "true"
+      LOG_BROKER_ENABLED: "${LOG_BROKER_ENABLED:-true}"
+      LOG_REDIS_URL: redis://redis:6379/0
+      LOG_REDIS_KEY: "${LOG_REDIS_KEY:-logs:football}"
+    expose:
+      - "8005"
+    depends_on:
+      postgres_market:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrations_market:
+        condition: service_completed_successfully
+    networks:
+      - football_network
+    command: >
+      python -m uvicorn src.backend.market_service.main:app --host 0.0.0.0 --port 8005 --workers 1
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8005/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
   api_gateway:
     build:
       context: .
@@ -371,6 +443,7 @@ services:
       SERVICE_AUTH_URL: ${SERVICE_AUTH_URL:-http://auth_service:8002}
       SERVICE_RUMOR_URL: ${SERVICE_RUMOR_URL:-http://rumor_service:8003}
       SERVICE_EVENT_URL: ${SERVICE_EVENT_URL:-http://event_service:8004}
+      SERVICE_MARKET_URL: ${SERVICE_MARKET_URL:-http://market_service:8005}
       REDIS_URL: ${GATEWAY_REDIS_URL:-redis://redis:6379/0}
       RATE_LIMIT: ${RATE_LIMIT:-100/minute}
       RATE_LIMIT_BY_JWT: ${RATE_LIMIT_BY_JWT:-true}
@@ -393,6 +466,8 @@ services:
       rumor_service:
         condition: service_healthy
       event_service:
+        condition: service_healthy
+      market_service:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -466,6 +541,8 @@ volumes:
   postgres_rumor_data:
     driver: local
   postgres_event_data:
+    driver: local
+  postgres_market_data:
     driver: local
   redis_data:
     driver: local

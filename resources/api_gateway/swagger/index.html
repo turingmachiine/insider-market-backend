@@ -22,6 +22,7 @@
           <a href="/swagger-ui?url=/swagger/auth/swagger.json">Auth</a>
           <a href="/swagger-ui?url=/swagger/rumor/swagger.json">Rumor</a>
           <a href="/swagger-ui?url=/swagger/event/swagger.json">Event</a>
+          <a href="/swagger-ui?url=/swagger/market/swagger.json">Market</a>
           <div class="service-statuses" aria-label="Текущий статус сервисов">
             <span class="status-chip" data-health-service="nsi">
               <span class="status-dot"></span>
@@ -38,6 +39,10 @@
             <span class="status-chip" data-health-service="event">
               <span class="status-dot"></span>
               Event
+            </span>
+            <span class="status-chip" data-health-service="market">
+              <span class="status-dot"></span>
+              Market
             </span>
           </div>
         </nav>
@@ -75,6 +80,9 @@
               </a>
               <a class="button primary" href="/swagger-ui?url=/swagger/event/swagger.json">
                 Event Swagger
+              </a>
+              <a class="button primary" href="/swagger-ui?url=/swagger/market/swagger.json">
+                Market Swagger
               </a>
             </div>
           </div>
@@ -235,10 +243,10 @@
                 <span class="badge">gateway</span>
               </header>
               <p class="service-desc">
-                Единая OpenAPI-схема, собранная из NSI, Auth, Rumor и Event. Gateway
-                добавляет к каждому path публичный префикс микросервиса:
+                Единая OpenAPI-схема, собранная из NSI, Auth, Rumor, Event и Market.
+                Gateway добавляет к каждому path публичный префикс микросервиса:
                 <strong>/nsi</strong>, <strong>/auth</strong>, <strong>/rumor</strong>,
-                <strong>/event</strong>.
+                <strong>/event</strong>, <strong>/market</strong>.
               </p>
               <div class="method-list" aria-label="Общие маршруты gateway">
                 <div class="method">
@@ -256,6 +264,10 @@
                 <div class="method">
                   <span class="verb get">GET</span>
                   <span class="path">/event/...</span>
+                </div>
+                <div class="method">
+                  <span class="verb get">GET</span>
+                  <span class="path">/market/...</span>
                 </div>
               </div>
               <div class="card-actions">
@@ -379,6 +391,36 @@
                 <a class="button" href="/swagger/event/swagger.json">OpenAPI JSON</a>
               </div>
             </article>
+
+            <article class="service-card">
+              <header>
+                <h3 class="service-name">Market Service</h3>
+                <span class="badge">AMM</span>
+              </header>
+              <p class="service-desc">
+                Prediction market для событий: рынки YES/NO, виртуальные коины,
+                ставки, позиции пользователей, AMM-коэффициенты и выплаты после
+                резолюции.
+              </p>
+              <div class="method-list" aria-label="Маршруты Market">
+                <div class="method">
+                  <span class="verb get">GET</span>
+                  <span class="path">/market/api/v1/markets</span>
+                </div>
+                <div class="method">
+                  <span class="verb post">POST</span>
+                  <span class="path">/market/api/v1/wallets</span>
+                </div>
+                <div class="method">
+                  <span class="verb post">POST</span>
+                  <span class="path">/market/api/v1/markets/{id}/bets</span>
+                </div>
+              </div>
+              <div class="card-actions">
+                <a class="button primary" href="/swagger-ui?url=/swagger/market/swagger.json">Swagger UI</a>
+                <a class="button" href="/swagger/market/swagger.json">OpenAPI JSON</a>
+              </div>
+            </article>
           </div>
         </div>
       </section>
@@ -417,13 +459,13 @@
               <strong>event_service</strong>
               <span>жизненный цикл событий, дедлайны и резолюция исходов</span>
             </article>
+            <article class="roadmap-card is-ready">
+              <strong>market_service</strong>
+              <span>prediction market, AMM, виртуальные коины, ставки и выплаты</span>
+            </article>
             <article class="roadmap-card">
               <strong>etl_service</strong>
               <span>сбор Telegram, СМИ и внешних спортивных API</span>
-            </article>
-            <article class="roadmap-card">
-              <strong>market_service</strong>
-              <span>prediction market, AMM, ставки и ликвидность</span>
             </article>
             <article class="roadmap-card">
               <strong>rating_service</strong>
@@ -449,9 +491,10 @@
     <footer class="footer-note">
       <div class="shell">
         Публичные префиксы: <strong>/nsi</strong>, <strong>/auth</strong>,
-        <strong>/rumor</strong> и <strong>/event</strong>. Gateway отвечает за CORS, security headers,
-        валидацию путей, лимиты размера запроса, Redis-backed rate limiting,
-        JSON access logs и обработку upstream timeout.
+        <strong>/rumor</strong>, <strong>/event</strong> и <strong>/market</strong>.
+        Gateway отвечает за CORS, security headers, валидацию путей, лимиты
+        размера запроса, Redis-backed rate limiting, JSON access logs и обработку
+        upstream timeout.
       </div>
     </footer>
     <script>
@@ -460,6 +503,7 @@
         { name: "auth", url: "/auth/health" },
         { name: "rumor", url: "/rumor/health" },
         { name: "event", url: "/event/health" },
+        { name: "market", url: "/market/health" },
       ];
 
       const markServiceStatus = (name, isHealthy) => {

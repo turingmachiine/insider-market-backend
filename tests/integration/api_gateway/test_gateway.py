@@ -48,6 +48,19 @@ async def test_event_route_request_to_expected_service(gateway_client) -> None:
 
 
 @pytest.mark.asyncio
+async def test_market_route_request_to_expected_service(gateway_client) -> None:
+    client, calls, _, _ = gateway_client
+
+    response = await client.get("/market/api/v1/markets?status=active")
+
+    assert response.status_code == 200
+    assert response.json()["host"] == "market.test"
+    assert response.json()["path"] == "/api/v1/markets"
+    assert response.json()["query"] == "status=active"
+    assert calls["market.test/api/v1/markets"] == 1
+
+
+@pytest.mark.asyncio
 async def test_rate_limit_returns_429_on_101st_request(gateway_client) -> None:
     client, _, _, _ = gateway_client
 
@@ -107,6 +120,29 @@ async def test_swagger_event_json_is_proxied(gateway_client) -> None:
 
 
 @pytest.mark.asyncio
+async def test_swagger_market_json_is_proxied(gateway_client) -> None:
+    client, calls, _, _ = gateway_client
+
+    response = await client.get("/swagger/market/swagger.json")
+
+    assert response.status_code == 200
+    assert response.json()["openapi"] == "3.1.0"
+    assert calls["market.test/openapi.json"] == 1
+
+
+@pytest.mark.asyncio
+async def test_docs_page_mentions_market_service(gateway_client) -> None:
+    client, _, _, _ = gateway_client
+
+    response = await client.get("/docs")
+
+    assert response.status_code == 200
+    assert "Market Service" in response.text
+    assert "/swagger/market/swagger.json" in response.text
+    assert "/market/api/v1/markets" in response.text
+
+
+@pytest.mark.asyncio
 async def test_aggregate_swagger_json_prefixes_service_paths(gateway_client) -> None:
     client, calls, _, _ = gateway_client
 
@@ -119,15 +155,18 @@ async def test_aggregate_swagger_json_prefixes_service_paths(gateway_client) -> 
     assert "/auth/health" in schema["paths"]
     assert "/rumor/health" in schema["paths"]
     assert "/event/health" in schema["paths"]
+    assert "/market/health" in schema["paths"]
     assert "NsiHealthResponse" in schema["components"]["schemas"]
     assert "AuthHealthResponse" in schema["components"]["schemas"]
     assert "RumorHealthResponse" in schema["components"]["schemas"]
     assert "EventHealthResponse" in schema["components"]["schemas"]
+    assert "MarketHealthResponse" in schema["components"]["schemas"]
     assert schema["tags"] == [{"name": "Health"}]
     assert schema["paths"]["/nsi/health"]["get"]["tags"] == ["Health"]
     assert schema["paths"]["/auth/health"]["get"]["tags"] == ["Health"]
     assert schema["paths"]["/rumor/health"]["get"]["tags"] == ["Health"]
     assert schema["paths"]["/event/health"]["get"]["tags"] == ["Health"]
+    assert schema["paths"]["/market/health"]["get"]["tags"] == ["Health"]
     assert (
         schema["paths"]["/nsi/health"]["get"]["responses"]["200"]["content"][
             "application/json"
@@ -139,6 +178,7 @@ async def test_aggregate_swagger_json_prefixes_service_paths(gateway_client) -> 
     assert calls["auth.test/openapi.json"] == 1
     assert calls["rumor.test/openapi.json"] == 1
     assert calls["event.test/openapi.json"] == 1
+    assert calls["market.test/openapi.json"] == 1
 
 
 @pytest.mark.asyncio

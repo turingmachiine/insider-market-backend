@@ -47,6 +47,7 @@ The current codebase uses service-local packages under
 - Presentation must not import infrastructure repositories or database tables directly.
 - Keep internal code-facing text in English: identifiers, helper names, test helper classes, technical comments, and code-oriented strings.
 - Keep public project documentation in Russian: `README.md`, documentation pages, and user-facing project guides.
+- When adding or implementing a backend service, add or update both unit tests and integration tests for its core domain/application behavior and API/database wiring.
 
 ## Where to look first
 

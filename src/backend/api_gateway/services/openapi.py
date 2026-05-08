@@ -47,7 +47,7 @@ class OpenAPIAggregator:
                 "version": "0.1.0",
                 "description": (
                     "Единая OpenAPI-схема gateway для реализованных сервисов "
-                    "Football Research: NSI, Auth, Rumor и Event."
+                    "Football Research: NSI, Auth, Rumor, Event и Market."
                 ),
             },
             "servers": [{"url": "/"}],
@@ -94,8 +94,8 @@ class OpenAPIAggregator:
             return [self._rewrite_refs(item, component_name_map) for item in value]
         return value
 
+    @staticmethod
     def _merge_components(
-        self,
         target: dict[str, dict[str, Any]],
         source: dict[str, Any],
     ) -> None:
@@ -164,8 +164,8 @@ class OpenAPIAggregator:
                 ] = f"{service_name.value}_{operation['operationId']}"
         return rewritten
 
+    @staticmethod
     def _merge_tags(
-        self,
         target: dict[str, dict[str, str]],
         source_tags: list[Any],
     ) -> None:
@@ -188,4 +188,5 @@ class OpenAPIAggregator:
             ServiceName.NSI: "NSI",
             ServiceName.RUMOR: "Rumor",
             ServiceName.EVENT: "Event",
+            ServiceName.MARKET: "Market",
         }[service_name]

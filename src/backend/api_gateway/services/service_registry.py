@@ -10,6 +10,7 @@ class ServiceName(StrEnum):
     NSI = "nsi"
     RUMOR = "rumor"
     EVENT = "event"
+    MARKET = "market"
 
 
 @dataclass(frozen=True)
@@ -49,6 +50,12 @@ class ServiceRegistry:
             ServiceName.EVENT: UpstreamService(
                 name=ServiceName.EVENT,
                 base_url=str(settings.SERVICE_EVENT_URL),
+                cache_get=True,
+                invalidate_on_mutation=True,
+            ),
+            ServiceName.MARKET: UpstreamService(
+                name=ServiceName.MARKET,
+                base_url=str(settings.SERVICE_MARKET_URL),
                 cache_get=True,
                 invalidate_on_mutation=True,
             ),

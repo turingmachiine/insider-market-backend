@@ -82,6 +82,9 @@ class FakeProfileRepository(IProfileRepository):
     async def get_all(self, limit: int = 100, offset: int = 0) -> list[Profile]:
         return list(self.items.values())[offset : offset + limit]
 
+    async def count_all(self) -> int:
+        return len(self.items)
+
     async def save(self, profile: Profile) -> Profile:
         self.items[profile.id] = profile
         return profile

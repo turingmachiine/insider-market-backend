@@ -49,8 +49,12 @@ async def get_profiles(
     offset: OffsetQuery = 0,
 ) -> ProfileListResponse:
     profiles = await profile_use_cases.get_profiles(limit=limit, offset=offset)
+    total = await profile_use_cases.count_profiles()
     return ProfileListResponse(
-        items=[ProfileResponse(**profile.__dict__) for profile in profiles]
+        items=[ProfileResponse(**profile.__dict__) for profile in profiles],
+        total=total,
+        limit=limit,
+        offset=offset,
     )
 
 

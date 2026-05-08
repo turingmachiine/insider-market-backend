@@ -40,6 +40,26 @@ services:
       - football_network
     restart: unless-stopped
 
+  postgres_admin:
+    image: postgres:16-alpine
+    container_name: football_research_admin_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER_ADMIN:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_ADMIN:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB_ADMIN:-admin_db}
+    ports:
+      - "${POSTGRES_PORT_ADMIN:-5439}:5432"
+    volumes:
+      - postgres_admin_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER_ADMIN:-postgres} -d ${POSTGRES_DB_ADMIN:-admin_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - football_network
+    restart: unless-stopped
+
   postgres_rumor:
     image: postgres:16-alpine
     container_name: football_research_rumor_db
@@ -238,6 +258,22 @@ services:
     command: >
       sh -c "alembic -c migrations/auth_service/alembic.ini upgrade head"
 
+  migrations_admin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    container_name: football_research_admin_migrations
+    environment:
+      DATABASE_URL_ADMIN: postgresql+asyncpg://${POSTGRES_USER_ADMIN:-postgres}:${POSTGRES_PASSWORD_ADMIN:-postgres}@postgres_admin:5432/${POSTGRES_DB_ADMIN:-admin_db}
+    depends_on:
+      postgres_admin:
+        condition: service_healthy
+    networks:
+      - football_network
+    command: >
+      sh -c "alembic -c migrations/admin_service/alembic.ini upgrade head"
+
   migrations_rumor:
     build:
       context: .
@@ -390,6 +426,64 @@ services:
       python -m uvicorn src.backend.auth_service.main:app --host 0.0.0.0 --port 8002 --workers 1
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  admin_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    container_name: football_research_admin_service
+    environment:
+      DATABASE_URL_ADMIN: postgresql+asyncpg://${POSTGRES_USER_ADMIN:-postgres}:${POSTGRES_PASSWORD_ADMIN:-postgres}@postgres_admin:5432/${POSTGRES_DB_ADMIN:-admin_db}
+      SERVICE_AUTH_URL: ${SERVICE_AUTH_URL:-http://auth_service:8002}
+      SERVICE_EVENT_URL: ${SERVICE_EVENT_URL:-http://event_service:8004}
+      SERVICE_PROFILE_URL: ${SERVICE_PROFILE_URL:-http://profile_service:8007}
+      SERVICE_RATING_URL: ${SERVICE_RATING_URL:-http://rating_service:8008}
+      SERVICE_MARKET_URL: ${SERVICE_MARKET_URL:-http://market_service:8005}
+      SERVICE_RUMOR_URL: ${SERVICE_RUMOR_URL:-http://rumor_service:8003}
+      SERVICE_NSI_URL: ${SERVICE_NSI_URL:-http://nsi_service:8001}
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      DEBUG: "false"
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+      JSON_LOGS: "true"
+      LOG_BROKER_ENABLED: "${LOG_BROKER_ENABLED:-true}"
+      LOG_REDIS_URL: redis://redis:6379/0
+      LOG_REDIS_KEY: "${LOG_REDIS_KEY:-logs:football}"
+    expose:
+      - "8009"
+    depends_on:
+      postgres_admin:
+        condition: service_healthy
+      migrations_admin:
+        condition: service_completed_successfully
+      auth_service:
+        condition: service_healthy
+      nsi_service:
+        condition: service_healthy
+      rumor_service:
+        condition: service_healthy
+      event_service:
+        condition: service_healthy
+      market_service:
+        condition: service_healthy
+      notification_service:
+        condition: service_healthy
+      profile_service:
+        condition: service_healthy
+      rating_service:
+        condition: service_healthy
+    networks:
+      - football_network
+    command: >
+      python -m uvicorn src.backend.admin_service.main:app --host 0.0.0.0 --port 8009 --workers 1
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8009/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -628,6 +722,7 @@ services:
       SERVICE_NOTIFICATION_URL: ${SERVICE_NOTIFICATION_URL:-http://notification_service:8006}
       SERVICE_PROFILE_URL: ${SERVICE_PROFILE_URL:-http://profile_service:8007}
       SERVICE_RATING_URL: ${SERVICE_RATING_URL:-http://rating_service:8008}
+      SERVICE_ADMIN_URL: ${SERVICE_ADMIN_URL:-http://admin_service:8009}
       REDIS_URL: ${GATEWAY_REDIS_URL:-redis://redis:6379/0}
       RATE_LIMIT: ${RATE_LIMIT:-100/minute}
       RATE_LIMIT_BY_JWT: ${RATE_LIMIT_BY_JWT:-true}
@@ -658,6 +753,8 @@ services:
       profile_service:
         condition: service_healthy
       rating_service:
+        condition: service_healthy
+      admin_service:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -775,6 +872,8 @@ volumes:
   postgres_nsi_data:
     driver: local
   postgres_auth_data:
+    driver: local
+  postgres_admin_data:
     driver: local
   postgres_rumor_data:
     driver: local

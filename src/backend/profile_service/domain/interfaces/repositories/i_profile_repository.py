@@ -14,5 +14,9 @@ class IProfileRepository(ABC):
         pass
 
     @abstractmethod
+    async def count_all(self) -> int:
+        pass
+
+    @abstractmethod
     async def save(self, profile: Profile) -> Profile:
         pass

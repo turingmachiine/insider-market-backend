@@ -56,6 +56,9 @@ class RatingUseCases(HasTransactionManager):
         profiles = await self.profile_repository.get_all(limit=limit, offset=offset)
         return [self.mapper.profile_to_dto(item) for item in profiles]
 
+    async def count_profiles(self) -> int:
+        return await self.profile_repository.count_all()
+
     async def get_leaderboard(
         self,
         limit: int = 100,

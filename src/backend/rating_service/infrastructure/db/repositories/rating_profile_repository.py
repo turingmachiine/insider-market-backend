@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.backend.rating_service.domain.entities import RatingProfile
@@ -29,6 +29,11 @@ class RatingProfileRepository(IRatingProfileRepository):
         )
         result = await self.session.execute(query)
         return list(result.scalars().all())
+
+    async def count_all(self) -> int:
+        query = select(func.count()).select_from(rating_profiles_table)
+        result = await self.session.execute(query)
+        return int(result.scalar_one())
 
     async def get_leaderboard(
         self,

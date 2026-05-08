@@ -67,6 +67,9 @@ class FakeProfileRepository(IRatingProfileRepository):
     async def get_all(self, limit: int = 100, offset: int = 0) -> list[RatingProfile]:
         return list(self.items.values())[offset : offset + limit]
 
+    async def count_all(self) -> int:
+        return len(self.items)
+
     async def get_leaderboard(
         self,
         limit: int = 100,

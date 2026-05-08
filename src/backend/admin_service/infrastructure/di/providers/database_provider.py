@@ -1,0 +1,50 @@
+from collections.abc import AsyncIterable
+
+from dishka import Provider, Scope, provide
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+
+from src.backend.admin_service.core.config import AdminSettings
+from src.backend.admin_service.infrastructure.db.database import (
+    create_engine,
+    create_session_factory,
+)
+from src.backend.common.domain.interfaces import TransactionManager
+from src.backend.common.infrastructure.db import SQLAlchemyTransactionManager
+
+
+class DatabaseProvider(Provider):
+    scope = Scope.APP
+
+    @provide
+    @staticmethod
+    async def provide_engine(
+        settings: AdminSettings,
+    ) -> AsyncIterable[AsyncEngine]:
+        engine = create_engine(settings)
+        yield engine
+        await engine.dispose()
+
+    @provide
+    @staticmethod
+    def provide_session_factory(
+        engine: AsyncEngine,
+    ) -> async_sessionmaker[AsyncSession]:
+        return create_session_factory(engine)
+
+    @provide(scope=Scope.REQUEST)
+    @staticmethod
+    async def provide_session(
+        session_factory: async_sessionmaker[AsyncSession],
+    ) -> AsyncIterable[AsyncSession]:
+        async with session_factory() as session:
+            try:
+                yield session
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+
+    @provide(scope=Scope.REQUEST)
+    @staticmethod
+    def provide_transaction_manager(session: AsyncSession) -> TransactionManager:
+        return SQLAlchemyTransactionManager(session=session)

@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.backend.profile_service.domain.entities import Profile
@@ -29,6 +29,11 @@ class ProfileRepository(IProfileRepository):
         )
         result = await self.session.execute(query)
         return list(result.scalars().all())
+
+    async def count_all(self) -> int:
+        query = select(func.count()).select_from(profiles_table)
+        result = await self.session.execute(query)
+        return int(result.scalar_one())
 
     async def save(self, profile: Profile) -> Profile:
         self.session.add(profile)

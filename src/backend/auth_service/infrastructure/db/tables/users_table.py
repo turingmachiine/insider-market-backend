@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from sqlalchemy import Column, DateTime, String, Table, func
+from sqlalchemy import Boolean, Column, DateTime, String, Table, func, text
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
 from src.backend.auth_service.infrastructure.db.metadata import mapper_registry
@@ -11,6 +11,7 @@ users_table = Table(
     Column("id", PG_UUID(as_uuid=True), primary_key=True, default=uuid4),
     Column("email", String(320), nullable=False, unique=True, index=True),
     Column("password_hash", String(255), nullable=False),
+    Column("is_active", Boolean(), nullable=False, server_default=text("true")),
     Column("created_at", DateTime(timezone=True), server_default=func.now()),
 )
 

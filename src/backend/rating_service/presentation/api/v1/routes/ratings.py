@@ -39,7 +39,10 @@ async def get_profiles(
 ) -> RatingProfileListResponse:
     profiles = await rating_use_cases.get_profiles(limit=limit, offset=offset)
     return RatingProfileListResponse(
-        items=[RatingProfileResponse(**item.__dict__) for item in profiles]
+        items=[RatingProfileResponse(**item.__dict__) for item in profiles],
+        total=await rating_use_cases.count_profiles(),
+        limit=limit,
+        offset=offset,
     )
 
 
@@ -52,7 +55,10 @@ async def get_leaderboard(
 ) -> RatingProfileListResponse:
     profiles = await rating_use_cases.get_leaderboard(limit=limit, offset=offset)
     return RatingProfileListResponse(
-        items=[RatingProfileResponse(**item.__dict__) for item in profiles]
+        items=[RatingProfileResponse(**item.__dict__) for item in profiles],
+        total=await rating_use_cases.count_profiles(),
+        limit=limit,
+        offset=offset,
     )
 
 

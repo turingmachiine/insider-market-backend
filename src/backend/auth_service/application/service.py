@@ -48,7 +48,11 @@ class AuthService:
 
     async def login(self, email: str, password: str) -> tuple[str, UUID, list[str]]:
         user = await self.user_repository.get_by_email(email)
-        if user is None or not verify_password(password, user.password_hash):
+        if (
+            user is None
+            or not user.is_active
+            or not verify_password(password, user.password_hash)
+        ):
             raise AuthError("Invalid credentials")
         permissions = await self.get_permissions(user.id)
         token = create_access_token(user.id, permissions, self.settings)
@@ -69,3 +73,35 @@ class AuthService:
         return sorted(
             {permission.name for role in user.roles for permission in role.permissions}
         )
+
+    async def list_users(self, limit: int = 100, offset: int = 0) -> list[User]:
+        return await self.user_repository.get_all(limit=limit, offset=offset)
+
+    async def count_users(self) -> int:
+        return await self.user_repository.count_all()
+
+    async def get_user(self, user_id: UUID) -> User | None:
+        return await self.user_repository.get_by_id(user_id)
+
+    async def set_user_status(self, user_id: UUID, is_active: bool) -> User | None:
+        user = await self.user_repository.get_by_id(user_id)
+        if user is None:
+            return None
+        user.set_active(is_active)
+        return await self.user_repository.save(user)
+
+    async def assign_role(
+        self,
+        user_id: UUID,
+        role_name: str,
+        permissions: list[str],
+    ) -> User | None:
+        user = await self.user_repository.get_by_id(user_id)
+        if user is None:
+            return None
+        await self.role_repository.ensure_with_permissions(
+            role_name,
+            permissions,
+            user=user,
+        )
+        return user

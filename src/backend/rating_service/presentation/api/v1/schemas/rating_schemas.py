@@ -66,6 +66,9 @@ class RatingProfileResponse(BaseModel):
 
 class RatingProfileListResponse(BaseModel):
     items: list[RatingProfileResponse]
+    total: int
+    limit: int
+    offset: int
 
 
 class AchievementDefinitionCreate(BaseModel):

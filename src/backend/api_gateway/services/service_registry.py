@@ -14,6 +14,7 @@ class ServiceName(StrEnum):
     NOTIFICATION = "notification"
     PROFILE = "profile"
     RATING = "rating"
+    ADMIN = "admin"
 
 
 @dataclass(frozen=True)
@@ -77,6 +78,10 @@ class ServiceRegistry:
                 base_url=str(settings.SERVICE_RATING_URL),
                 cache_get=True,
                 invalidate_on_mutation=True,
+            ),
+            ServiceName.ADMIN: UpstreamService(
+                name=ServiceName.ADMIN,
+                base_url=str(settings.SERVICE_ADMIN_URL),
             ),
         }
 

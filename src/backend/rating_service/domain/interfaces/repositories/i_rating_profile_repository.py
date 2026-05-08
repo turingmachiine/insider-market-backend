@@ -14,6 +14,10 @@ class IRatingProfileRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    async def count_all(self) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
     async def get_leaderboard(
         self,
         limit: int = 100,

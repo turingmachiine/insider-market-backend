@@ -35,6 +35,29 @@
   входа.
 - Проверка ролей и permissions должна опираться на `auth_service`.
 
+## API
+
+Базовый путь через gateway: `/admin/api/v1`.
+
+- `GET /dashboard` - сводка по состоянию сервисов, очередям и объемам данных.
+- `GET /health` - health summary по подчиненным сервисам.
+- `GET /events/moderation-queue` - очередь событий на модерацию.
+- `POST /events/{event_id}/approve` - одобрить событие.
+- `POST /events/{event_id}/reject` - отклонить событие.
+- `POST /events/{event_id}/resolve` - зафиксировать исход события.
+- `POST /events/{event_id}/cancel` - отменить событие.
+- `GET /users` - список пользователей.
+- `GET /users/{user_id}` - карточка пользователя.
+- `GET /users/{user_id}/permissions` - permissions пользователя.
+- `PATCH /users/{user_id}/status` - включить или отключить пользователя.
+- `POST /users/{user_id}/roles` - назначить роль и permissions.
+- `GET /profiles/{user_id}/summary` - агрегированный профильный срез.
+- `GET /audit/actions` - локальный аудит админских действий.
+- `GET /saved-filters` - сохраненные фильтры.
+- `POST /saved-filters` - сохранить фильтр.
+
 ## Текущий статус
 
-Сервис запланирован. Сейчас создана только директория и документация.
+Сервис реализован как отдельный backend-сервис с собственной БД для аудита
+и saved filters, DI-контейнером, SQLAlchemy imperative mapping, FastAPI API и
+HTTP-клиентом к владельцам доменных данных.

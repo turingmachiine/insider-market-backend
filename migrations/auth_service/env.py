@@ -25,7 +25,7 @@ def get_url() -> str:
         return database_url
 
     user = os.getenv("POSTGRES_USER_AUTH", "postgres")
-    password = os.getenv("POSTGRES_PASSWORD_AUTH", "postgres")
+    password = os.getenv("POSTGRES_PASSWORD_AUTH", "postgres")  # NOSONAR(S2068)
     host = os.getenv("POSTGRES_HOST_AUTH", "localhost")
     port = os.getenv("POSTGRES_PORT_AUTH", "5433")
     db = os.getenv("POSTGRES_DB_AUTH", "auth_db")

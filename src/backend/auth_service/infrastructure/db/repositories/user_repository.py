@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -34,8 +34,29 @@ class UserRepository(IUserRepository):
         result = await self.session.execute(query)
         return result.scalars().one_or_none()
 
+    async def get_all(self, limit: int = 100, offset: int = 0) -> list[User]:
+        query = (
+            select(self.model)
+            .order_by(users_table.c.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+            .options(selectinload(User.roles).selectinload(Role.permissions))
+        )
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+
+    async def count_all(self) -> int:
+        query = select(func.count()).select_from(users_table)
+        result = await self.session.execute(query)
+        return int(result.scalar_one())
+
     async def create(self, email: str, password_hash: str) -> User:
-        user = User(email=email, password_hash=password_hash, roles=[])
+        user = User(email=email, password_hash=password_hash, is_active=True, roles=[])
+        self.session.add(user)
+        await self.session.flush()
+        return user
+
+    async def save(self, user: User) -> User:
         self.session.add(user)
         await self.session.flush()
         return user

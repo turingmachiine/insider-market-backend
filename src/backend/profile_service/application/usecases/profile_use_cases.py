@@ -70,6 +70,9 @@ class ProfileUseCases(HasTransactionManager):
             result.append(self.profile_mapper.to_dto(profile, balance))
         return result
 
+    async def count_profiles(self) -> int:
+        return await self.profile_repository.count_all()
+
     @transactional()
     async def create_profile(self, dto: CreateProfileDTO) -> ProfileDTO:
         existing_profile = await self.profile_repository.get_by_user_id(dto.user_id)

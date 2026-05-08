@@ -83,6 +83,10 @@ class GatewayRouter:
             service=ServiceName.RATING,
             prefix=f"/{ServiceName.RATING}",
         )
+        self._register_proxy_routes(
+            service=ServiceName.ADMIN,
+            prefix=f"/{ServiceName.ADMIN}",
+        )
 
     def _register_proxy_routes(self, service: ServiceName, prefix: str) -> None:
         methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]

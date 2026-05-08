@@ -50,6 +50,9 @@ class ProfileResponse(BaseModel):
 
 class ProfileListResponse(BaseModel):
     items: list[ProfileResponse]
+    total: int
+    limit: int
+    offset: int
 
 
 class BalanceResponse(BaseModel):

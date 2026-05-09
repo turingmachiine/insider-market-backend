@@ -2,19 +2,17 @@ import asyncio
 from collections.abc import AsyncGenerator
 from typing import cast
 
-from src.backend.notification_service.application.dto import (
+from src.notification_service.application.dto import (
     PublishNotificationDTO,
     SubscriptionDTO,
 )
-from src.backend.notification_service.application.usecases import NotificationUseCases
-from src.backend.notification_service.domain.entities import (
+from src.notification_service.application.usecases import NotificationUseCases
+from src.notification_service.domain.entities import (
     NotificationEvent,
     NotificationTopic,
 )
-from src.backend.notification_service.domain.services import SubscriptionService
-from src.backend.notification_service.infrastructure.pubsub import (
-    InMemoryNotificationBroker,
-)
+from src.notification_service.domain.services import SubscriptionService
+from src.notification_service.infrastructure.pubsub import InMemoryNotificationBroker
 
 
 async def test_publish_sends_event_to_broker() -> None:

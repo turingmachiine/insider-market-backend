@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from src.backend.rumor_service.domain.entities import (
+from src.rumor_service.domain.entities import (
     RawPublication,
     Rumor,
     RumorStatus,

@@ -2,31 +2,31 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from src.backend.common.domain.interfaces import TransactionManager
-from src.backend.rumor_service.application.dto import (
+from src.common.domain.interfaces import TransactionManager
+from src.rumor_service.application.dto import (
     CreateRawPublicationDTO,
     CreateRumorDTO,
     CreateSourceDTO,
     UpdateRumorStatusDTO,
 )
-from src.backend.rumor_service.application.mappers import (
+from src.rumor_service.application.mappers import (
     RawPublicationMapper,
     RumorMapper,
     SourceMapper,
 )
-from src.backend.rumor_service.application.usecases import (
+from src.rumor_service.application.usecases import (
     RawPublicationUseCases,
     RumorUseCases,
     SourceUseCases,
 )
-from src.backend.rumor_service.domain.entities import (
+from src.rumor_service.domain.entities import (
     RawPublication,
     Rumor,
     RumorStatus,
     Source,
     SourceType,
 )
-from src.backend.rumor_service.domain.interfaces.repositories import (
+from src.rumor_service.domain.interfaces.repositories import (
     IRawPublicationRepository,
     IRumorRepository,
     ISourceRepository,

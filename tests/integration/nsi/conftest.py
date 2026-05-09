@@ -18,21 +18,21 @@ from sqlalchemy.ext.asyncio import (
 )
 from testcontainers.postgres import PostgresContainer
 
-from src.backend.nsi_service.core.config import Settings, settings
-from src.backend.nsi_service.domain.entities.club import Club
-from src.backend.nsi_service.domain.entities.league import League
-from src.backend.nsi_service.domain.entities.player import Player
-from src.backend.nsi_service.domain.entities.team import Team
-from src.backend.nsi_service.domain.value_objects.position import Position
-from src.backend.nsi_service.infrastructure.db import setup_mapping
-from src.backend.nsi_service.infrastructure.db.metadata import mapper_registry
-from src.backend.nsi_service.infrastructure.db.repositories import (
+from src.nsi_service.core.config import Settings, settings
+from src.nsi_service.domain.entities.club import Club
+from src.nsi_service.domain.entities.league import League
+from src.nsi_service.domain.entities.player import Player
+from src.nsi_service.domain.entities.team import Team
+from src.nsi_service.domain.value_objects.position import Position
+from src.nsi_service.infrastructure.db import setup_mapping
+from src.nsi_service.infrastructure.db.metadata import mapper_registry
+from src.nsi_service.infrastructure.db.repositories import (
     ClubRepository,
     LeagueRepository,
     PlayerRepository,
     TeamRepository,
 )
-from src.backend.nsi_service.infrastructure.di.providers import (
+from src.nsi_service.infrastructure.di.providers import (
     ContainerProvider,
     DatabaseProvider,
     DomainServiceProvider,
@@ -41,7 +41,7 @@ from src.backend.nsi_service.infrastructure.di.providers import (
     RepositoryProvider,
     UseCaseProvider,
 )
-from src.backend.nsi_service.main import create_app
+from src.nsi_service.main import create_app
 
 
 class TestDatabaseProvider(DatabaseProvider):

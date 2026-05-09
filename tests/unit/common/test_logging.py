@@ -4,7 +4,7 @@ import warnings
 
 import structlog
 
-from src.backend.common.logging import setup_logging, shutdown_logging
+from src.common.logging import setup_logging, shutdown_logging
 
 
 def test_structlog_writes_formatted_stdout(capsys) -> None:
@@ -34,7 +34,7 @@ def test_context_unbind_removes_value_from_next_broker_log(monkeypatch, capsys) 
             records.append((key, value))
 
     monkeypatch.setattr(
-        "src.backend.common.logging.handlers.redis.Redis.from_url",
+        "src.common.logging.handlers.redis.Redis.from_url",
         lambda *_, **__: FakeRedis(),
     )
 
@@ -94,7 +94,7 @@ def test_broker_handler_receives_same_json_payload(monkeypatch, capsys) -> None:
             records.append((key, value))
 
     monkeypatch.setattr(
-        "src.backend.common.logging.handlers.redis.Redis.from_url",
+        "src.common.logging.handlers.redis.Redis.from_url",
         lambda *_, **__: FakeRedis(),
     )
 

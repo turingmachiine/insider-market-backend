@@ -3,9 +3,9 @@ from collections.abc import AsyncGenerator
 import httpx
 import pytest_asyncio
 
-from src.backend.notification_service.core.config import NotificationSettings
-from src.backend.notification_service.infrastructure.di import create_container
-from src.backend.notification_service.main import create_app
+from src.notification_service.core.config import NotificationSettings
+from src.notification_service.infrastructure.di import create_container
+from src.notification_service.main import create_app
 
 
 @pytest_asyncio.fixture(scope="function")

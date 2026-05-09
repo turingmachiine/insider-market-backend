@@ -17,7 +17,7 @@ Keep dependency direction strict:
 `presentation -> application -> domain <- infrastructure`
 
 The current codebase uses service-local packages under
-`src/backend/{service_name}/`:
+`src/{service_name}/`:
 
 - `domain`: entities, value objects, repository interfaces, domain services
 - `application`: DTOs, use cases, mappers, ports, decorators, orchestration services
@@ -53,12 +53,12 @@ The current codebase uses service-local packages under
 
 - README for product and architectural intent
 - `pyproject.toml` for runtime, tooling, and test configuration
-- `src/backend/nsi_service/` as the reference structure for service layering
-- `src/backend/{service}/infrastructure/di/container_factory.py` and provider modules for dependency wiring
-- `src/backend/{service}/application/usecases/` or `application/service.py` for orchestration logic
-- `src/backend/{service}/domain/` for business rules, entities, and repository interfaces
-- `src/backend/{service}/infrastructure/db/tables/`, `mappers.py`, and `repositories/` for persistence
-- `src/backend/{service}/presentation/api/v1/routes/` for API contracts
+- `src/nsi_service/` as the reference structure for service layering
+- `src/{service}/infrastructure/di/container_factory.py` and provider modules for dependency wiring
+- `src/{service}/application/usecases/` or `application/service.py` for orchestration logic
+- `src/{service}/domain/` for business rules, entities, and repository interfaces
+- `src/{service}/infrastructure/db/tables/`, `mappers.py`, and `repositories/` for persistence
+- `src/{service}/presentation/api/v1/routes/` for API contracts
 
 ## Notes from the current tree
 

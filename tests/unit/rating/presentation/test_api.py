@@ -1,4 +1,4 @@
-from src.backend.rating_service.main import app
+from src.rating_service.main import app
 
 
 def test_health_route_is_registered() -> None:

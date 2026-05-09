@@ -8,16 +8,16 @@ import pytest_asyncio
 from dishka import Provider, Scope, make_async_container, provide
 from jose import jwt
 
-from src.backend.admin_service.application.dto import (
+from src.admin_service.application.dto import (
     AdminDashboardDTO,
     HealthStatusDTO,
     SavedFilterCreateDTO,
     SavedFilterDTO,
 )
-from src.backend.admin_service.application.usecases import AdminUseCases
-from src.backend.admin_service.core.config import AdminSettings, settings
-from src.backend.admin_service.infrastructure.di.providers import ContainerProvider
-from src.backend.admin_service.main import create_app
+from src.admin_service.application.usecases import AdminUseCases
+from src.admin_service.core.config import AdminSettings, settings
+from src.admin_service.infrastructure.di.providers import ContainerProvider
+from src.admin_service.main import create_app
 
 
 class FakeAdminUseCases:

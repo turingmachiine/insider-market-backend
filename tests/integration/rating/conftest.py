@@ -15,18 +15,18 @@ from sqlalchemy.ext.asyncio import (
 )
 from testcontainers.postgres import PostgresContainer
 
-from src.backend.rating_service.application.ports import ProfileBalancePort
-from src.backend.rating_service.core.config import RatingSettings
-from src.backend.rating_service.infrastructure.db import setup_mapping
-from src.backend.rating_service.infrastructure.db.metadata import mapper_registry
-from src.backend.rating_service.infrastructure.di.providers import (
+from src.rating_service.application.ports import ProfileBalancePort
+from src.rating_service.core.config import RatingSettings
+from src.rating_service.infrastructure.db import setup_mapping
+from src.rating_service.infrastructure.db.metadata import mapper_registry
+from src.rating_service.infrastructure.di.providers import (
     DatabaseProvider,
     DomainServiceProvider,
     MapperProvider,
     RepositoryProvider,
     UseCaseProvider,
 )
-from src.backend.rating_service.main import create_app
+from src.rating_service.main import create_app
 
 
 class TestDatabaseProvider(DatabaseProvider):

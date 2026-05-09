@@ -2,7 +2,7 @@ from uuid import uuid4
 
 import pytest
 
-from src.backend.event_service.domain.entities import Event, EventOutcome, EventStatus
+from src.event_service.domain.entities import Event, EventOutcome, EventStatus
 
 
 def test_event_defaults_to_draft() -> None:

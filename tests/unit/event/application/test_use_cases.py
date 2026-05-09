@@ -2,12 +2,12 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from src.backend.common.domain.interfaces import TransactionManager
-from src.backend.event_service.application.dto import CreateEventDTO, ResolveEventDTO
-from src.backend.event_service.application.mappers import EventMapper
-from src.backend.event_service.application.usecases import EventUseCases
-from src.backend.event_service.domain.entities import Event, EventOutcome, EventStatus
-from src.backend.event_service.domain.interfaces.repositories import IEventRepository
+from src.common.domain.interfaces import TransactionManager
+from src.event_service.application.dto import CreateEventDTO, ResolveEventDTO
+from src.event_service.application.mappers import EventMapper
+from src.event_service.application.usecases import EventUseCases
+from src.event_service.domain.entities import Event, EventOutcome, EventStatus
+from src.event_service.domain.interfaces.repositories import IEventRepository
 
 
 class FakeTransactionManager(TransactionManager):

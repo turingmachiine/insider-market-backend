@@ -3,12 +3,12 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from src.backend.common.domain.interfaces import TransactionManager
-from src.backend.rating_service.application.dto import CreateRatingEventDTO
-from src.backend.rating_service.application.mappers import RatingMapper
-from src.backend.rating_service.application.ports import ProfileBalancePort
-from src.backend.rating_service.application.usecases import RatingUseCases
-from src.backend.rating_service.domain.entities import (
+from src.common.domain.interfaces import TransactionManager
+from src.rating_service.application.dto import CreateRatingEventDTO
+from src.rating_service.application.mappers import RatingMapper
+from src.rating_service.application.ports import ProfileBalancePort
+from src.rating_service.application.usecases import RatingUseCases
+from src.rating_service.domain.entities import (
     AchievementDefinition,
     RatingEvent,
     RatingEventType,
@@ -17,13 +17,13 @@ from src.backend.rating_service.domain.entities import (
     RewardTransactionStatus,
     UserAchievement,
 )
-from src.backend.rating_service.domain.interfaces.repositories import (
+from src.rating_service.domain.interfaces.repositories import (
     IAchievementRepository,
     IRatingEventRepository,
     IRatingProfileRepository,
     IRewardRepository,
 )
-from src.backend.rating_service.domain.services import AchievementService
+from src.rating_service.domain.services import AchievementService
 
 
 class FakeTransactionManager(TransactionManager):

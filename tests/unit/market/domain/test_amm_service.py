@@ -3,8 +3,8 @@ from uuid import uuid4
 
 import pytest
 
-from src.backend.market_service.domain.entities import Market, MarketSide
-from src.backend.market_service.domain.services import AMMService
+from src.market_service.domain.entities import Market, MarketSide
+from src.market_service.domain.services import AMMService
 
 
 def test_initial_probability_defines_initial_odds() -> None:

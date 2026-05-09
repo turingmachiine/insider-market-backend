@@ -3,21 +3,21 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from src.backend.common.domain.interfaces import TransactionManager
-from src.backend.profile_service.application.dto import (
+from src.common.domain.interfaces import TransactionManager
+from src.profile_service.application.dto import (
     AwardAchievementDTO,
     BalanceOperationDTO,
     CreateAchievementDTO,
     CreateProfileDTO,
 )
-from src.backend.profile_service.application.mappers import (
+from src.profile_service.application.mappers import (
     AchievementMapper,
     ActivityMapper,
     BalanceMapper,
     ProfileMapper,
 )
-from src.backend.profile_service.application.usecases import ProfileUseCases
-from src.backend.profile_service.domain.entities import (
+from src.profile_service.application.usecases import ProfileUseCases
+from src.profile_service.domain.entities import (
     Achievement,
     Activity,
     ActivityType,
@@ -27,7 +27,7 @@ from src.backend.profile_service.domain.entities import (
     UserAchievement,
     UserBalance,
 )
-from src.backend.profile_service.domain.interfaces.repositories import (
+from src.profile_service.domain.interfaces.repositories import (
     IAchievementRepository,
     IActivityRepository,
     IBalanceRepository,

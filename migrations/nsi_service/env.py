@@ -8,7 +8,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 # Import models and settings
-from src.backend.nsi_service.infrastructure.db.metadata import mapper_registry
+from src.nsi_service.infrastructure.db.metadata import mapper_registry
 
 # Alembic Config object
 config = context.config
@@ -32,7 +32,7 @@ def get_url() -> str:
         return database_url
 
     user = os.getenv("POSTGRES_USER", "postgres")
-    password = os.getenv("POSTGRES_PASSWORD", "postgres")
+    password = os.getenv("POSTGRES_PASSWORD", "postgres")  # NOSONAR(S2068)
     host = os.getenv("POSTGRES_HOST", "localhost")
     port = os.getenv("POSTGRES_PORT", "5432")
     db = os.getenv("POSTGRES_DB", "football_db")

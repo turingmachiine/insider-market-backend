@@ -1,0 +1,11 @@
+from abc import ABC
+
+from src.nsi_service.application.dto import TeamDTO
+from src.nsi_service.presentation.api.v1.mappers.base_response_mapper import (
+    IBaseResponseMapper,
+)
+from src.nsi_service.presentation.api.v1.schemas.team_schemas import TeamResponse
+
+
+class ITeamResponseMapper(IBaseResponseMapper[TeamDTO, TeamResponse], ABC):
+    pass

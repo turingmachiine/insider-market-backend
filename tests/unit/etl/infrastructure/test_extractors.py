@@ -1,8 +1,8 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from src.backend.etl_service.application.dto import RawPublicationDTO, SourceDTO
-from src.backend.etl_service.infrastructure.extractors import RuleBasedRumorExtractor
+from src.etl_service.application.dto import RawPublicationDTO, SourceDTO
+from src.etl_service.infrastructure.extractors import RuleBasedRumorExtractor
 
 
 def test_rule_based_extractor_builds_transfer_candidate() -> None:

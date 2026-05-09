@@ -15,17 +15,17 @@ from sqlalchemy.ext.asyncio import (
 )
 from testcontainers.postgres import PostgresContainer
 
-from src.backend.market_service.core.config import MarketSettings, settings
-from src.backend.market_service.infrastructure.db import setup_mapping
-from src.backend.market_service.infrastructure.db.metadata import mapper_registry
-from src.backend.market_service.infrastructure.di.providers import (
+from src.market_service.core.config import MarketSettings, settings
+from src.market_service.infrastructure.db import setup_mapping
+from src.market_service.infrastructure.db.metadata import mapper_registry
+from src.market_service.infrastructure.di.providers import (
     DatabaseProvider,
     DomainServiceProvider,
     MapperProvider,
     RepositoryProvider,
     UseCaseProvider,
 )
-from src.backend.market_service.main import create_app
+from src.market_service.main import create_app
 
 
 class TestDatabaseProvider(DatabaseProvider):

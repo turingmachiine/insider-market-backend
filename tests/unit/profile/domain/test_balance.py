@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from src.backend.profile_service.domain.entities import UserBalance
+from src.profile_service.domain.entities import UserBalance
 
 
 def test_balance_reserve_and_release_updates_available_balance() -> None:

@@ -1,7 +1,7 @@
 services:
   postgres_nsi:
     image: postgres:16-alpine
-    container_name: football_research_nsi_db
+    container_name: insider_market_backend_nsi_db
     environment:
       POSTGRES_USER: ${POSTGRES_USER_NSI:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_NSI:-postgres}
@@ -22,7 +22,7 @@ services:
 
   postgres_auth:
     image: postgres:16-alpine
-    container_name: football_research_auth_db
+    container_name: insider_market_backend_auth_db
     environment:
       POSTGRES_USER: ${POSTGRES_USER_AUTH:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_AUTH:-postgres}
@@ -42,7 +42,7 @@ services:
 
   postgres_admin:
     image: postgres:16-alpine
-    container_name: football_research_admin_db
+    container_name: insider_market_backend_admin_db
     environment:
       POSTGRES_USER: ${POSTGRES_USER_ADMIN:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_ADMIN:-postgres}
@@ -62,7 +62,7 @@ services:
 
   postgres_rumor:
     image: postgres:16-alpine
-    container_name: football_research_rumor_db
+    container_name: insider_market_backend_rumor_db
     environment:
       POSTGRES_USER: ${POSTGRES_USER_RUMOR:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_RUMOR:-postgres}
@@ -82,7 +82,7 @@ services:
 
   postgres_event:
     image: postgres:16-alpine
-    container_name: football_research_event_db
+    container_name: insider_market_backend_event_db
     environment:
       POSTGRES_USER: ${POSTGRES_USER_EVENT:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_EVENT:-postgres}
@@ -102,7 +102,7 @@ services:
 
   postgres_market:
     image: postgres:16-alpine
-    container_name: football_research_market_db
+    container_name: insider_market_backend_market_db
     environment:
       POSTGRES_USER: ${POSTGRES_USER_MARKET:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_MARKET:-postgres}
@@ -122,7 +122,7 @@ services:
 
   postgres_profile:
     image: postgres:16-alpine
-    container_name: football_research_profile_db
+    container_name: insider_market_backend_profile_db
     environment:
       POSTGRES_USER: ${POSTGRES_USER_PROFILE:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_PROFILE:-postgres}
@@ -142,7 +142,7 @@ services:
 
   postgres_rating:
     image: postgres:16-alpine
-    container_name: football_research_rating_db
+    container_name: insider_market_backend_rating_db
     environment:
       POSTGRES_USER: ${POSTGRES_USER_RATING:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD_RATING:-postgres}
@@ -162,7 +162,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: football_research_redis
+    container_name: insider_market_backend_redis
     ports:
       - "6379:6379"
     volumes:
@@ -178,7 +178,7 @@ services:
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    container_name: football_research_elasticsearch
+    container_name: insider_market_backend_elasticsearch
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -198,7 +198,7 @@ services:
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.11.0
-    container_name: football_research_kibana
+    container_name: insider_market_backend_kibana
     environment:
       ELASTICSEARCH_HOSTS: http://elasticsearch:9200
     ports:
@@ -212,7 +212,7 @@ services:
 
   logstash:
     image: docker.elastic.co/logstash/logstash:8.11.0
-    container_name: football_research_logstash
+    container_name: insider_market_backend_logstash
     environment:
       LS_JAVA_OPTS: "-Xms256m -Xmx256m"
     volumes:
@@ -231,7 +231,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_nsi_migrations
+    container_name: insider_market_backend_nsi_migrations
     environment:
       DATABASE_URL_NSI: postgresql+asyncpg://${POSTGRES_USER_NSI:-postgres}:${POSTGRES_PASSWORD_NSI:-postgres}@postgres_nsi:5432/${POSTGRES_DB_NSI:-football_db}
     depends_on:
@@ -247,7 +247,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_auth_migrations
+    container_name: insider_market_backend_auth_migrations
     environment:
       DATABASE_URL_AUTH: postgresql+asyncpg://${POSTGRES_USER_AUTH:-postgres}:${POSTGRES_PASSWORD_AUTH:-postgres}@postgres_auth:5432/${POSTGRES_DB_AUTH:-auth_db}
     depends_on:
@@ -263,7 +263,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_admin_migrations
+    container_name: insider_market_backend_admin_migrations
     environment:
       DATABASE_URL_ADMIN: postgresql+asyncpg://${POSTGRES_USER_ADMIN:-postgres}:${POSTGRES_PASSWORD_ADMIN:-postgres}@postgres_admin:5432/${POSTGRES_DB_ADMIN:-admin_db}
     depends_on:
@@ -279,7 +279,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_rumor_migrations
+    container_name: insider_market_backend_rumor_migrations
     environment:
       DATABASE_URL_RUMOR: postgresql+asyncpg://${POSTGRES_USER_RUMOR:-postgres}:${POSTGRES_PASSWORD_RUMOR:-postgres}@postgres_rumor:5432/${POSTGRES_DB_RUMOR:-rumor_db}
     depends_on:
@@ -295,7 +295,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_event_migrations
+    container_name: insider_market_backend_event_migrations
     environment:
       DATABASE_URL_EVENT: postgresql+asyncpg://${POSTGRES_USER_EVENT:-postgres}:${POSTGRES_PASSWORD_EVENT:-postgres}@postgres_event:5432/${POSTGRES_DB_EVENT:-event_db}
     depends_on:
@@ -311,7 +311,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_market_migrations
+    container_name: insider_market_backend_market_migrations
     environment:
       DATABASE_URL_MARKET: postgresql+asyncpg://${POSTGRES_USER_MARKET:-postgres}:${POSTGRES_PASSWORD_MARKET:-postgres}@postgres_market:5432/${POSTGRES_DB_MARKET:-market_db}
     depends_on:
@@ -327,7 +327,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_profile_migrations
+    container_name: insider_market_backend_profile_migrations
     environment:
       DATABASE_URL_PROFILE: postgresql+asyncpg://${POSTGRES_USER_PROFILE:-postgres}:${POSTGRES_PASSWORD_PROFILE:-postgres}@postgres_profile:5432/${POSTGRES_DB_PROFILE:-profile_db}
     depends_on:
@@ -343,7 +343,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_rating_migrations
+    container_name: insider_market_backend_rating_migrations
     environment:
       DATABASE_URL_RATING: postgresql+asyncpg://${POSTGRES_USER_RATING:-postgres}:${POSTGRES_PASSWORD_RATING:-postgres}@postgres_rating:5432/${POSTGRES_DB_RATING:-rating_db}
     depends_on:
@@ -359,7 +359,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_nsi_service
+    container_name: insider_market_backend_nsi_service
     environment:
       DATABASE_URL_NSI: postgresql+asyncpg://${POSTGRES_USER_NSI:-postgres}:${POSTGRES_PASSWORD_NSI:-postgres}@postgres_nsi:5432/${POSTGRES_DB_NSI:-football_db}
       REDIS_URL: redis://redis:6379
@@ -386,7 +386,7 @@ services:
     networks:
       - football_network
     command: >
-      python -m uvicorn src.backend.nsi_service.main:app --host 0.0.0.0 --port 8001 --workers ${WORKERS:-4}
+      python -m uvicorn src.nsi_service.main:app --host 0.0.0.0 --port 8001 --workers ${WORKERS:-4}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
       interval: 30s
@@ -399,7 +399,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_auth_service
+    container_name: insider_market_backend_auth_service
     environment:
       DATABASE_URL_AUTH: postgresql+asyncpg://${POSTGRES_USER_AUTH:-postgres}:${POSTGRES_PASSWORD_AUTH:-postgres}@postgres_auth:5432/${POSTGRES_DB_AUTH:-auth_db}
       REDIS_URL: redis://redis:6379
@@ -423,7 +423,7 @@ services:
     networks:
       - football_network
     command: >
-      python -m uvicorn src.backend.auth_service.main:app --host 0.0.0.0 --port 8002 --workers 1
+      python -m uvicorn src.auth_service.main:app --host 0.0.0.0 --port 8002 --workers 1
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
       interval: 30s
@@ -437,7 +437,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_admin_service
+    container_name: insider_market_backend_admin_service
     environment:
       DATABASE_URL_ADMIN: postgresql+asyncpg://${POSTGRES_USER_ADMIN:-postgres}:${POSTGRES_PASSWORD_ADMIN:-postgres}@postgres_admin:5432/${POSTGRES_DB_ADMIN:-admin_db}
       SERVICE_AUTH_URL: ${SERVICE_AUTH_URL:-http://auth_service:8002}
@@ -481,7 +481,7 @@ services:
     networks:
       - football_network
     command: >
-      python -m uvicorn src.backend.admin_service.main:app --host 0.0.0.0 --port 8009 --workers 1
+      python -m uvicorn src.admin_service.main:app --host 0.0.0.0 --port 8009 --workers 1
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8009/health')"]
       interval: 30s
@@ -495,7 +495,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_rumor_service
+    container_name: insider_market_backend_rumor_service
     environment:
       DATABASE_URL_RUMOR: postgresql+asyncpg://${POSTGRES_USER_RUMOR:-postgres}:${POSTGRES_PASSWORD_RUMOR:-postgres}@postgres_rumor:5432/${POSTGRES_DB_RUMOR:-rumor_db}
       REDIS_URL: redis://redis:6379
@@ -517,7 +517,7 @@ services:
     networks:
       - football_network
     command: >
-      python -m uvicorn src.backend.rumor_service.main:app --host 0.0.0.0 --port 8003 --workers 1
+      python -m uvicorn src.rumor_service.main:app --host 0.0.0.0 --port 8003 --workers 1
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/health')"]
       interval: 30s
@@ -531,7 +531,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_event_service
+    container_name: insider_market_backend_event_service
     environment:
       DATABASE_URL_EVENT: postgresql+asyncpg://${POSTGRES_USER_EVENT:-postgres}:${POSTGRES_PASSWORD_EVENT:-postgres}@postgres_event:5432/${POSTGRES_DB_EVENT:-event_db}
       REDIS_URL: redis://redis:6379
@@ -553,7 +553,7 @@ services:
     networks:
       - football_network
     command: >
-      python -m uvicorn src.backend.event_service.main:app --host 0.0.0.0 --port 8004 --workers 1
+      python -m uvicorn src.event_service.main:app --host 0.0.0.0 --port 8004 --workers 1
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8004/health')"]
       interval: 30s
@@ -567,7 +567,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_market_service
+    container_name: insider_market_backend_market_service
     environment:
       DATABASE_URL_MARKET: postgresql+asyncpg://${POSTGRES_USER_MARKET:-postgres}:${POSTGRES_PASSWORD_MARKET:-postgres}@postgres_market:5432/${POSTGRES_DB_MARKET:-market_db}
       REDIS_URL: redis://redis:6379
@@ -589,7 +589,7 @@ services:
     networks:
       - football_network
     command: >
-      python -m uvicorn src.backend.market_service.main:app --host 0.0.0.0 --port 8005 --workers 1
+      python -m uvicorn src.market_service.main:app --host 0.0.0.0 --port 8005 --workers 1
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8005/health')"]
       interval: 30s
@@ -603,7 +603,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_notification_service
+    container_name: insider_market_backend_notification_service
     environment:
       REDIS_URL: redis://redis:6379/0
       NOTIFICATION_CHANNEL_PREFIX: ${NOTIFICATION_CHANNEL_PREFIX:-notifications}
@@ -621,7 +621,7 @@ services:
     networks:
       - football_network
     command: >
-      python -m uvicorn src.backend.notification_service.main:app --host 0.0.0.0 --port 8006 --workers 1
+      python -m uvicorn src.notification_service.main:app --host 0.0.0.0 --port 8006 --workers 1
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8006/health')"]
       interval: 30s
@@ -635,7 +635,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_profile_service
+    container_name: insider_market_backend_profile_service
     environment:
       DATABASE_URL_PROFILE: postgresql+asyncpg://${POSTGRES_USER_PROFILE:-postgres}:${POSTGRES_PASSWORD_PROFILE:-postgres}@postgres_profile:5432/${POSTGRES_DB_PROFILE:-profile_db}
       REDIS_URL: redis://redis:6379
@@ -657,7 +657,7 @@ services:
     networks:
       - football_network
     command: >
-      python -m uvicorn src.backend.profile_service.main:app --host 0.0.0.0 --port 8007 --workers 1
+      python -m uvicorn src.profile_service.main:app --host 0.0.0.0 --port 8007 --workers 1
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8007/health')"]
       interval: 30s
@@ -671,13 +671,13 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_rating_service
+    container_name: insider_market_backend_rating_service
     environment:
       DATABASE_URL_RATING: postgresql+asyncpg://${POSTGRES_USER_RATING:-postgres}:${POSTGRES_PASSWORD_RATING:-postgres}@postgres_rating:5432/${POSTGRES_DB_RATING:-rating_db}
       PROFILE_SERVICE_URL: ${PROFILE_SERVICE_URL:-http://profile_service:8007}
       REDIS_URL: redis://redis:6379
       TASKIQ_REDIS_URL: ${TASKIQ_REDIS_URL:-redis://redis:6379/0}
-      TASKIQ_QUEUE_NAME: ${RATING_TASKIQ_QUEUE_NAME:-football_research_rating}
+      TASKIQ_QUEUE_NAME: ${RATING_TASKIQ_QUEUE_NAME:-insider_market_backend_rating}
       DEBUG: "false"
       LOG_LEVEL: "${LOG_LEVEL:-INFO}"
       JSON_LOGS: "true"
@@ -698,7 +698,7 @@ services:
     networks:
       - football_network
     command: >
-      python -m uvicorn src.backend.rating_service.main:app --host 0.0.0.0 --port 8008 --workers 1
+      python -m uvicorn src.rating_service.main:app --host 0.0.0.0 --port 8008 --workers 1
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8008/health')"]
       interval: 30s
@@ -712,7 +712,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_api_gateway
+    container_name: insider_market_backend_api_gateway
     environment:
       SERVICE_NSI_URL: ${SERVICE_NSI_URL:-http://nsi_service:8001}
       SERVICE_AUTH_URL: ${SERVICE_AUTH_URL:-http://auth_service:8002}
@@ -761,7 +761,7 @@ services:
     networks:
       - football_network
     command: >
-      python -m uvicorn src.backend.api_gateway.main:app --host 0.0.0.0 --port 8000 --workers ${GATEWAY_WORKERS:-2}
+      python -m uvicorn src.api_gateway.main:app --host 0.0.0.0 --port 8000 --workers ${GATEWAY_WORKERS:-2}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
@@ -775,11 +775,11 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_etl_worker
+    container_name: insider_market_backend_etl_worker
     environment:
       RUMOR_SERVICE_URL: ${RUMOR_SERVICE_URL:-http://rumor_service:8003}
       TASKIQ_REDIS_URL: ${TASKIQ_REDIS_URL:-redis://redis:6379/0}
-      TASKIQ_QUEUE_NAME: ${TASKIQ_QUEUE_NAME:-football_research_etl}
+      TASKIQ_QUEUE_NAME: ${TASKIQ_QUEUE_NAME:-insider_market_backend_etl}
       RAW_IMPORT_CRON: "${RAW_IMPORT_CRON:-*/30 * * * *}"
       RUMOR_NORMALIZATION_CRON: "${RUMOR_NORMALIZATION_CRON:-*/15 * * * *}"
       SOURCE_FETCH_LIMIT: ${SOURCE_FETCH_LIMIT:-20}
@@ -793,7 +793,7 @@ services:
     networks:
       - football_network
     command: >
-      taskiq worker src.backend.etl_service.infrastructure.taskiq.broker:broker
+      taskiq worker src.etl_service.infrastructure.taskiq.broker:broker
     restart: unless-stopped
 
   etl_scheduler:
@@ -801,11 +801,11 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_etl_scheduler
+    container_name: insider_market_backend_etl_scheduler
     environment:
       RUMOR_SERVICE_URL: ${RUMOR_SERVICE_URL:-http://rumor_service:8003}
       TASKIQ_REDIS_URL: ${TASKIQ_REDIS_URL:-redis://redis:6379/0}
-      TASKIQ_QUEUE_NAME: ${TASKIQ_QUEUE_NAME:-football_research_etl}
+      TASKIQ_QUEUE_NAME: ${TASKIQ_QUEUE_NAME:-insider_market_backend_etl}
       RAW_IMPORT_CRON: "${RAW_IMPORT_CRON:-*/30 * * * *}"
       RUMOR_NORMALIZATION_CRON: "${RUMOR_NORMALIZATION_CRON:-*/15 * * * *}"
       SOURCE_FETCH_LIMIT: ${SOURCE_FETCH_LIMIT:-20}
@@ -817,7 +817,7 @@ services:
     networks:
       - football_network
     command: >
-      taskiq scheduler src.backend.etl_service.infrastructure.taskiq.scheduler:scheduler
+      taskiq scheduler src.etl_service.infrastructure.taskiq.scheduler:scheduler
     restart: unless-stopped
 
   rating_worker:
@@ -825,12 +825,12 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_rating_worker
+    container_name: insider_market_backend_rating_worker
     environment:
       DATABASE_URL_RATING: postgresql+asyncpg://${POSTGRES_USER_RATING:-postgres}:${POSTGRES_PASSWORD_RATING:-postgres}@postgres_rating:5432/${POSTGRES_DB_RATING:-rating_db}
       PROFILE_SERVICE_URL: ${PROFILE_SERVICE_URL:-http://profile_service:8007}
       TASKIQ_REDIS_URL: ${TASKIQ_REDIS_URL:-redis://redis:6379/0}
-      TASKIQ_QUEUE_NAME: ${RATING_TASKIQ_QUEUE_NAME:-football_research_rating}
+      TASKIQ_QUEUE_NAME: ${RATING_TASKIQ_QUEUE_NAME:-insider_market_backend_rating}
       RATING_EVENTS_CRON: "${RATING_EVENTS_CRON:-*/5 * * * *}"
       RATING_REWARDS_CRON: "${RATING_REWARDS_CRON:-*/2 * * * *}"
       BACKGROUND_BATCH_SIZE: ${RATING_BACKGROUND_BATCH_SIZE:-250}
@@ -842,7 +842,7 @@ services:
     networks:
       - football_network
     command: >
-      taskiq worker src.backend.rating_service.infrastructure.taskiq.broker:broker
+      taskiq worker src.rating_service.infrastructure.taskiq.broker:broker
     restart: unless-stopped
 
   rating_scheduler:
@@ -850,12 +850,12 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-    container_name: football_research_rating_scheduler
+    container_name: insider_market_backend_rating_scheduler
     environment:
       DATABASE_URL_RATING: postgresql+asyncpg://${POSTGRES_USER_RATING:-postgres}:${POSTGRES_PASSWORD_RATING:-postgres}@postgres_rating:5432/${POSTGRES_DB_RATING:-rating_db}
       PROFILE_SERVICE_URL: ${PROFILE_SERVICE_URL:-http://profile_service:8007}
       TASKIQ_REDIS_URL: ${TASKIQ_REDIS_URL:-redis://redis:6379/0}
-      TASKIQ_QUEUE_NAME: ${RATING_TASKIQ_QUEUE_NAME:-football_research_rating}
+      TASKIQ_QUEUE_NAME: ${RATING_TASKIQ_QUEUE_NAME:-insider_market_backend_rating}
       RATING_EVENTS_CRON: "${RATING_EVENTS_CRON:-*/5 * * * *}"
       RATING_REWARDS_CRON: "${RATING_REWARDS_CRON:-*/2 * * * *}"
       BACKGROUND_BATCH_SIZE: ${RATING_BACKGROUND_BATCH_SIZE:-250}
@@ -865,7 +865,7 @@ services:
     networks:
       - football_network
     command: >
-      taskiq scheduler src.backend.rating_service.infrastructure.taskiq.scheduler:scheduler
+      taskiq scheduler src.rating_service.infrastructure.taskiq.scheduler:scheduler
     restart: unless-stopped
 
 volumes:

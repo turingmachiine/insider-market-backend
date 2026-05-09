@@ -3,18 +3,18 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from src.backend.etl_service.application.dto import (
+from src.etl_service.application.dto import (
     CreateRawPublicationDTO,
     CreateRumorDTO,
     RawPublicationDTO,
     RumorDTO,
     SourceDTO,
 )
-from src.backend.etl_service.application.usecases import (
+from src.etl_service.application.usecases import (
     ImportRawPublicationsUseCase,
     NormalizeRumorsUseCase,
 )
-from src.backend.etl_service.domain.entities import (
+from src.etl_service.domain.entities import (
     ExternalPublication,
     NormalizedRumorCandidate,
 )

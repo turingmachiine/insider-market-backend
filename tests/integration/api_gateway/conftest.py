@@ -11,8 +11,8 @@ from jose import jwt
 from pydantic import AnyHttpUrl
 from testcontainers.redis import AsyncRedisContainer
 
-from src.backend.api_gateway.config import GatewaySettings
-from src.backend.api_gateway.main import create_app
+from src.api_gateway.config import GatewaySettings
+from src.api_gateway.main import create_app
 
 
 @dataclass

@@ -1,11 +1,11 @@
 import pytest
 
-from src.backend.etl_service.application.usecases import (
+from src.etl_service.application.usecases import (
     ImportRawPublicationsUseCase,
     NormalizeRumorsUseCase,
 )
-from src.backend.etl_service.core.config import ETLSettings
-from src.backend.etl_service.infrastructure.di.container_factory import create_container
+from src.etl_service.core.config import ETLSettings
+from src.etl_service.infrastructure.di.container_factory import create_container
 
 
 @pytest.mark.asyncio

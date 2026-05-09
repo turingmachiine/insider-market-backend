@@ -1,7 +1,7 @@
 import pytest
 from testcontainers.redis import AsyncRedisContainer
 
-from src.backend.api_gateway.config import GatewaySettings
+from src.api_gateway.config import GatewaySettings
 from tests.integration.api_gateway.conftest import make_gateway_client, make_token
 
 

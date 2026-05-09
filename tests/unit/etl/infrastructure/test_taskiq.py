@@ -1,9 +1,9 @@
 from taskiq import TaskiqScheduler
 from taskiq_redis import ListQueueBroker
 
-from src.backend.etl_service.infrastructure.taskiq.broker import broker
-from src.backend.etl_service.infrastructure.taskiq.scheduler import scheduler
-from src.backend.etl_service.presentation.taskiq.tasks import (
+from src.etl_service.infrastructure.taskiq.broker import broker
+from src.etl_service.infrastructure.taskiq.scheduler import scheduler
+from src.etl_service.presentation.taskiq.tasks import (
     import_raw_publications_task,
     normalize_rumors_task,
 )

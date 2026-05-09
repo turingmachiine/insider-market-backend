@@ -1,8 +1,8 @@
 from uuid import uuid4
 
-from src.backend.nsi_service.domain.entities import Player, Team
-from src.backend.nsi_service.domain.services import PlayerService, TeamService
-from src.backend.nsi_service.domain.value_objects import Position
+from src.nsi_service.domain.entities import Player, Team
+from src.nsi_service.domain.services import PlayerService, TeamService
+from src.nsi_service.domain.value_objects import Position
 
 
 class TestPlayerService:

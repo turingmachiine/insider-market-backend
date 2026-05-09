@@ -9,7 +9,7 @@ This file applies to everything under `src/`.
 - `infrastructure` contains implementations for persistence, external APIs, logging, cache, and DI providers.
 - `presentation` contains FastAPI routes and Pydantic schemas.
 - `processing` contains algorithmic services used by application/presentation flows.
-- Service packages under `src/backend/` should follow the same directory shape as `nsi_service` unless there is a documented reason to diverge.
+- Service packages under `src/` should follow the same directory shape as `nsi_service` unless there is a documented reason to diverge.
 
 ## Change rules
 

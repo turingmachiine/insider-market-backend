@@ -5,8 +5,8 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-import src.backend.auth_service.infrastructure.db.tables  # noqa: F401
-from src.backend.auth_service.infrastructure.db.metadata import mapper_registry
+import src.auth_service.infrastructure.db.tables  # noqa: F401
+from src.auth_service.infrastructure.db.metadata import mapper_registry
 
 config = context.config
 

@@ -11,7 +11,7 @@ class TestPlayerEndpoints:
     @pytest.fixture
     def client(self) -> TestClient:
         """Создать тестовый клиент"""
-        from src.backend.nsi_service.main import app
+        from src.nsi_service.main import app
 
         return TestClient(app, raise_server_exceptions=False)
 
@@ -38,7 +38,7 @@ class TestClubEndpoints:
     @pytest.fixture
     def client(self) -> TestClient:
         """Создать тестовый клиент"""
-        from src.backend.nsi_service.main import app
+        from src.nsi_service.main import app
 
         return TestClient(app, raise_server_exceptions=False)
 
@@ -56,7 +56,7 @@ class TestLeagueEndpoints:
     @pytest.fixture
     def client(self) -> TestClient:
         """Создать тестовый клиент"""
-        from src.backend.nsi_service.main import app
+        from src.nsi_service.main import app
 
         return TestClient(app, raise_server_exceptions=False)
 
@@ -77,7 +77,7 @@ class TestTeamEndpoints:
     @pytest.fixture
     def client(self) -> TestClient:
         """Создать тестовый клиент"""
-        from src.backend.nsi_service.main import app
+        from src.nsi_service.main import app
 
         return TestClient(app, raise_server_exceptions=False)
 

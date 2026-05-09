@@ -3,20 +3,16 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from src.backend.admin_service.application.dto import SavedFilterCreateDTO
-from src.backend.admin_service.application.mappers import AdminMapper
-from src.backend.admin_service.application.ports import AdminGatewayClient
-from src.backend.admin_service.application.usecases import AdminUseCases
-from src.backend.admin_service.domain.entities import (
-    AdminAction,
-    AdminActionType,
-    SavedFilter,
-)
-from src.backend.admin_service.domain.interfaces.repositories import (
+from src.admin_service.application.dto import SavedFilterCreateDTO
+from src.admin_service.application.mappers import AdminMapper
+from src.admin_service.application.ports import AdminGatewayClient
+from src.admin_service.application.usecases import AdminUseCases
+from src.admin_service.domain.entities import AdminAction, AdminActionType, SavedFilter
+from src.admin_service.domain.interfaces.repositories import (
     IAdminActionRepository,
     ISavedFilterRepository,
 )
-from src.backend.common.domain.interfaces import TransactionManager
+from src.common.domain.interfaces import TransactionManager
 
 
 class FakeTransactionManager(TransactionManager):

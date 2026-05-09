@@ -15,16 +15,16 @@ from sqlalchemy.ext.asyncio import (
 )
 from testcontainers.postgres import PostgresContainer
 
-from src.backend.profile_service.core.config import ProfileSettings, settings
-from src.backend.profile_service.infrastructure.db import setup_mapping
-from src.backend.profile_service.infrastructure.db.metadata import mapper_registry
-from src.backend.profile_service.infrastructure.di.providers import (
+from src.profile_service.core.config import ProfileSettings, settings
+from src.profile_service.infrastructure.db import setup_mapping
+from src.profile_service.infrastructure.db.metadata import mapper_registry
+from src.profile_service.infrastructure.di.providers import (
     DatabaseProvider,
     MapperProvider,
     RepositoryProvider,
     UseCaseProvider,
 )
-from src.backend.profile_service.main import create_app
+from src.profile_service.main import create_app
 
 
 class TestDatabaseProvider(DatabaseProvider):

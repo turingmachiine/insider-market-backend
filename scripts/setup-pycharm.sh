@@ -9,8 +9,8 @@ echo "Настройка PyCharm для проекта..."
 # Создаем директорию .idea если не существует
 mkdir -p "$IDEA_DIR"
 
-# Обновляем football_research.iml
-cat > "$IDEA_DIR/football_research.iml" << 'EOF'
+# Обновляем insider_market_backend.iml
+cat > "$IDEA_DIR/insider_market_backend.iml" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="PYTHON_MODULE" version="4">
   <component name="NewModuleRootManager">
@@ -23,7 +23,7 @@ cat > "$IDEA_DIR/football_research.iml" << 'EOF'
       <excludeFolder url="file://$MODULE_DIR$/logs" />
       <excludeFolder url="file://$MODULE_DIR$/data" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.12 (football_research)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.12 (insider_market_backend)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PyDocumentationSettings">
@@ -41,12 +41,12 @@ cat > "$IDEA_DIR/misc.xml" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="Black">
-    <option name="sdkName" value="Python 3.12 (football_research)" />
+    <option name="sdkName" value="Python 3.12 (insider_market_backend)" />
   </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.12 (football_research)" project-jdk-type="Python SDK">
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.12 (insider_market_backend)" project-jdk-type="Python SDK">
     <output url="file://$PROJECT_DIR$/out" />
   </component>
   <component name="PyPACSettings">

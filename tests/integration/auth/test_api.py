@@ -4,7 +4,7 @@ import httpx
 import pytest
 from jose import jwt
 
-from src.backend.auth_service.core.config import settings
+from src.auth_service.core.config import settings
 
 
 @pytest.mark.asyncio

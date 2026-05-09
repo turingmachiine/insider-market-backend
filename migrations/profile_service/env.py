@@ -6,9 +6,9 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from src.backend.profile_service.infrastructure.db.metadata import mapper_registry
+from src.profile_service.infrastructure.db.metadata import mapper_registry
 
-importlib.import_module("src.backend.profile_service.infrastructure.db.tables")
+importlib.import_module("src.profile_service.infrastructure.db.tables")
 
 config = context.config
 

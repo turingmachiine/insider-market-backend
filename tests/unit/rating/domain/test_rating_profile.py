@@ -1,7 +1,7 @@
 from decimal import Decimal
 from uuid import uuid4
 
-from src.backend.rating_service.domain.entities import (
+from src.rating_service.domain.entities import (
     RatingEvent,
     RatingEventType,
     RatingProfile,

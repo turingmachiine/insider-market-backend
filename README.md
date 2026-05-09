@@ -1,4 +1,4 @@
-# Football Research Insider Market
+# Insider Market Backend
 
 [![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com)
@@ -126,7 +126,7 @@ Backend разделен на сервисы с отдельными зонам�
 | `admin_service` | Административная панель и BFF: кросс-сервисные операционные сценарии, аудит и управление через сервисы-владельцы | Существует |
 
 Подробное описание каждого сервиса находится в `README.md` внутри
-соответствующей директории `src/backend/{service_name}/`.
+соответствующей директории `src/{service_name}/`.
 
 ## Архитектура и конвенции
 
@@ -299,8 +299,8 @@ docker-compose logs -f app
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Клонирование и установка
-git clone https://github.com/yourusername/football-research.git
-cd football-research
+git clone https://github.com/yourusername/insider-market-backend.git
+cd insider-market-backend
 uv sync --dev
 
 # Pre-commit хуки
@@ -310,7 +310,7 @@ pre-commit install
 cp .env.example .env
 
 # Запуск
-uv run python -m uvicorn src.backend.nsi_service.main:app --reload
+uv run python -m uvicorn src.nsi_service.main:app --reload
 ```
 
 ### Использование скрипта миграций

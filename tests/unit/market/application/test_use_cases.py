@@ -3,24 +3,21 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from src.backend.common.domain.interfaces import TransactionManager
-from src.backend.market_service.application.dto import (
+from src.common.domain.interfaces import TransactionManager
+from src.market_service.application.dto import (
     CreateMarketDTO,
     CreateWalletDTO,
     PlaceBetDTO,
     ResolveMarketDTO,
 )
-from src.backend.market_service.application.mappers import (
+from src.market_service.application.mappers import (
     BetMapper,
     MarketMapper,
     PositionMapper,
     WalletMapper,
 )
-from src.backend.market_service.application.usecases import (
-    MarketUseCases,
-    WalletUseCases,
-)
-from src.backend.market_service.domain.entities import (
+from src.market_service.application.usecases import MarketUseCases, WalletUseCases
+from src.market_service.domain.entities import (
     Bet,
     Market,
     MarketOutcome,
@@ -29,13 +26,13 @@ from src.backend.market_service.domain.entities import (
     Position,
     Wallet,
 )
-from src.backend.market_service.domain.interfaces.repositories import (
+from src.market_service.domain.interfaces.repositories import (
     IBetRepository,
     IMarketRepository,
     IPositionRepository,
     IWalletRepository,
 )
-from src.backend.market_service.domain.services import AMMService
+from src.market_service.domain.services import AMMService
 
 
 class FakeTransactionManager(TransactionManager):

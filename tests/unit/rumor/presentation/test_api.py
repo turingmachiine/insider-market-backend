@@ -1,4 +1,4 @@
-from src.backend.rumor_service.main import app
+from src.rumor_service.main import app
 
 
 def test_health_route_is_registered() -> None:

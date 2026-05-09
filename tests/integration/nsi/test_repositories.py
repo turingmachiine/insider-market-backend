@@ -6,12 +6,12 @@ from uuid import uuid4
 
 import pytest
 
-from src.backend.nsi_service.domain.entities.club import Club
-from src.backend.nsi_service.domain.entities.league import League
-from src.backend.nsi_service.domain.entities.player import Player
-from src.backend.nsi_service.domain.entities.team import Team
-from src.backend.nsi_service.domain.services import PlayerService, TeamService
-from src.backend.nsi_service.domain.value_objects.position import Position
+from src.nsi_service.domain.entities.club import Club
+from src.nsi_service.domain.entities.league import League
+from src.nsi_service.domain.entities.player import Player
+from src.nsi_service.domain.entities.team import Team
+from src.nsi_service.domain.services import PlayerService, TeamService
+from src.nsi_service.domain.value_objects.position import Position
 
 
 @pytest.mark.asyncio

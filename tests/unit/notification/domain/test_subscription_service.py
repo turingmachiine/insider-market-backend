@@ -1,10 +1,10 @@
 from uuid import uuid4
 
-from src.backend.notification_service.domain.entities import (
+from src.notification_service.domain.entities import (
     NotificationEvent,
     NotificationTopic,
 )
-from src.backend.notification_service.domain.services import SubscriptionService
+from src.notification_service.domain.services import SubscriptionService
 
 
 def test_public_event_is_published_to_topic_channel() -> None:

@@ -5,9 +5,9 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from src.backend.rating_service.core.config import settings
-from src.backend.rating_service.infrastructure.db.metadata import mapper_registry
-from src.backend.rating_service.infrastructure.db.tables import (  # noqa: F401
+from src.rating_service.core.config import settings
+from src.rating_service.infrastructure.db.metadata import mapper_registry
+from src.rating_service.infrastructure.db.tables import (  # noqa: F401
     achievement_definitions_table,
     rating_events_table,
     rating_profiles_table,

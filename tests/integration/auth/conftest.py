@@ -8,9 +8,9 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from testcontainers.postgres import PostgresContainer
 
-from src.backend.auth_service.core.config import settings
-from src.backend.auth_service.infrastructure.db.metadata import Base
-from src.backend.auth_service.main import create_app
+from src.auth_service.core.config import settings
+from src.auth_service.infrastructure.db.metadata import Base
+from src.auth_service.main import create_app
 
 
 class AuthTestSettings:

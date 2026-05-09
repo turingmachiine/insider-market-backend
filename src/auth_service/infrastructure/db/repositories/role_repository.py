@@ -1,3 +1,5 @@
+from collections.abc import Iterable
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -8,6 +10,9 @@ from src.auth_service.domain.interfaces.repositories import (
     IRoleRepository,
 )
 from src.auth_service.infrastructure.db.tables import roles_table
+from src.common.domain.security import Permission
+from src.common.domain.security import Role as AccessRole
+from src.common.domain.security import normalize_permission, normalize_role
 
 
 class RoleRepository(IRoleRepository):
@@ -33,23 +38,29 @@ class RoleRepository(IRoleRepository):
 
     async def ensure_with_permissions(
         self,
-        role_name: str,
-        permissions: list[str],
+        role_name: AccessRole | str,
+        permissions: Iterable[Permission | str],
         user: User | None = None,
     ) -> Role:
-        role = await self.get_by_name(role_name)
+        role_key = normalize_role(role_name)
+        role = await self.get_by_name(role_key)
         if role is None:
-            role = Role(name=role_name, permissions=[])
+            role = Role(name=role_key, permissions=[])
             self.session.add(role)
             await self.session.flush()
 
         existing = {permission.name for permission in role.permissions}
         for permission_name in permissions:
-            if permission_name in existing:
+            normalized_permission = normalize_permission(permission_name)
+            if normalized_permission in existing:
                 continue
-            permission = await self.permission_repository.get_by_name(permission_name)
+            permission = await self.permission_repository.get_by_name(
+                normalized_permission
+            )
             if permission is None:
-                permission = await self.permission_repository.create(permission_name)
+                permission = await self.permission_repository.create(
+                    normalized_permission
+                )
             role.permissions.append(permission)
 
         if user is not None and role not in user.roles:

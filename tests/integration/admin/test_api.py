@@ -1,12 +1,11 @@
 from collections.abc import AsyncGenerator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import httpx
 import pytest
 import pytest_asyncio
 from dishka import Provider, Scope, make_async_container, provide
-from jose import jwt
 
 from src.admin_service.application.dto import (
     AdminDashboardDTO,
@@ -18,10 +17,12 @@ from src.admin_service.application.usecases import AdminUseCases
 from src.admin_service.core.config import AdminSettings, settings
 from src.admin_service.infrastructure.di.providers import ContainerProvider
 from src.admin_service.main import create_app
+from src.common.application.security import encode_jwt
+from src.common.domain.security import Permission
 
 
 class FakeAdminUseCases:
-    async def get_dashboard_overview(self) -> AdminDashboardDTO:
+    async def get_dashboard_overview(self) -> AdminDashboardDTO:  # NOSONAR(S7503)
         return AdminDashboardDTO(
             services=[
                 HealthStatusDTO(service="auth", status="healthy", version="1.0.0"),
@@ -32,13 +33,15 @@ class FakeAdminUseCases:
             profiles_total=4,
         )
 
-    async def get_system_health(self) -> list[HealthStatusDTO]:
+    async def get_system_health(self) -> list[HealthStatusDTO]:  # NOSONAR(S7503)
         return [
             HealthStatusDTO(service="auth", status="healthy", version="1.0.0"),
             HealthStatusDTO(service="admin", status="healthy", version="1.0.0"),
         ]
 
-    async def save_filter(self, dto: SavedFilterCreateDTO) -> SavedFilterDTO:
+    async def save_filter(  # NOSONAR(S7503)
+        self, dto: SavedFilterCreateDTO
+    ) -> SavedFilterDTO:
         return SavedFilterDTO(
             id=uuid4(),
             actor_user_id=dto.actor_user_id,
@@ -59,13 +62,14 @@ class FakeUseCaseProvider(Provider):
 
 
 def _bearer_token() -> str:
-    return jwt.encode(
+    return encode_jwt(
         {
             "sub": str(uuid4()),
-            "permissions": ["admin:read", "admin:write"],
+            "permissions": [permission.value for permission in Permission],
+            "exp": int((datetime.now(UTC) + timedelta(hours=1)).timestamp()),
         },
         settings.JWT_SECRET,
-        algorithm=settings.JWT_ALGORITHM,
+        settings.JWT_ALGORITHM,
     )
 
 

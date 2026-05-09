@@ -9,7 +9,6 @@ import httpx
 import pytest
 import pytest_asyncio
 from dishka import Scope, make_async_container, provide
-from jose import jwt
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -18,6 +17,8 @@ from sqlalchemy.ext.asyncio import (
 )
 from testcontainers.postgres import PostgresContainer
 
+from src.common.application.security import encode_jwt
+from src.common.domain.security import Permission
 from src.nsi_service.core.config import Settings, settings
 from src.nsi_service.domain.entities.club import Club
 from src.nsi_service.domain.entities.league import League
@@ -154,14 +155,14 @@ async def team_repository(db_session: AsyncSession) -> TeamRepository:
 
 @pytest.fixture
 def test_token() -> str:
-    return jwt.encode(
+    return encode_jwt(
         {
             "sub": str(uuid4()),
-            "permissions": ["nsi:read", "team:write"],
-            "exp": datetime.now(UTC) + timedelta(hours=1),
+            "permissions": [permission.value for permission in Permission],
+            "exp": int((datetime.now(UTC) + timedelta(hours=1)).timestamp()),
         },
         settings.JWT_SECRET,
-        algorithm=settings.JWT_ALGORITHM,
+        settings.JWT_ALGORITHM,
     )
 
 

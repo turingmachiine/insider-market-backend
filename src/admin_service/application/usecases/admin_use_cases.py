@@ -256,8 +256,7 @@ class AdminUseCases(HasTransactionManager):
     ) -> UserSummaryDTO | None:
         result = await self.gateway_client.assign_role(
             user_id,
-            dto.role_name,
-            dto.permissions,
+            dto.role_name.value,
         )
         if not result:
             return None

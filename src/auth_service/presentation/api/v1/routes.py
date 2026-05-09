@@ -18,7 +18,8 @@ from src.auth_service.presentation.api.v1.schemas import (
     UserRoleGrantRequest,
     UserStatusUpdateRequest,
 )
-from src.auth_service.presentation.middleware.permissions import require_permission
+from src.common.domain.security import Permission
+from src.common.presentation.decorators import require_permission
 
 router = APIRouter(prefix="/v1")
 
@@ -68,6 +69,9 @@ async def login(
 @inject
 async def list_users(
     auth_service: FromDishka[AuthService],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.AUTH_USERS_READ))
+    ],
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> UserListResponse:
@@ -86,6 +90,9 @@ async def list_users(
 async def get_user(
     user_id: UUID,
     auth_service: FromDishka[AuthService],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.AUTH_USERS_READ))
+    ],
 ) -> UserResponse:
     user = await auth_service.get_user(user_id)
     if user is None:
@@ -101,6 +108,10 @@ async def get_user(
 async def get_user_permissions(
     user_id: UUID,
     auth_service: FromDishka[AuthService],
+    _: Annotated[
+        dict[str, object],
+        Depends(require_permission(Permission.AUTH_PERMISSIONS_READ)),
+    ],
 ) -> dict[str, object]:
     try:
         permissions = await auth_service.get_permissions(user_id)
@@ -118,6 +129,9 @@ async def set_user_status(
     user_id: UUID,
     request: UserStatusUpdateRequest,
     auth_service: FromDishka[AuthService],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.AUTH_USERS_WRITE))
+    ],
 ) -> UserResponse:
     user = await auth_service.set_user_status(user_id, request.is_active)
     if user is None:
@@ -134,11 +148,13 @@ async def assign_role(
     user_id: UUID,
     request: UserRoleGrantRequest,
     auth_service: FromDishka[AuthService],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.AUTH_ROLES_WRITE))
+    ],
 ) -> UserResponse:
     user = await auth_service.assign_role(
         user_id=user_id,
         role_name=request.role_name,
-        permissions=request.permissions,
     )
     if user is None:
         raise HTTPException(
@@ -152,7 +168,7 @@ async def assign_role(
 def get_my_permissions(
     payload: Annotated[
         dict[str, object],
-        Depends(require_permission("nsi:read")),
+        Depends(require_permission(Permission.AUTH_PERMISSIONS_READ)),
     ],
 ) -> dict[str, object]:
     return {

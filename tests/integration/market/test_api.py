@@ -12,7 +12,7 @@ async def test_market_bet_and_resolve_flow(market_client: httpx.AsyncClient) -> 
         json={"user_id": user_id, "initial_balance": 1000.0},
     )
     assert wallet_response.status_code == 201
-    assert wallet_response.json()["balance"] == 1000.0
+    assert wallet_response.json()["balance"] == pytest.approx(1000.0)
 
     market_response = await market_client.post(
         "/api/v1/markets",
@@ -92,3 +92,34 @@ async def test_place_bet_requires_wallet(market_client: httpx.AsyncClient) -> No
 
     assert bet_response.status_code == 400
     assert "Wallet for user" in bet_response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_public_market_read_routes_do_not_require_auth(
+    market_client: httpx.AsyncClient,
+) -> None:
+    market_response = await market_client.post(
+        "/api/v1/markets",
+        json={
+            "event_id": str(uuid4()),
+            "title": "Public browsing",
+            "description": "Should be visible without auth.",
+            "initial_probability": 0.4,
+            "liquidity_parameter": 1000.0,
+        },
+    )
+    assert market_response.status_code == 201
+    market = market_response.json()
+
+    market_client.headers.pop("Authorization", None)
+
+    list_response = await market_client.get("/api/v1/markets")
+    assert list_response.status_code == 200
+
+    detail_response = await market_client.get(f"/api/v1/markets/{market['id']}")
+    assert detail_response.status_code == 200
+
+    positions_response = await market_client.get(
+        f"/api/v1/markets/{market['id']}/positions"
+    )
+    assert positions_response.status_code == 200

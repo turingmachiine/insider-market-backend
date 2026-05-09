@@ -2,8 +2,10 @@ from typing import Annotated
 from uuid import UUID
 
 from dishka.integrations.fastapi import FromDishka, inject
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from src.common.domain.security import Permission
+from src.common.presentation.decorators import require_permission
 from src.market_service.application.dto import (
     CreateMarketDTO,
     PlaceBetDTO,
@@ -69,6 +71,9 @@ async def get_market(
 async def create_market(
     market_data: MarketCreate,
     market_use_cases: FromDishka[MarketUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.MARKET_WRITE))
+    ],
 ) -> MarketResponse:
     dto = CreateMarketDTO(**market_data.model_dump())
     try:
@@ -87,6 +92,9 @@ async def place_bet(
     market_id: UUID,
     bet_data: BetCreate,
     market_use_cases: FromDishka[MarketUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.MARKET_TRADE))
+    ],
 ) -> BetResponse:
     dto = PlaceBetDTO(**bet_data.model_dump())
     try:
@@ -104,6 +112,9 @@ async def place_bet(
 async def get_market_bets(
     market_id: UUID,
     market_use_cases: FromDishka[MarketUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.MARKET_READ))
+    ],
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
     user_id: UUID | None = None,
@@ -140,6 +151,9 @@ async def get_market_positions(
 async def close_market(
     market_id: UUID,
     market_use_cases: FromDishka[MarketUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.MARKET_MANAGE))
+    ],
 ) -> MarketResponse:
     try:
         result = await market_use_cases.close_market(market_id)
@@ -162,6 +176,9 @@ async def resolve_market(
     market_id: UUID,
     resolve_data: MarketResolve,
     market_use_cases: FromDishka[MarketUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.MARKET_MANAGE))
+    ],
 ) -> MarketResponse:
     dto = ResolveMarketDTO(**resolve_data.model_dump())
     try:

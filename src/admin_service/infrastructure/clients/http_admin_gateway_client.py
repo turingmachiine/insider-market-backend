@@ -92,11 +92,10 @@ class HttpAdminGatewayClient(AdminGatewayClient):
         self,
         user_id: UUID,
         role_name: str,
-        permissions: list[str],
     ) -> dict:
         response = await self._http_client.post(
             f"{self._base('auth')}/api/v1/users/{user_id}/roles",
-            json={"role_name": role_name, "permissions": permissions},
+            json={"role_name": role_name},
         )
         response.raise_for_status()
         return cast(dict[str, Any], response.json())

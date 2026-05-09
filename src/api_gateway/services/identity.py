@@ -1,4 +1,6 @@
-from jose import JWTError, jwt
+from types import SimpleNamespace
+
+from src.common.application.security import TokenError, decode_access_token
 
 
 class JwtIdentityExtractor:
@@ -17,13 +19,15 @@ class JwtIdentityExtractor:
         if token is None:
             return None
         try:
-            claims = jwt.decode(
+            claims = decode_access_token(
                 token,
-                self._secret,
-                algorithms=[self._algorithm],
-                options={"verify_aud": False},
+                SimpleNamespace(
+                    JWT_SECRET=self._secret,
+                    JWT_ALGORITHM=self._algorithm,
+                    JWT_TTL=0,
+                ),
             )
-        except JWTError:
+        except TokenError:
             return None
         subject = claims.get("sub")
         return str(subject) if subject is not None else None

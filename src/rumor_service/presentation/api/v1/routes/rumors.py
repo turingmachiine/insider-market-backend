@@ -2,8 +2,10 @@ from typing import Annotated
 from uuid import UUID
 
 from dishka.integrations.fastapi import FromDishka, inject
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from src.common.domain.security import Permission
+from src.common.presentation.decorators import require_permission
 from src.rumor_service.application.dto import CreateRumorDTO, UpdateRumorStatusDTO
 from src.rumor_service.application.usecases import RumorUseCases
 from src.rumor_service.domain.entities import RumorStatus
@@ -60,6 +62,9 @@ async def get_rumor(
 async def create_rumor(
     rumor_data: RumorCreate,
     rumor_use_cases: FromDishka[RumorUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.RUMOR_WRITE))
+    ],
 ) -> RumorResponse:
     dto = CreateRumorDTO(**rumor_data.model_dump())
     try:
@@ -78,6 +83,9 @@ async def update_rumor_status(
     rumor_id: UUID,
     status_data: RumorStatusUpdate,
     rumor_use_cases: FromDishka[RumorUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.RUMOR_MODERATE))
+    ],
 ) -> RumorResponse:
     dto = UpdateRumorStatusDTO(**status_data.model_dump())
     result = await rumor_use_cases.update_status(rumor_id, dto)

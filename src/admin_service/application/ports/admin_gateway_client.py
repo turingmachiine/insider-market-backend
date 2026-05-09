@@ -45,7 +45,6 @@ class AdminGatewayClient(ABC):
         self,
         user_id: UUID,
         role_name: str,
-        permissions: list[str],
     ) -> dict:
         raise NotImplementedError
 

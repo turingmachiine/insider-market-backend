@@ -9,8 +9,11 @@ from src.admin_service.core.config import settings
 from src.admin_service.infrastructure.db import setup_mapping
 from src.admin_service.infrastructure.di import create_container
 from src.admin_service.presentation.api.v1.routes import router as v1_router
-from src.admin_service.presentation.middleware.auth import jwt_auth_middleware
 from src.common.logging import RequestContextMiddleware, setup_logging, shutdown_logging
+from src.common.presentation.middleware import (
+    build_jwt_auth_middleware,
+    collect_protected_routes,
+)
 
 
 @asynccontextmanager
@@ -48,7 +51,8 @@ def create_app(container: AsyncContainer | None = None) -> FastAPI:
             {"url": "", "description": "Локально"},
         ],
     )
-    app.middleware("http")(jwt_auth_middleware)
+    protected_routes: list = []
+    app.middleware("http")(build_jwt_auth_middleware(settings, protected_routes))
     app.add_middleware(RequestContextMiddleware)
 
     @app.get("/health", tags=["Health"])
@@ -56,6 +60,7 @@ def create_app(container: AsyncContainer | None = None) -> FastAPI:
         return {"status": "healthy", "version": settings.APP_VERSION}
 
     app.include_router(v1_router, prefix="/api")
+    protected_routes.extend(collect_protected_routes(app))
 
     if container is None:
         container = create_container(settings)

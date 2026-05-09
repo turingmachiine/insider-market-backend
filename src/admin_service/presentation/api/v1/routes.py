@@ -27,7 +27,8 @@ from src.admin_service.presentation.api.v1.schemas import (
     UserStatusUpdateRequest,
     UserSummaryResponse,
 )
-from src.admin_service.presentation.middleware.auth import require_permission
+from src.common.domain.security import Permission
+from src.common.presentation.decorators import require_permission
 
 router = APIRouter(prefix="/v1", tags=["Admin"])
 
@@ -39,7 +40,7 @@ OffsetQuery = Annotated[int, Query(ge=0)]
 @inject
 async def get_dashboard(
     admin_use_cases: FromDishka[AdminUseCases],
-    _: Annotated[dict[str, object], Depends(require_permission("admin:read"))],
+    _: Annotated[dict[str, object], Depends(require_permission(Permission.ADMIN_READ))],
 ) -> AdminDashboardResponse:
     result = await admin_use_cases.get_dashboard_overview()
     return AdminDashboardResponse(
@@ -57,7 +58,7 @@ async def get_dashboard(
 @inject
 async def get_system_health(
     admin_use_cases: FromDishka[AdminUseCases],
-    _: Annotated[dict[str, object], Depends(require_permission("admin:read"))],
+    _: Annotated[dict[str, object], Depends(require_permission(Permission.ADMIN_READ))],
 ) -> list[HealthStatusResponse]:
     services = await admin_use_cases.get_system_health()
     return [HealthStatusResponse(**service.__dict__) for service in services]
@@ -67,7 +68,7 @@ async def get_system_health(
 @inject
 async def get_event_moderation_queue(
     admin_use_cases: FromDishka[AdminUseCases],
-    _: Annotated[dict[str, object], Depends(require_permission("admin:read"))],
+    _: Annotated[dict[str, object], Depends(require_permission(Permission.ADMIN_READ))],
     limit: LimitQuery = 100,
     offset: OffsetQuery = 0,
 ) -> EventModerationQueueResponse:
@@ -80,7 +81,10 @@ async def get_event_moderation_queue(
 async def submit_event_for_moderation(
     event_id: UUID,
     admin_use_cases: FromDishka[AdminUseCases],
-    payload: Annotated[dict[str, object], Depends(require_permission("admin:write"))],
+    payload: Annotated[
+        dict[str, object],
+        Depends(require_permission(Permission.ADMIN_WRITE)),
+    ],
 ) -> dict:
     return await admin_use_cases.submit_event_for_moderation(
         event_id,
@@ -93,7 +97,10 @@ async def submit_event_for_moderation(
 async def approve_event(
     event_id: UUID,
     admin_use_cases: FromDishka[AdminUseCases],
-    payload: Annotated[dict[str, object], Depends(require_permission("admin:write"))],
+    payload: Annotated[
+        dict[str, object],
+        Depends(require_permission(Permission.ADMIN_WRITE)),
+    ],
 ) -> dict:
     return await admin_use_cases.approve_event(
         event_id,
@@ -107,7 +114,10 @@ async def reject_event(
     event_id: UUID,
     request: EventModerationCommandRequest,
     admin_use_cases: FromDishka[AdminUseCases],
-    payload: Annotated[dict[str, object], Depends(require_permission("admin:write"))],
+    payload: Annotated[
+        dict[str, object],
+        Depends(require_permission(Permission.ADMIN_WRITE)),
+    ],
 ) -> dict:
     return await admin_use_cases.reject_event(
         event_id,
@@ -122,7 +132,10 @@ async def resolve_event(
     event_id: UUID,
     request: EventModerationCommandRequest,
     admin_use_cases: FromDishka[AdminUseCases],
-    payload: Annotated[dict[str, object], Depends(require_permission("admin:write"))],
+    payload: Annotated[
+        dict[str, object],
+        Depends(require_permission(Permission.ADMIN_WRITE)),
+    ],
 ) -> dict:
     dto = EventModerationCommandDTO(**request.model_dump())
     return await admin_use_cases.resolve_event(
@@ -138,7 +151,10 @@ async def cancel_event(
     event_id: UUID,
     request: EventModerationCommandRequest,
     admin_use_cases: FromDishka[AdminUseCases],
-    payload: Annotated[dict[str, object], Depends(require_permission("admin:write"))],
+    payload: Annotated[
+        dict[str, object],
+        Depends(require_permission(Permission.ADMIN_WRITE)),
+    ],
 ) -> dict:
     return await admin_use_cases.cancel_event(
         event_id,
@@ -151,7 +167,7 @@ async def cancel_event(
 @inject
 async def get_users(
     admin_use_cases: FromDishka[AdminUseCases],
-    _: Annotated[dict[str, object], Depends(require_permission("admin:read"))],
+    _: Annotated[dict[str, object], Depends(require_permission(Permission.ADMIN_READ))],
     limit: LimitQuery = 100,
     offset: OffsetQuery = 0,
 ) -> UserListResponse:
@@ -169,7 +185,7 @@ async def get_users(
 async def get_user(
     user_id: UUID,
     admin_use_cases: FromDishka[AdminUseCases],
-    _: Annotated[dict[str, object], Depends(require_permission("admin:read"))],
+    _: Annotated[dict[str, object], Depends(require_permission(Permission.ADMIN_READ))],
 ) -> UserSummaryResponse:
     user = await admin_use_cases.get_user(user_id)
     if user is None:
@@ -185,7 +201,7 @@ async def get_user(
 async def get_user_permissions(
     user_id: UUID,
     admin_use_cases: FromDishka[AdminUseCases],
-    _: Annotated[dict[str, object], Depends(require_permission("admin:read"))],
+    _: Annotated[dict[str, object], Depends(require_permission(Permission.ADMIN_READ))],
 ) -> dict[str, object]:
     return await admin_use_cases.get_user_permissions(user_id)
 
@@ -196,7 +212,10 @@ async def set_user_status(
     user_id: UUID,
     request: UserStatusUpdateRequest,
     admin_use_cases: FromDishka[AdminUseCases],
-    payload: Annotated[dict[str, object], Depends(require_permission("admin:write"))],
+    payload: Annotated[
+        dict[str, object],
+        Depends(require_permission(Permission.ADMIN_WRITE)),
+    ],
 ) -> UserSummaryResponse:
     user = await admin_use_cases.set_user_status(
         user_id,
@@ -217,14 +236,14 @@ async def assign_role(
     user_id: UUID,
     request: UserRoleGrantRequest,
     admin_use_cases: FromDishka[AdminUseCases],
-    payload: Annotated[dict[str, object], Depends(require_permission("admin:write"))],
+    payload: Annotated[
+        dict[str, object],
+        Depends(require_permission(Permission.ADMIN_WRITE)),
+    ],
 ) -> UserSummaryResponse:
     user = await admin_use_cases.assign_role(
         user_id,
-        UserRoleGrantDTO(
-            role_name=request.role_name,
-            permissions=request.permissions,
-        ),
+        UserRoleGrantDTO(role_name=request.role_name),
         actor_user_id=_payload_user_id(payload),
     )
     if user is None:
@@ -240,7 +259,7 @@ async def assign_role(
 async def get_profile_summary(
     user_id: UUID,
     admin_use_cases: FromDishka[AdminUseCases],
-    _: Annotated[dict[str, object], Depends(require_permission("admin:read"))],
+    _: Annotated[dict[str, object], Depends(require_permission(Permission.ADMIN_READ))],
 ) -> ProfileSummaryResponse:
     summary = await admin_use_cases.get_profile_summary(user_id)
     return ProfileSummaryResponse(**summary.__dict__)
@@ -250,7 +269,7 @@ async def get_profile_summary(
 @inject
 async def get_audit_actions(
     admin_use_cases: FromDishka[AdminUseCases],
-    _: Annotated[dict[str, object], Depends(require_permission("admin:read"))],
+    _: Annotated[dict[str, object], Depends(require_permission(Permission.ADMIN_READ))],
     limit: LimitQuery = 100,
     offset: OffsetQuery = 0,
 ) -> AdminActionListResponse:
@@ -267,7 +286,7 @@ async def get_audit_actions(
 @inject
 async def get_saved_filters(
     admin_use_cases: FromDishka[AdminUseCases],
-    _: Annotated[dict[str, object], Depends(require_permission("admin:read"))],
+    _: Annotated[dict[str, object], Depends(require_permission(Permission.ADMIN_READ))],
     limit: LimitQuery = 100,
     offset: OffsetQuery = 0,
 ) -> SavedFilterListResponse:
@@ -285,7 +304,10 @@ async def get_saved_filters(
 async def save_filter(
     request: SavedFilterCreateRequest,
     admin_use_cases: FromDishka[AdminUseCases],
-    payload: Annotated[dict[str, object], Depends(require_permission("admin:write"))],
+    payload: Annotated[
+        dict[str, object],
+        Depends(require_permission(Permission.ADMIN_WRITE)),
+    ],
 ) -> SavedFilterResponse:
     dto = SavedFilterCreateDTO(
         actor_user_id=_payload_user_id(payload),

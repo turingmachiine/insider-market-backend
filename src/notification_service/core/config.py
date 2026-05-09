@@ -16,6 +16,8 @@ class NotificationSettings(BaseSettings):
     ENVIRONMENT: str = "production"
 
     REDIS_URL: str | None = "redis://redis:6379/0"
+    JWT_SECRET: str = "change-me"
+    JWT_ALGORITHM: str = "HS256"
     NOTIFICATION_CHANNEL_PREFIX: str = "notifications"
     SSE_KEEPALIVE_SECONDS: int = 15
 

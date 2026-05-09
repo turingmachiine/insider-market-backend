@@ -10,11 +10,14 @@ from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.responses import HTMLResponse
 
 from src.common.logging import RequestContextMiddleware, shutdown_logging
+from src.common.presentation.middleware import (
+    build_jwt_auth_middleware,
+    collect_protected_routes,
+)
 from src.nsi_service.core.config import settings
 from src.nsi_service.infrastructure.db import setup_mapping
 from src.nsi_service.infrastructure.di import create_container
 from src.nsi_service.infrastructure.logging.config import setup_logging
-from src.nsi_service.presentation.api.middleware.auth import jwt_auth_middleware
 from src.nsi_service.presentation.api.v1.routes import router as v1_router
 
 
@@ -66,7 +69,8 @@ def create_app(container: AsyncContainer | None = None) -> FastAPI:
         ],
     )
 
-    app.middleware("http")(jwt_auth_middleware)
+    protected_routes: list = []
+    app.middleware("http")(build_jwt_auth_middleware(settings, protected_routes))
     app.add_middleware(RequestContextMiddleware)
 
     # Swagger UI
@@ -93,6 +97,7 @@ def create_app(container: AsyncContainer | None = None) -> FastAPI:
 
     # Подключение роутеров (префикс /api/v1 уже есть в router)
     app.include_router(v1_router, prefix="/api")
+    protected_routes.extend(collect_protected_routes(app))
 
     if container is None:
         container = create_container(settings)

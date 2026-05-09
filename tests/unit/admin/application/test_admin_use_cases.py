@@ -26,15 +26,15 @@ class FakeTransactionManager(TransactionManager):
     async def begin_nested(self) -> None:
         self._in_nested = True
 
-    async def commit(self) -> None:
+    async def commit(self) -> None:  # NOSONAR(S4144)
         self._in_transaction = False
         self._in_nested = False
 
-    async def rollback(self) -> None:
+    async def rollback(self) -> None:  # NOSONAR(S4144)
         self._in_transaction = False
         self._in_nested = False
 
-    async def flush(self) -> None:
+    async def flush(self) -> None:  # NOSONAR(S4144)
         pass
 
     @property
@@ -114,14 +114,13 @@ class FakeAdminGatewayClient(AdminGatewayClient):
         self,
         user_id: UUID,
         role_name: str,
-        permissions: list[str],
     ) -> dict:
         return {
             "id": str(user_id),
             "email": "admin@example.com",
             "is_active": True,
             "roles": ["admin", role_name],
-            "permissions": sorted({"admin:read", "admin:write", *permissions}),
+            "permissions": sorted({"admin:read", "admin:write"}),
             "created_at": datetime.now(UTC).isoformat(),
         }
 

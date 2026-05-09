@@ -25,6 +25,8 @@ class EventSettings(BaseSettings):
     DATABASE_URL_EVENT: PostgresDsn | None = None
 
     REDIS_URL: str | None = None
+    JWT_SECRET: str = "change-me"
+    JWT_ALGORITHM: str = "HS256"
 
     LOG_LEVEL: str = "INFO"
     JSON_LOGS: bool = True

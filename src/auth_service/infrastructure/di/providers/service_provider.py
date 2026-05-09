@@ -6,7 +6,6 @@ from src.auth_service.domain.interfaces.repositories import (
     IRoleRepository,
     IUserRepository,
 )
-from src.auth_service.infrastructure.cache.permissions_cache import PermissionsCache
 
 
 class ServiceProvider(Provider):
@@ -19,12 +18,6 @@ class ServiceProvider(Provider):
         self,
         user_repository: IUserRepository,
         role_repository: IRoleRepository,
-        permissions_cache: PermissionsCache,
         settings: AuthSettings,
     ) -> AuthService:
-        return AuthService(
-            user_repository,
-            role_repository,
-            permissions_cache,
-            settings,
-        )
+        return AuthService(user_repository, role_repository, settings)

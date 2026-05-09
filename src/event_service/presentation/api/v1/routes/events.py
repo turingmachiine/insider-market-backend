@@ -2,8 +2,10 @@ from typing import Annotated
 from uuid import UUID
 
 from dishka.integrations.fastapi import FromDishka, inject
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from src.common.domain.security import Permission
+from src.common.presentation.decorators import require_permission
 from src.event_service.application.dto import (
     CancelEventDTO,
     CreateEventDTO,
@@ -71,6 +73,7 @@ async def get_events(
 @inject
 async def get_moderation_queue(
     event_use_cases: FromDishka[EventUseCases],
+    _: Annotated[dict[str, object], Depends(require_permission(Permission.EVENT_READ))],
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> EventListResponse:
@@ -100,6 +103,9 @@ async def get_event(
 async def create_event(
     event_data: EventCreate,
     event_use_cases: FromDishka[EventUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.EVENT_WRITE))
+    ],
 ) -> EventResponse:
     dto = CreateEventDTO(**event_data.model_dump())
     result = await event_use_cases.create_event(dto)
@@ -112,6 +118,9 @@ async def update_event(
     event_id: UUID,
     event_data: EventUpdate,
     event_use_cases: FromDishka[EventUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.EVENT_WRITE))
+    ],
 ) -> EventResponse:
     dto = UpdateEventDTO(**event_data.model_dump())
     try:
@@ -128,6 +137,9 @@ async def update_event(
 async def submit_event_for_moderation(
     event_id: UUID,
     event_use_cases: FromDishka[EventUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.EVENT_MODERATE))
+    ],
 ) -> EventResponse:
     try:
         result = await event_use_cases.submit_for_moderation(event_id)
@@ -143,6 +155,9 @@ async def submit_event_for_moderation(
 async def approve_event(
     event_id: UUID,
     event_use_cases: FromDishka[EventUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.EVENT_MODERATE))
+    ],
 ) -> EventResponse:
     try:
         result = await event_use_cases.approve_event(event_id)
@@ -159,6 +174,9 @@ async def reject_event(
     event_id: UUID,
     event_data: EventReject,
     event_use_cases: FromDishka[EventUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.EVENT_MODERATE))
+    ],
 ) -> EventResponse:
     dto = RejectEventDTO(**event_data.model_dump())
     try:
@@ -176,6 +194,9 @@ async def resolve_event(
     event_id: UUID,
     event_data: EventResolve,
     event_use_cases: FromDishka[EventUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.EVENT_MODERATE))
+    ],
 ) -> EventResponse:
     dto = ResolveEventDTO(**event_data.model_dump())
     try:
@@ -193,6 +214,9 @@ async def cancel_event(
     event_id: UUID,
     event_data: EventCancel,
     event_use_cases: FromDishka[EventUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.EVENT_MODERATE))
+    ],
 ) -> EventResponse:
     dto = CancelEventDTO(**event_data.model_dump())
     try:

@@ -2,8 +2,10 @@ from typing import Annotated
 from uuid import UUID
 
 from dishka.integrations.fastapi import FromDishka, inject
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from src.common.domain.security import Permission
+from src.common.presentation.decorators import require_permission
 from src.rating_service.application.dto import (
     CreateAchievementDefinitionDTO,
     CreateRatingEventDTO,
@@ -34,6 +36,9 @@ OffsetQuery = Annotated[int, Query(ge=0)]
 @inject
 async def get_profiles(
     rating_use_cases: FromDishka[RatingUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.RATING_READ))
+    ],
     limit: LimitQuery = 100,
     offset: OffsetQuery = 0,
 ) -> RatingProfileListResponse:
@@ -50,6 +55,9 @@ async def get_profiles(
 @inject
 async def get_leaderboard(
     rating_use_cases: FromDishka[RatingUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.RATING_READ))
+    ],
     limit: LimitQuery = 100,
     offset: OffsetQuery = 0,
 ) -> RatingProfileListResponse:
@@ -67,6 +75,9 @@ async def get_leaderboard(
 async def get_profile(
     user_id: UUID,
     rating_use_cases: FromDishka[RatingUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.RATING_READ))
+    ],
 ) -> RatingProfileResponse:
     profile = await rating_use_cases.get_profile(user_id)
     if profile is None:
@@ -82,6 +93,9 @@ async def get_profile(
 async def record_event(
     event_data: RatingEventCreate,
     rating_use_cases: FromDishka[RatingUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.RATING_WRITE))
+    ],
 ) -> RatingEventResponse:
     dto = CreateRatingEventDTO(**event_data.model_dump())
     try:
@@ -99,6 +113,9 @@ async def record_event(
 async def recalculate_user(
     user_id: UUID,
     rating_use_cases: FromDishka[RatingUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.RATING_WRITE))
+    ],
 ) -> RatingProfileResponse:
     profile = await rating_use_cases.recalculate_user(user_id)
     return RatingProfileResponse(**profile.__dict__)
@@ -108,6 +125,9 @@ async def recalculate_user(
 @inject
 async def process_pending_events(
     rating_use_cases: FromDishka[RatingUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.RATING_JOBS_RUN))
+    ],
     limit: LimitQuery = 100,
 ) -> RatingRecalculationResponse:
     result = await rating_use_cases.process_pending_events(limit=limit)
@@ -118,6 +138,9 @@ async def process_pending_events(
 @inject
 async def dispatch_pending_rewards(
     rating_use_cases: FromDishka[RatingUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.RATING_JOBS_RUN))
+    ],
     limit: LimitQuery = 100,
 ) -> RatingRecalculationResponse:
     result = await rating_use_cases.dispatch_pending_rewards(limit=limit)
@@ -128,6 +151,9 @@ async def dispatch_pending_rewards(
 @inject
 async def get_achievement_definitions(
     rating_use_cases: FromDishka[RatingUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.RATING_READ))
+    ],
 ) -> AchievementDefinitionListResponse:
     definitions = await rating_use_cases.get_achievement_definitions()
     return AchievementDefinitionListResponse(
@@ -140,6 +166,9 @@ async def get_achievement_definitions(
 async def create_achievement_definition(
     achievement_data: AchievementDefinitionCreate,
     rating_use_cases: FromDishka[RatingUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.RATING_WRITE))
+    ],
 ) -> AchievementDefinitionResponse:
     dto = CreateAchievementDefinitionDTO(**achievement_data.model_dump())
     try:
@@ -157,6 +186,9 @@ async def create_achievement_definition(
 async def get_user_achievements(
     user_id: UUID,
     rating_use_cases: FromDishka[RatingUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.RATING_READ))
+    ],
 ) -> UserAchievementListResponse:
     achievements = await rating_use_cases.get_user_achievements(user_id)
     return UserAchievementListResponse(
@@ -168,6 +200,9 @@ async def get_user_achievements(
 @inject
 async def get_pending_rewards(
     rating_use_cases: FromDishka[RatingUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.RATING_READ))
+    ],
     limit: LimitQuery = 100,
 ) -> RewardTransactionListResponse:
     rewards = await rating_use_cases.get_pending_rewards(limit=limit)

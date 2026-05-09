@@ -5,8 +5,10 @@ from typing import Annotated
 from uuid import UUID
 
 from dishka.integrations.fastapi import FromDishka, inject
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from src.common.domain.security import Permission
+from src.common.presentation.decorators import require_permission
 from src.nsi_service.application.dto import CreateClubDTO
 from src.nsi_service.application.usecases import ClubUseCases
 from src.nsi_service.presentation.api.v1.mappers import IClubResponseMapper
@@ -80,6 +82,7 @@ async def create_club(
     club_data: ClubCreate,
     club_use_cases: FromDishka[ClubUseCases],
     response_mapper: FromDishka[IClubResponseMapper],
+    _: Annotated[dict[str, object], Depends(require_permission(Permission.NSI_WRITE))],
 ) -> ClubResponse:
     """Создать новый клуб"""
     dto = CreateClubDTO(**club_data.model_dump())

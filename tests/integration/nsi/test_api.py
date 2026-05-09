@@ -219,6 +219,40 @@ class TestLeagueAPI:
         assert all(league["tier"] == 1 for league in data)
 
     @pytest.mark.asyncio
+    async def test_public_catalog_routes_do_not_require_auth(
+        self, api_client: httpx.AsyncClient
+    ) -> None:
+        """Публичные справочники доступны без bearer token."""
+        player_response = await api_client.post(
+            "/api/v1/players",
+            json={
+                "name": "Public Player",
+                "date_of_birth": "1995-01-01",
+                "nationality": "England",
+                "position": "striker",
+                "preferred_foot": "right",
+                "height_cm": 180,
+                "weight_kg": 75,
+            },
+        )
+        assert player_response.status_code == 201
+        player_id = player_response.json()["id"]
+
+        api_client.headers.pop("Authorization", None)
+
+        players_response = await api_client.get("/api/v1/players")
+        assert players_response.status_code == 200
+
+        player_detail_response = await api_client.get(f"/api/v1/players/{player_id}")
+        assert player_detail_response.status_code == 200
+
+        leagues_response = await api_client.get("/api/v1/leagues/top")
+        assert leagues_response.status_code == 200
+
+        clubs_response = await api_client.get("/api/v1/clubs")
+        assert clubs_response.status_code == 200
+
+    @pytest.mark.asyncio
     async def test_search_leagues(self, api_client: httpx.AsyncClient) -> None:
         """Тест поиска лиг"""
         # Создаем лигу

@@ -1,8 +1,11 @@
+from typing import Annotated
 from uuid import UUID
 
 from dishka.integrations.fastapi import FromDishka, inject
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
+from src.common.domain.security import Permission
+from src.common.presentation.decorators import require_permission
 from src.market_service.application.dto import CreateWalletDTO
 from src.market_service.application.usecases import WalletUseCases
 from src.market_service.presentation.api.v1.schemas import WalletCreate, WalletResponse
@@ -15,6 +18,9 @@ router = APIRouter(prefix="/wallets", tags=["Wallets"])
 async def get_wallet(
     user_id: UUID,
     wallet_use_cases: FromDishka[WalletUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.MARKET_READ))
+    ],
 ) -> WalletResponse:
     dto = await wallet_use_cases.get_wallet(user_id)
     if dto is None:
@@ -30,6 +36,9 @@ async def get_wallet(
 async def create_wallet(
     wallet_data: WalletCreate,
     wallet_use_cases: FromDishka[WalletUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.MARKET_WRITE))
+    ],
 ) -> WalletResponse:
     dto = CreateWalletDTO(**wallet_data.model_dump())
     try:

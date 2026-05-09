@@ -1,4 +1,3 @@
-from src.auth_service.infrastructure.di.providers.cache_provider import CacheProvider
 from src.auth_service.infrastructure.di.providers.container_provider import (
     ContainerProvider,
 )
@@ -13,7 +12,6 @@ from src.auth_service.infrastructure.di.providers.service_provider import (
 )
 
 __all__ = [
-    "CacheProvider",
     "ContainerProvider",
     "DatabaseProvider",
     "RepositoryProvider",

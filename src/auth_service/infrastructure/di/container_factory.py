@@ -2,7 +2,6 @@ from dishka import AsyncContainer, make_async_container
 
 from src.auth_service.core.config import AuthSettings
 from src.auth_service.infrastructure.di.providers import (
-    CacheProvider,
     ContainerProvider,
     DatabaseProvider,
     RepositoryProvider,
@@ -15,7 +14,6 @@ def create_container(settings: AuthSettings) -> AsyncContainer:
     return make_async_container(
         ContainerProvider(settings),
         DatabaseProvider(),
-        CacheProvider(),
         RepositoryProvider(),
         ServiceProvider(),
     )

@@ -30,6 +30,8 @@ class RatingSettings(BaseSettings):
     REWARD_REQUEST_TIMEOUT_SECONDS: float = 5.0
 
     REDIS_URL: str | None = "redis://redis:6379/0"
+    JWT_SECRET: str = "change-me"
+    JWT_ALGORITHM: str = "HS256"
     TASKIQ_REDIS_URL: str = "redis://redis:6379/0"
     TASKIQ_QUEUE_NAME: str = "insider_market_backend_rating"
     RATING_EVENTS_CRON: str = "*/5 * * * *"

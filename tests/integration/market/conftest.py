@@ -1,6 +1,8 @@
 """Market service integration fixtures."""
 
 from collections.abc import AsyncGenerator, Generator
+from datetime import UTC, datetime, timedelta
+from uuid import uuid4
 
 import httpx
 import pytest
@@ -15,6 +17,8 @@ from sqlalchemy.ext.asyncio import (
 )
 from testcontainers.postgres import PostgresContainer
 
+from src.common.application.security import encode_jwt
+from src.common.domain.security import Permission
 from src.market_service.core.config import MarketSettings, settings
 from src.market_service.infrastructure.db import setup_mapping
 from src.market_service.infrastructure.db.metadata import mapper_registry
@@ -127,9 +131,19 @@ async def market_test_container(market_db_engine: AsyncEngine):
 @pytest_asyncio.fixture(scope="function")
 async def market_client(market_test_container):
     app = create_app(container=market_test_container)
+    token = encode_jwt(
+        {
+            "sub": str(uuid4()),
+            "permissions": [permission.value for permission in Permission],
+            "exp": int((datetime.now(UTC) + timedelta(hours=1)).timestamp()),
+        },
+        settings.JWT_SECRET,
+        settings.JWT_ALGORITHM,
+    )
 
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
         base_url="http://test",
     ) as client:
+        client.headers.update({"Authorization": f"Bearer {token}"})
         yield client

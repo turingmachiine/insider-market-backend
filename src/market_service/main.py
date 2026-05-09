@@ -6,6 +6,10 @@ from dishka.integrations.fastapi import AsyncContainer, setup_dishka
 from fastapi import FastAPI
 
 from src.common.logging import RequestContextMiddleware, setup_logging, shutdown_logging
+from src.common.presentation.middleware import (
+    build_jwt_auth_middleware,
+    collect_protected_routes,
+)
 from src.market_service.core.config import settings
 from src.market_service.infrastructure.db import setup_mapping
 from src.market_service.infrastructure.di import create_container
@@ -47,6 +51,8 @@ def create_app(container: AsyncContainer | None = None) -> FastAPI:
             {"url": "", "description": "Локально"},
         ],
     )
+    protected_routes: list = []
+    app.middleware("http")(build_jwt_auth_middleware(settings, protected_routes))
     app.add_middleware(RequestContextMiddleware)
 
     @app.get("/health", tags=["Health"])
@@ -54,6 +60,7 @@ def create_app(container: AsyncContainer | None = None) -> FastAPI:
         return {"status": "healthy", "version": settings.APP_VERSION}
 
     app.include_router(v1_router, prefix="/api")
+    protected_routes.extend(collect_protected_routes(app))
 
     if container is None:
         container = create_container(settings)

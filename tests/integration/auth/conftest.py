@@ -8,8 +8,10 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from testcontainers.postgres import PostgresContainer
 
+from src.auth_service.application.service import AuthService
 from src.auth_service.core.config import settings
 from src.auth_service.infrastructure.db.metadata import Base
+from src.auth_service.infrastructure.di import create_container
 from src.auth_service.main import create_app
 
 
@@ -66,9 +68,16 @@ async def auth_engine(
 
 @pytest.fixture
 async def auth_client(auth_engine: AsyncEngine):
-    app = create_app()
+    container = create_container(settings)
+    async with container() as request_container:
+        auth_service = await request_container.get(AuthService)
+        await auth_service.bootstrap_access_control()
+
+    app = create_app(container=container)
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
         base_url="http://test",
     ) as client:
         yield client
+
+    await container.close()

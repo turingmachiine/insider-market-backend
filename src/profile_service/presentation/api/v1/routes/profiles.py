@@ -2,8 +2,10 @@ from typing import Annotated
 from uuid import UUID
 
 from dishka.integrations.fastapi import FromDishka, inject
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from src.common.domain.security import Permission
+from src.common.presentation.decorators import require_permission
 from src.profile_service.application.dto import (
     AwardAchievementDTO,
     BalanceOperationDTO,
@@ -45,6 +47,9 @@ ActivityTypeQuery = Annotated[ActivityType | None, Query()]
 @inject
 async def get_profiles(
     profile_use_cases: FromDishka[ProfileUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.PROFILE_READ))
+    ],
     limit: LimitQuery = 100,
     offset: OffsetQuery = 0,
 ) -> ProfileListResponse:
@@ -63,6 +68,9 @@ async def get_profiles(
 async def create_profile(
     profile_data: ProfileCreate,
     profile_use_cases: FromDishka[ProfileUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.PROFILE_WRITE))
+    ],
 ) -> ProfileResponse:
     dto = CreateProfileDTO(**profile_data.model_dump())
     try:
@@ -80,6 +88,9 @@ async def create_profile(
 async def get_profile(
     user_id: UUID,
     profile_use_cases: FromDishka[ProfileUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.PROFILE_READ))
+    ],
 ) -> ProfileResponse:
     profile = await profile_use_cases.get_profile(user_id)
     if profile is None:
@@ -96,6 +107,9 @@ async def update_profile(
     user_id: UUID,
     profile_data: ProfileUpdate,
     profile_use_cases: FromDishka[ProfileUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.PROFILE_WRITE))
+    ],
 ) -> ProfileResponse:
     dto = UpdateProfileDTO(**profile_data.model_dump(exclude_unset=True))
     try:
@@ -118,6 +132,9 @@ async def update_profile(
 async def get_balance(
     user_id: UUID,
     profile_use_cases: FromDishka[ProfileUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.PROFILE_READ))
+    ],
 ) -> BalanceResponse:
     balance = await profile_use_cases.get_balance(user_id)
     if balance is None:
@@ -134,6 +151,9 @@ async def apply_balance_operation(
     user_id: UUID,
     operation_data: BalanceOperation,
     profile_use_cases: FromDishka[ProfileUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.PROFILE_WRITE))
+    ],
 ) -> BalanceTransactionResponse:
     dto = BalanceOperationDTO(**operation_data.model_dump())
     try:
@@ -156,6 +176,9 @@ async def apply_balance_operation(
 async def get_balance_transactions(
     user_id: UUID,
     profile_use_cases: FromDishka[ProfileUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.PROFILE_READ))
+    ],
     limit: LimitQuery = 100,
     offset: OffsetQuery = 0,
 ) -> BalanceTransactionListResponse:
@@ -174,6 +197,9 @@ async def get_balance_transactions(
 async def get_activity(
     user_id: UUID,
     profile_use_cases: FromDishka[ProfileUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.PROFILE_READ))
+    ],
     limit: LimitQuery = 100,
     offset: OffsetQuery = 0,
     activity_type: ActivityTypeQuery = None,
@@ -195,6 +221,9 @@ async def add_activity(
     user_id: UUID,
     activity_data: ActivityCreate,
     profile_use_cases: FromDishka[ProfileUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.PROFILE_WRITE))
+    ],
 ) -> ActivityResponse:
     dto = CreateActivityDTO(**activity_data.model_dump())
     try:
@@ -216,6 +245,9 @@ async def add_activity(
 @inject
 async def get_achievements(
     profile_use_cases: FromDishka[ProfileUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.PROFILE_READ))
+    ],
 ) -> list[AchievementResponse]:
     achievements = await profile_use_cases.get_achievements()
     return [AchievementResponse(**item.__dict__) for item in achievements]
@@ -226,6 +258,9 @@ async def get_achievements(
 async def create_achievement(
     achievement_data: AchievementCreate,
     profile_use_cases: FromDishka[ProfileUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.PROFILE_WRITE))
+    ],
 ) -> AchievementResponse:
     dto = CreateAchievementDTO(**achievement_data.model_dump())
     try:
@@ -243,6 +278,9 @@ async def create_achievement(
 async def get_user_achievements(
     user_id: UUID,
     profile_use_cases: FromDishka[ProfileUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.PROFILE_READ))
+    ],
 ) -> UserAchievementListResponse:
     achievements = await profile_use_cases.get_user_achievements(user_id)
     return UserAchievementListResponse(
@@ -256,6 +294,9 @@ async def award_achievement(
     user_id: UUID,
     achievement_data: AwardAchievement,
     profile_use_cases: FromDishka[ProfileUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.PROFILE_WRITE))
+    ],
 ) -> UserAchievementResponse:
     dto = AwardAchievementDTO(**achievement_data.model_dump())
     try:

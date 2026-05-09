@@ -7,12 +7,12 @@ from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
-from jose import jwt
 from pydantic import AnyHttpUrl
 from testcontainers.redis import AsyncRedisContainer
 
 from src.api_gateway.config import GatewaySettings
 from src.api_gateway.main import create_app
+from src.common.application.security import encode_jwt
 
 
 @dataclass
@@ -70,13 +70,13 @@ def gateway_settings() -> GatewaySettings:
 
 
 def make_token(user_id: str, secret: str) -> str:
-    return jwt.encode(
+    return encode_jwt(
         {
             "sub": user_id,
-            "exp": datetime.now(UTC) + timedelta(minutes=5),
+            "exp": int((datetime.now(UTC) + timedelta(minutes=5)).timestamp()),
         },
         secret,
-        algorithm="HS256",
+        "HS256",
     )
 
 

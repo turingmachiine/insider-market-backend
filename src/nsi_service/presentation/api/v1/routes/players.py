@@ -5,8 +5,10 @@ from typing import Annotated
 from uuid import UUID
 
 from dishka.integrations.fastapi import FromDishka, inject
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from src.common.domain.security import Permission
+from src.common.presentation.decorators import require_permission
 from src.nsi_service.application.dto import CreatePlayerDTO, UpdatePlayerDTO
 from src.nsi_service.application.usecases import PlayerUseCases
 from src.nsi_service.presentation.api.v1.mappers import IPlayerResponseMapper
@@ -84,6 +86,7 @@ async def create_player(
     player_data: PlayerCreate,
     player_use_cases: FromDishka[PlayerUseCases],
     response_mapper: FromDishka[IPlayerResponseMapper],
+    _: Annotated[dict[str, object], Depends(require_permission(Permission.NSI_WRITE))],
 ) -> PlayerResponse:
     """Создать нового игрока"""
     dto = CreatePlayerDTO(**player_data.model_dump())
@@ -98,6 +101,7 @@ async def update_player(
     player_data: PlayerUpdate,
     player_use_cases: FromDishka[PlayerUseCases],
     response_mapper: FromDishka[IPlayerResponseMapper],
+    _: Annotated[dict[str, object], Depends(require_permission(Permission.NSI_WRITE))],
 ) -> PlayerResponse:
     """Обновить игрока"""
     dto = UpdatePlayerDTO(**player_data.model_dump(exclude_unset=True))
@@ -115,6 +119,7 @@ async def update_player(
 async def delete_player(
     player_id: UUID,
     player_use_cases: FromDishka[PlayerUseCases],
+    _: Annotated[dict[str, object], Depends(require_permission(Permission.NSI_WRITE))],
 ) -> BaseResponse:
     """Удалить игрока"""
     success = await player_use_cases.delete_player(player_id)

@@ -2,13 +2,13 @@ from collections.abc import Awaitable, Callable
 from typing import Annotated, Any, cast
 
 import structlog
-from dishka.integrations.fastapi import FromDishka, inject
+from dishka.integrations.fastapi import inject
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
 
-from src.admin_service.core.config import AdminSettings, settings
+from src.admin_service.core.config import settings
+from src.common.application.security import TokenError, decode_access_token
 
 bearer_scheme = HTTPBearer(auto_error=False)
 BearerCredentials = Annotated[
@@ -16,12 +16,36 @@ BearerCredentials = Annotated[
     Depends(bearer_scheme),
 ]
 
-PUBLIC_PATHS = {
-    "/health",
-    "/openapi.json",
-    "/api/docs",
-    "/api/redoc",
-}
+AUTHORIZATION_HEADER = "Authorization"
+BEARER_SCHEME = "bearer"
+API_PREFIX = "/api/"
+BEARER_TOKEN_MISSING_DETAIL = "Missing bearer token"
+BEARER_TOKEN_INVALID_DETAIL = "Invalid bearer token"
+AUTH_CONTEXT_MISSING_DETAIL = "Missing authenticated request context"
+PERMISSION_DENIED_DETAIL = "Permission denied"
+PUBLIC_PATHS = ("/health", "/openapi.json", "/api/docs", "/api/redoc")
+
+
+def _extract_bearer_token(authorization: str) -> str | None:
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() != BEARER_SCHEME or not token:
+        return None
+    return token
+
+
+def _bind_auth_context(request: Request, payload: dict[str, Any]) -> None:
+    request.state.auth_payload = payload
+    request.state.user_id = payload.get("sub")
+    request.state.permissions = set(payload.get("permissions", []))
+    if request.state.user_id is not None:
+        structlog.contextvars.bind_contextvars(user_id=str(request.state.user_id))
+
+
+def _unauthorized(detail: str) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        content={"detail": detail},
+    )
 
 
 async def jwt_auth_middleware(
@@ -30,33 +54,19 @@ async def jwt_auth_middleware(
 ) -> Response:
     if request.url.path in PUBLIC_PATHS:
         return await call_next(request)
-    if not request.url.path.startswith("/api/"):
+    if not request.url.path.startswith(API_PREFIX):
         return await call_next(request)
 
-    authorization = request.headers.get("Authorization", "")
-    scheme, _, token = authorization.partition(" ")
-    if scheme.lower() != "bearer" or not token:
-        return JSONResponse(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            content={"detail": "Missing bearer token"},
-        )
+    token = _extract_bearer_token(request.headers.get(AUTHORIZATION_HEADER, ""))
+    if token is None:
+        return _unauthorized(BEARER_TOKEN_MISSING_DETAIL)
 
     try:
-        payload = jwt.decode(
-            token,
-            settings.JWT_SECRET,
-            algorithms=[settings.JWT_ALGORITHM],
-        )
-    except JWTError:
-        return JSONResponse(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            content={"detail": "Invalid bearer token"},
-        )
+        payload = decode_access_token(token, settings)
+    except TokenError:
+        return _unauthorized(BEARER_TOKEN_INVALID_DETAIL)
 
-    request.state.user_id = payload.get("sub")
-    request.state.permissions = set(payload.get("permissions", []))
-    if request.state.user_id is not None:
-        structlog.contextvars.bind_contextvars(user_id=str(request.state.user_id))
+    _bind_auth_context(request, payload)
     return await call_next(request)
 
 
@@ -65,30 +75,24 @@ def require_permission(permission: str) -> Callable[..., dict[str, Any]]:
     def dependency(
         request: Request,
         credentials: BearerCredentials,
-        settings: FromDishka[AdminSettings],
     ) -> dict[str, Any]:
         if credentials is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Missing bearer token",
             )
-        try:
-            payload = jwt.decode(
-                credentials.credentials,
-                settings.JWT_SECRET,
-                algorithms=[settings.JWT_ALGORITHM],
-            )
-        except JWTError as exc:
+        payload = getattr(request.state, "auth_payload", None)
+        if payload is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid bearer token",
-            ) from exc
+                detail=AUTH_CONTEXT_MISSING_DETAIL,
+            )
 
         permissions = set(payload.get("permissions", []))
         if permission not in permissions:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Permission denied",
+                detail=PERMISSION_DENIED_DETAIL,
             )
         request.state.user_id = payload.get("sub")
         request.state.permissions = permissions

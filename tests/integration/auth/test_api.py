@@ -2,9 +2,9 @@ from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
-from jose import jwt
 
 from src.auth_service.core.config import settings
+from src.common.application.security import encode_jwt
 
 
 @pytest.mark.asyncio
@@ -37,14 +37,14 @@ async def test_invalid_token_rejected(auth_client: httpx.AsyncClient) -> None:
 
 @pytest.mark.asyncio
 async def test_expired_token_rejected(auth_client: httpx.AsyncClient) -> None:
-    token = jwt.encode(
+    token = encode_jwt(
         {
             "sub": "00000000-0000-0000-0000-000000000000",
             "permissions": ["nsi:read"],
-            "exp": datetime.now(UTC) - timedelta(seconds=1),
+            "exp": int((datetime.now(UTC) - timedelta(seconds=1)).timestamp()),
         },
         settings.JWT_SECRET,
-        algorithm=settings.JWT_ALGORITHM,
+        settings.JWT_ALGORITHM,
     )
 
     response = await auth_client.get(
@@ -56,15 +56,15 @@ async def test_expired_token_rejected(auth_client: httpx.AsyncClient) -> None:
 
 @pytest.mark.asyncio
 async def test_permission_required_not_role(auth_client: httpx.AsyncClient) -> None:
-    token = jwt.encode(
+    token = encode_jwt(
         {
             "sub": "00000000-0000-0000-0000-000000000000",
             "permissions": ["other:permission"],
             "roles": ["admin"],
-            "exp": datetime.now(UTC) + timedelta(hours=1),
+            "exp": int((datetime.now(UTC) + timedelta(hours=1)).timestamp()),
         },
         settings.JWT_SECRET,
-        algorithm=settings.JWT_ALGORITHM,
+        settings.JWT_ALGORITHM,
     )
 
     response = await auth_client.get(

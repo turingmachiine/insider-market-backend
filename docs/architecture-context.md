@@ -51,3 +51,7 @@ This file is a compact reference for future implementation work.
 - Treat README conventions as intent, but verify against the current tree before changing code.
 - Keep feature work consistent with the existing module split instead of collapsing it.
 - If a change touches DTOs, routes, and repositories together, update the corresponding mappers and tests in the same pass.
+
+## Security work tracker
+
+- Active backlog: [docs/security-backlog.md](./security-backlog.md)

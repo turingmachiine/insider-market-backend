@@ -2,8 +2,10 @@ from typing import Annotated
 from uuid import UUID
 
 from dishka.integrations.fastapi import FromDishka, inject
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from src.common.domain.security import Permission
+from src.common.presentation.decorators import require_permission
 from src.rumor_service.application.dto import CreateRawPublicationDTO
 from src.rumor_service.application.usecases import RawPublicationUseCases
 from src.rumor_service.presentation.api.v1.schemas import (
@@ -56,6 +58,9 @@ async def get_publication(
 async def create_publication(
     publication_data: RawPublicationCreate,
     raw_publication_use_cases: FromDishka[RawPublicationUseCases],
+    _: Annotated[
+        dict[str, object], Depends(require_permission(Permission.RUMOR_WRITE))
+    ],
 ) -> RawPublicationResponse:
     dto = CreateRawPublicationDTO(**publication_data.model_dump())
     try:

@@ -1,15 +1,20 @@
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
+from typing import AsyncIterator, cast
 
 import structlog
 from dishka.integrations.fastapi import AsyncContainer, setup_dishka
 from fastapi import FastAPI
 
+from src.auth_service.application.service import AuthService
 from src.auth_service.core.config import settings
 from src.auth_service.infrastructure.db import setup_mapping
 from src.auth_service.infrastructure.di import create_container
 from src.auth_service.presentation.api.v1.routes import router as v1_router
 from src.common.logging import RequestContextMiddleware, setup_logging, shutdown_logging
+from src.common.presentation.middleware import (
+    build_jwt_auth_middleware,
+    collect_protected_routes,
+)
 
 
 @asynccontextmanager
@@ -28,6 +33,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     logger = structlog.get_logger("auth_service")
     logger.info("Starting Auth Service", version=settings.APP_VERSION)
+    container = cast(AsyncContainer, app.state.dishka_container)
+    async with container() as request_container:
+        auth_service = await request_container.get(AuthService)
+        await auth_service.bootstrap_access_control()
     yield
     logger.info("Shutting down Auth Service")
     await app.state.dishka_container.close()  # noqa
@@ -46,6 +55,8 @@ def create_app(container: AsyncContainer | None = None) -> FastAPI:
             {"url": "", "description": "Локально"},
         ],
     )
+    protected_routes: list = []
+    app.middleware("http")(build_jwt_auth_middleware(settings, protected_routes))
     app.add_middleware(RequestContextMiddleware)
 
     @app.get("/health", tags=["Health"])
@@ -53,6 +64,7 @@ def create_app(container: AsyncContainer | None = None) -> FastAPI:
         return {"status": "healthy", "version": settings.APP_VERSION}
 
     app.include_router(v1_router, prefix="/api")
+    protected_routes.extend(collect_protected_routes(app))
 
     if container is None:
         container = create_container(settings)

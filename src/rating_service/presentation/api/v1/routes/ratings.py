@@ -4,8 +4,11 @@ from uuid import UUID
 from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from src.common.application.user_context import UserContext
 from src.common.domain.security import Permission
 from src.common.presentation.decorators import require_permission
+from src.common.presentation.utils import can_access_user_resource, raise_forbidden
+from src.rating_service.application.constants import RATING_ACCESS_DENIED_DETAIL
 from src.rating_service.application.dto import (
     CreateAchievementDefinitionDTO,
     CreateRatingEventDTO,
@@ -36,9 +39,7 @@ OffsetQuery = Annotated[int, Query(ge=0)]
 @inject
 async def get_profiles(
     rating_use_cases: FromDishka[RatingUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.RATING_READ))
-    ],
+    _: Annotated[UserContext, Depends(require_permission(Permission.RATING_READ_ANY))],
     limit: LimitQuery = 100,
     offset: OffsetQuery = 0,
 ) -> RatingProfileListResponse:
@@ -55,9 +56,7 @@ async def get_profiles(
 @inject
 async def get_leaderboard(
     rating_use_cases: FromDishka[RatingUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.RATING_READ))
-    ],
+    _: Annotated[UserContext, Depends(require_permission(Permission.RATING_READ))],
     limit: LimitQuery = 100,
     offset: OffsetQuery = 0,
 ) -> RatingProfileListResponse:
@@ -75,8 +74,8 @@ async def get_leaderboard(
 async def get_profile(
     user_id: UUID,
     rating_use_cases: FromDishka[RatingUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.RATING_READ))
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.RATING_READ))
     ],
 ) -> RatingProfileResponse:
     profile = await rating_use_cases.get_profile(user_id)
@@ -85,6 +84,8 @@ async def get_profile(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Rating profile for user {str(user_id)} not found",
         )
+    if not can_access_user_resource(auth_payload, user_id, Permission.RATING_READ_ANY):
+        raise_forbidden(RATING_ACCESS_DENIED_DETAIL)
     return RatingProfileResponse(**profile.__dict__)
 
 
@@ -93,11 +94,13 @@ async def get_profile(
 async def record_event(
     event_data: RatingEventCreate,
     rating_use_cases: FromDishka[RatingUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.RATING_WRITE))
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.RATING_WRITE))
     ],
 ) -> RatingEventResponse:
-    dto = CreateRatingEventDTO(**event_data.model_dump())
+    event_payload = event_data.model_dump()
+    event_payload["user_id"] = auth_payload.user_id
+    dto = CreateRatingEventDTO(**event_payload)
     try:
         event = await rating_use_cases.record_event(dto)
     except ValueError as exc:
@@ -113,10 +116,12 @@ async def record_event(
 async def recalculate_user(
     user_id: UUID,
     rating_use_cases: FromDishka[RatingUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.RATING_WRITE))
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.RATING_WRITE))
     ],
 ) -> RatingProfileResponse:
+    if not can_access_user_resource(auth_payload, user_id, Permission.RATING_READ_ANY):
+        raise_forbidden(RATING_ACCESS_DENIED_DETAIL)
     profile = await rating_use_cases.recalculate_user(user_id)
     return RatingProfileResponse(**profile.__dict__)
 
@@ -125,9 +130,7 @@ async def recalculate_user(
 @inject
 async def process_pending_events(
     rating_use_cases: FromDishka[RatingUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.RATING_JOBS_RUN))
-    ],
+    _: Annotated[UserContext, Depends(require_permission(Permission.RATING_JOBS_RUN))],
     limit: LimitQuery = 100,
 ) -> RatingRecalculationResponse:
     result = await rating_use_cases.process_pending_events(limit=limit)
@@ -138,9 +141,7 @@ async def process_pending_events(
 @inject
 async def dispatch_pending_rewards(
     rating_use_cases: FromDishka[RatingUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.RATING_JOBS_RUN))
-    ],
+    _: Annotated[UserContext, Depends(require_permission(Permission.RATING_JOBS_RUN))],
     limit: LimitQuery = 100,
 ) -> RatingRecalculationResponse:
     result = await rating_use_cases.dispatch_pending_rewards(limit=limit)
@@ -151,9 +152,7 @@ async def dispatch_pending_rewards(
 @inject
 async def get_achievement_definitions(
     rating_use_cases: FromDishka[RatingUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.RATING_READ))
-    ],
+    _: Annotated[UserContext, Depends(require_permission(Permission.RATING_READ))],
 ) -> AchievementDefinitionListResponse:
     definitions = await rating_use_cases.get_achievement_definitions()
     return AchievementDefinitionListResponse(
@@ -166,9 +165,7 @@ async def get_achievement_definitions(
 async def create_achievement_definition(
     achievement_data: AchievementDefinitionCreate,
     rating_use_cases: FromDishka[RatingUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.RATING_WRITE))
-    ],
+    _: Annotated[UserContext, Depends(require_permission(Permission.RATING_WRITE))],
 ) -> AchievementDefinitionResponse:
     dto = CreateAchievementDefinitionDTO(**achievement_data.model_dump())
     try:
@@ -186,10 +183,12 @@ async def create_achievement_definition(
 async def get_user_achievements(
     user_id: UUID,
     rating_use_cases: FromDishka[RatingUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.RATING_READ))
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.RATING_READ))
     ],
 ) -> UserAchievementListResponse:
+    if not can_access_user_resource(auth_payload, user_id, Permission.RATING_READ_ANY):
+        raise_forbidden(RATING_ACCESS_DENIED_DETAIL)
     achievements = await rating_use_cases.get_user_achievements(user_id)
     return UserAchievementListResponse(
         items=[UserAchievementResponse(**item.__dict__) for item in achievements]
@@ -200,9 +199,7 @@ async def get_user_achievements(
 @inject
 async def get_pending_rewards(
     rating_use_cases: FromDishka[RatingUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.RATING_READ))
-    ],
+    _: Annotated[UserContext, Depends(require_permission(Permission.RATING_READ_ANY))],
     limit: LimitQuery = 100,
 ) -> RewardTransactionListResponse:
     rewards = await rating_use_cases.get_pending_rewards(limit=limit)

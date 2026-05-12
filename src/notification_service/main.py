@@ -5,6 +5,7 @@ import structlog
 from dishka.integrations.fastapi import AsyncContainer, setup_dishka
 from fastapi import FastAPI
 
+from src.common.infrastructure.integration import JwtUserProvider
 from src.common.logging import RequestContextMiddleware, setup_logging, shutdown_logging
 from src.common.presentation.middleware import (
     build_jwt_auth_middleware,
@@ -49,7 +50,9 @@ def create_app(container: AsyncContainer | None = None) -> FastAPI:
         ],
     )
     protected_routes: list = []
-    app.middleware("http")(build_jwt_auth_middleware(settings, protected_routes))
+    app.middleware("http")(
+        build_jwt_auth_middleware(JwtUserProvider(settings), protected_routes)
+    )
     app.add_middleware(RequestContextMiddleware)
 
     @app.get("/health", tags=["Health"])

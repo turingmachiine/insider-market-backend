@@ -7,6 +7,7 @@ from uuid import UUID
 from src.common.application.decorators import transactional, use_case
 from src.common.application.protocols import HasTransactionManager
 from src.common.domain.interfaces import TransactionManager
+from src.nsi_service.application.constants import TEAM_ACCESS_DENIED_DETAIL
 from src.nsi_service.application.dto import ShadowTeamDTO, TeamDTO
 from src.nsi_service.application.mappers import ITeamMapper
 from src.nsi_service.domain.interfaces.repositories import (
@@ -62,12 +63,18 @@ class TeamUseCases(HasTransactionManager):
 
     @transactional()
     async def add_player_to_team(
-        self, team_id: UUID, position: str, player_id: UUID
+        self,
+        team_id: UUID,
+        position: str,
+        player_id: UUID,
+        owner_user_id: UUID | None = None,
     ) -> Optional[TeamDTO]:
         """Добавить игрока в команду"""
         team = await self.team_repository.get_by_id(team_id)
         if not team:
             return None
+        if owner_user_id is not None and team.user_id != owner_user_id:
+            raise PermissionError(TEAM_ACCESS_DENIED_DETAIL)
 
         updated_team = self.team_service.add_player(team, position, player_id)
         saved_team = await self.team_repository.save(updated_team)
@@ -75,12 +82,18 @@ class TeamUseCases(HasTransactionManager):
 
     @transactional()
     async def remove_player_from_team(
-        self, team_id: UUID, position: str, player_id: UUID
+        self,
+        team_id: UUID,
+        position: str,
+        player_id: UUID,
+        owner_user_id: UUID | None = None,
     ) -> Optional[TeamDTO]:
         """Удалить игрока из команды"""
         team = await self.team_repository.get_by_id(team_id)
         if not team:
             return None
+        if owner_user_id is not None and team.user_id != owner_user_id:
+            raise PermissionError(TEAM_ACCESS_DENIED_DETAIL)
 
         updated_team = self.team_service.remove_player(team, position, player_id)
         saved_team = await self.team_repository.save(updated_team)
@@ -88,12 +101,17 @@ class TeamUseCases(HasTransactionManager):
 
     @transactional()
     async def build_shadow_team(
-        self, team_id: UUID, budget: Optional[float] = None
+        self,
+        team_id: UUID,
+        budget: Optional[float] = None,
+        owner_user_id: UUID | None = None,
     ) -> Optional[ShadowTeamDTO]:
         """Построить shadow-team для усиления состава"""
         team = await self.team_repository.get_by_id(team_id)
         if not team:
             return None
+        if owner_user_id is not None and team.user_id != owner_user_id:
+            raise PermissionError(TEAM_ACCESS_DENIED_DETAIL)
 
         # Получение всех игроков для сравнения
         all_players = await self.player_repository.get_all(limit=1000)
@@ -104,5 +122,15 @@ class TeamUseCases(HasTransactionManager):
             budget=budget,
         )
 
-    async def delete_by_id(self, team_id: UUID) -> bool:
-        return await self.team_repository.delete_by_id(team_id)
+    @transactional()
+    async def delete_by_id(
+        self,
+        team_id: UUID,
+        owner_user_id: UUID | None = None,
+    ) -> bool:
+        team = await self.team_repository.get_by_id(team_id)
+        if not team:
+            return False
+        if owner_user_id is not None and team.user_id != owner_user_id:
+            raise PermissionError(TEAM_ACCESS_DENIED_DETAIL)
+        return await self.team_repository.delete(team)

@@ -31,6 +31,7 @@ This file applies to everything under `tests/`.
 - Do not couple unit tests to the real database or external APIs unless the test is explicitly integration-level.
 - When adding behavior, cover the contract at the lowest sensible layer first.
 - Keep fixture names and helpers aligned with the domain language used in `src/`.
+- Fake implementations in unit tests must inherit the interface/protocol they stand in for, so type checking verifies the fake contract instead of relying on accidental structural compatibility.
 - Ensure integration database fixtures start from a clean schema when containers are reused.
 - Do not define `pytest_plugins` in nested `conftest.py`; register plugins from top-level `tests/conftest.py`.
 - Document new fixture modules in `tests/README.md`.

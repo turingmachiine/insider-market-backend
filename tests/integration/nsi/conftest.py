@@ -1,9 +1,9 @@
 """NSI integration fixtures."""
 
-from collections.abc import AsyncGenerator, Generator
+from collections.abc import AsyncGenerator, Callable, Generator
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import httpx
 import pytest
@@ -154,16 +154,50 @@ async def team_repository(db_session: AsyncSession) -> TeamRepository:
 
 
 @pytest.fixture
-def test_token() -> str:
+def authenticated_user_id() -> UUID:
+    return uuid4()
+
+
+@pytest.fixture
+def test_token(authenticated_user_id: UUID) -> str:
     return encode_jwt(
         {
-            "sub": str(uuid4()),
+            "sub": str(authenticated_user_id),
             "permissions": [permission.value for permission in Permission],
             "exp": int((datetime.now(UTC) + timedelta(hours=1)).timestamp()),
         },
         settings.JWT_SECRET,
         settings.JWT_ALGORITHM,
     )
+
+
+@pytest.fixture
+def token_factory() -> Callable[[UUID, list[Permission | str] | None], str]:
+    def factory(
+        user_id: UUID,
+        permissions: list[Permission | str] | None = None,
+    ) -> str:
+        selected_permissions = (
+            permissions if permissions is not None else list(Permission)
+        )
+        return encode_jwt(
+            {
+                "sub": str(user_id),
+                "permissions": [
+                    (
+                        permission.value
+                        if isinstance(permission, Permission)
+                        else permission
+                    )
+                    for permission in selected_permissions
+                ],
+                "exp": int((datetime.now(UTC) + timedelta(hours=1)).timestamp()),
+            },
+            settings.JWT_SECRET,
+            settings.JWT_ALGORITHM,
+        )
+
+    return factory
 
 
 @pytest_asyncio.fixture(scope="function")

@@ -34,6 +34,7 @@ This file applies to everything under `src/`.
 - Use explicit, descriptive class names.
 - Keep one class per file when extending existing patterns.
 - Keep helper functions local to the module unless they are broadly reusable.
+- Keep shared constants in dedicated `constants.py` modules for the relevant layer/package; do not import constants from use case, service, route, or repository modules.
 - Name repository interfaces `I<Entity>Repository` and store them in `i_<entity>_repository.py`.
 - Name concrete repositories `<Entity>Repository` and store them in `<entity>_repository.py`.
 - Keep one SQLAlchemy table per file named `<table_name>_table.py`, exported from `tables/__init__.py`.

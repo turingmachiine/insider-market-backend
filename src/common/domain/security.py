@@ -19,18 +19,23 @@ class Permission(StrEnum):
     MARKET_WRITE = "market:write"
     MARKET_TRADE = "market:trade"
     MARKET_MANAGE = "market:manage"
+    WALLET_READ_ANY = "wallet:read:any"
 
     NSI_READ = "nsi:read"
     NSI_WRITE = "nsi:write"
+    TEAM_READ_ANY = "team:read:any"
     TEAM_WRITE = "team:write"
 
     NOTIFICATION_READ = "notification:read"
+    NOTIFICATION_READ_ANY = "notification:read:any"
     NOTIFICATION_PUBLISH = "notification:publish"
 
     PROFILE_READ = "profile:read"
+    PROFILE_READ_ANY = "profile:read:any"
     PROFILE_WRITE = "profile:write"
 
     RATING_READ = "rating:read"
+    RATING_READ_ANY = "rating:read:any"
     RATING_WRITE = "rating:write"
     RATING_JOBS_RUN = "rating:jobs:run"
 
@@ -68,6 +73,7 @@ ROLE_PERMISSIONS: dict[Role, set[Permission]] = {
         Permission.PROFILE_READ,
         Permission.PROFILE_WRITE,
         Permission.RATING_READ,
+        Permission.RATING_READ_ANY,
         Permission.RATING_WRITE,
         Permission.EVENT_READ,
         Permission.EVENT_WRITE,
@@ -100,6 +106,7 @@ ROLE_PERMISSIONS: dict[Role, set[Permission]] = {
         Permission.ADMIN_WRITE,
         Permission.NSI_READ,
         Permission.NSI_WRITE,
+        Permission.TEAM_READ_ANY,
         Permission.EVENT_READ,
         Permission.EVENT_WRITE,
         Permission.EVENT_MODERATE,
@@ -107,8 +114,11 @@ ROLE_PERMISSIONS: dict[Role, set[Permission]] = {
         Permission.MARKET_READ,
         Permission.MARKET_WRITE,
         Permission.MARKET_MANAGE,
+        Permission.WALLET_READ_ANY,
         Permission.NOTIFICATION_PUBLISH,
+        Permission.NOTIFICATION_READ_ANY,
         Permission.PROFILE_READ,
+        Permission.PROFILE_READ_ANY,
         Permission.PROFILE_WRITE,
         Permission.RATING_READ,
         Permission.RATING_WRITE,

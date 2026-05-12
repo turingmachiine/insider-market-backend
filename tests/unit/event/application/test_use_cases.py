@@ -3,7 +3,12 @@ from uuid import UUID, uuid4
 import pytest
 
 from src.common.domain.interfaces import TransactionManager
-from src.event_service.application.dto import CreateEventDTO, ResolveEventDTO
+from src.event_service.application.constants import EVENT_ACCESS_DENIED_DETAIL
+from src.event_service.application.dto import (
+    CreateEventDTO,
+    ResolveEventDTO,
+    UpdateEventDTO,
+)
 from src.event_service.application.mappers import EventMapper
 from src.event_service.application.usecases import EventUseCases
 from src.event_service.domain.entities import Event, EventOutcome, EventStatus
@@ -186,3 +191,51 @@ async def test_invalid_transition_rolls_back(
         await use_cases.approve_event(event.id)
 
     assert transaction_manager.rollbacks == 1
+
+
+@pytest.mark.asyncio
+async def test_update_event_rejects_non_owner(
+    event_repository: FakeEventRepository,
+    transaction_manager: FakeTransactionManager,
+) -> None:
+    owner_id = uuid4()
+    event = Event(
+        id=uuid4(),
+        title="Owner event",
+        description="Draft event.",
+        created_by_user_id=owner_id,
+    )
+    await event_repository.save(event)
+    use_cases = create_use_cases(event_repository, transaction_manager)
+
+    with pytest.raises(PermissionError, match=EVENT_ACCESS_DENIED_DETAIL):
+        await use_cases.update_event(
+            event.id,
+            dto=UpdateEventDTO(
+                title="Updated",
+                description="Updated event.",
+            ),
+            owner_user_id=uuid4(),
+        )
+
+
+@pytest.mark.asyncio
+async def test_submit_for_moderation_rejects_non_owner(
+    event_repository: FakeEventRepository,
+    transaction_manager: FakeTransactionManager,
+) -> None:
+    owner_id = uuid4()
+    event = Event(
+        id=uuid4(),
+        title="Owner event",
+        description="Draft event.",
+        created_by_user_id=owner_id,
+    )
+    await event_repository.save(event)
+    use_cases = create_use_cases(event_repository, transaction_manager)
+
+    with pytest.raises(PermissionError, match=EVENT_ACCESS_DENIED_DETAIL):
+        await use_cases.submit_for_moderation(
+            event.id,
+            owner_user_id=uuid4(),
+        )

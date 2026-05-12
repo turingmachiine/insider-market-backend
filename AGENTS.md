@@ -29,10 +29,12 @@ The current codebase uses service-local packages under
 
 - Prefer the existing architecture and naming conventions over introducing new abstractions.
 - Keep classes in separate files when the codebase already follows that pattern.
+- Keep one class per file; combine related classes through package modules and `__init__.py` exports rather than storing a whole module's class set in one `.py` file.
 - Do not instantiate infrastructure/application dependencies directly inside classes when DI is already used.
 - Preserve the current layering. Domain must not import infrastructure or presentation.
 - Use explicit mappers between entities, DTOs, ORM models, and API schemas.
 - Keep changes focused. Avoid unrelated refactors, renames, or style churn.
+- Keep shared constants in dedicated `constants.py` modules for the relevant layer/package; do not import constants from use case, service, route, or repository modules.
 - Keep service structure consistent with `nsi_service` unless there is a documented reason not to.
 - Put domain entities in `domain/entities`, not in `infrastructure/db/models`.
 - Put repository interfaces in `domain/interfaces/repositories`, one interface per file named `i_*_repository.py`.

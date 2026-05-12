@@ -7,6 +7,7 @@ from uuid import UUID
 from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from src.common.application.user_context import UserContext
 from src.common.domain.security import Permission
 from src.common.presentation.decorators import require_permission
 from src.nsi_service.application.dto import CreateLeagueDTO
@@ -97,7 +98,7 @@ async def create_league(
     league_data: LeagueCreate,
     league_use_cases: FromDishka[LeagueUseCases],
     response_mapper: FromDishka[ILeagueResponseMapper],
-    _: Annotated[dict[str, object], Depends(require_permission(Permission.NSI_WRITE))],
+    _: Annotated[UserContext, Depends(require_permission(Permission.NSI_WRITE))],
 ) -> LeagueResponse:
     """Создать новую лигу"""
     dto = CreateLeagueDTO(**league_data.model_dump())

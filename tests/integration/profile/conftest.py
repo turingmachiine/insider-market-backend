@@ -2,7 +2,7 @@
 
 from collections.abc import AsyncGenerator, Generator
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from uuid import UUID
 
 import httpx
 import pytest
@@ -131,11 +131,14 @@ async def profile_test_container(profile_db_engine: AsyncEngine):
 
 
 @pytest_asyncio.fixture(scope="function")
-async def profile_client(profile_test_container):
+async def profile_client(
+    profile_test_container,
+    authenticated_user_id: UUID,
+):
     app = create_app(container=profile_test_container)
     token = encode_jwt(
         {
-            "sub": str(uuid4()),
+            "sub": str(authenticated_user_id),
             "permissions": [permission.value for permission in Permission],
             "exp": int((datetime.now(UTC) + timedelta(hours=1)).timestamp()),
         },

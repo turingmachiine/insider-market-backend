@@ -1,14 +1,15 @@
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from re import Pattern
-from typing import Protocol
 
 import structlog
 from fastapi import FastAPI, Request, Response, status
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute
 
-from src.common.application.security import TokenError, decode_access_token
+from src.common.application.protocols import IUserProvider
+from src.common.application.security import TokenError
+from src.common.application.user_context import UserContext
 
 AUTHORIZATION_HEADER = "Authorization"
 BEARER_SCHEME = "bearer"
@@ -16,11 +17,6 @@ API_PREFIX = "/api/"
 BEARER_TOKEN_MISSING_DETAIL = "Missing bearer token"
 BEARER_TOKEN_INVALID_DETAIL = "Invalid bearer token"
 IGNORING_INVALID_BEARER_TOKEN_MESSAGE = "Ignoring invalid bearer token on public path"
-
-
-class HasJwtConfig(Protocol):
-    JWT_SECRET: str
-    JWT_ALGORITHM: str
 
 
 @dataclass(frozen=True)
@@ -73,21 +69,13 @@ def _extract_bearer_token(authorization: str) -> str | None:
     return token
 
 
-def _extract_permissions(payload: dict[str, object]) -> set[str]:
-    permissions = payload.get("permissions", [])
-    if not isinstance(permissions, list):
-        return set()
-    if not all(isinstance(permission, str) for permission in permissions):
-        return set()
-    return set(permissions)
-
-
-def _bind_auth_context(request: Request, payload: dict[str, object]) -> None:
-    request.state.auth_payload = payload
-    request.state.user_id = payload.get("sub")
-    request.state.permissions = _extract_permissions(payload)
-    if request.state.user_id is not None:
-        structlog.contextvars.bind_contextvars(user_id=str(request.state.user_id))
+def _bind_auth_context(request: Request, user_context: UserContext) -> None:
+    request.state.user_context = user_context
+    request.state.auth_payload = user_context.claims
+    request.state.user_id = user_context.user_id
+    request.state.permissions = user_context.permissions
+    request.state.roles = user_context.roles
+    structlog.contextvars.bind_contextvars(user_id=str(user_context.user_id))
 
 
 def _unauthorized(detail: str) -> JSONResponse:
@@ -98,7 +86,7 @@ def _unauthorized(detail: str) -> JSONResponse:
 
 
 def build_jwt_auth_middleware(
-    settings: HasJwtConfig,
+    user_provider: IUserProvider,
     protected_routes: list[ProtectedRoute] | None = None,
 ) -> Callable[[Request, Callable[[Request], Awaitable[Response]]], Awaitable[Response]]:
     routes = protected_routes if protected_routes is not None else []
@@ -115,25 +103,25 @@ def build_jwt_auth_middleware(
         if _is_public_path(request.url.path, is_protected):
             if token is not None:
                 try:
-                    payload = decode_access_token(token, settings)
+                    user_context = user_provider.get_user_context(token)
                 except TokenError:
                     structlog.get_logger(__name__).warning(
                         IGNORING_INVALID_BEARER_TOKEN_MESSAGE,
                         path=request.url.path,
                     )
                 else:
-                    _bind_auth_context(request, payload)
+                    _bind_auth_context(request, user_context)
             return await call_next(request)
 
         if token is None:
             return _unauthorized(BEARER_TOKEN_MISSING_DETAIL)
 
         try:
-            payload = decode_access_token(token, settings)
+            user_context = user_provider.get_user_context(token)
         except TokenError:
             return _unauthorized(BEARER_TOKEN_INVALID_DETAIL)
 
-        _bind_auth_context(request, payload)
+        _bind_auth_context(request, user_context)
         return await call_next(request)
 
     return jwt_auth_middleware

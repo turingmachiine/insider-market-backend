@@ -4,6 +4,7 @@ from uuid import UUID
 from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from src.common.application.user_context import UserContext
 from src.common.domain.security import Permission
 from src.common.presentation.decorators import require_permission
 from src.rumor_service.application.dto import CreateSourceDTO
@@ -58,9 +59,7 @@ async def get_source(
 async def create_source(
     source_data: SourceCreate,
     source_use_cases: FromDishka[SourceUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.RUMOR_WRITE))
-    ],
+    _: Annotated[UserContext, Depends(require_permission(Permission.RUMOR_WRITE))],
 ) -> SourceResponse:
     dto = CreateSourceDTO(**source_data.model_dump())
     result = await source_use_cases.create_source(dto)

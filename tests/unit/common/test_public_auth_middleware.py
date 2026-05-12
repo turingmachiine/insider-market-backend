@@ -6,7 +6,9 @@ import pytest
 from fastapi import APIRouter, Depends, FastAPI
 
 from src.common.application.security import encode_jwt
+from src.common.application.user_context import UserContext
 from src.common.domain.security import Permission
+from src.common.infrastructure.integration import JwtUserProvider
 from src.common.presentation.decorators import require_permission
 from src.common.presentation.middleware import (
     build_jwt_auth_middleware,
@@ -22,9 +24,11 @@ async def test_public_routes_stay_open_and_protected_routes_require_auth() -> No
     protected_routes: list = []
     settings = SimpleNamespace(JWT_SECRET="secret", JWT_ALGORITHM="HS256")
 
-    app.middleware("http")(build_jwt_auth_middleware(settings, protected_routes))
+    app.middleware("http")(
+        build_jwt_auth_middleware(JwtUserProvider(settings), protected_routes)
+    )
 
-    router = APIRouter()
+    router = APIRouter(prefix="/api/v1")
 
     @router.get("/public")
     async def public_endpoint() -> dict[str, str]:
@@ -32,11 +36,11 @@ async def test_public_routes_stay_open_and_protected_routes_require_auth() -> No
 
     @router.get("/private")
     async def private_endpoint(
-        _: dict[str, object] = PRIVATE_ENDPOINT_DEPENDENCY,
+        _: UserContext = PRIVATE_ENDPOINT_DEPENDENCY,
     ) -> dict[str, str]:
         return {"status": "private"}
 
-    app.include_router(router, prefix="/api/v1")
+    app.include_router(router)
     protected_routes.extend(collect_protected_routes(app))
 
     async with httpx.AsyncClient(
@@ -51,7 +55,7 @@ async def test_public_routes_stay_open_and_protected_routes_require_auth() -> No
 
         token = encode_jwt(
             {
-                "sub": "user-1",
+                "sub": "00000000-0000-0000-0000-000000000001",
                 "permissions": [Permission.NSI_READ.value],
                 "exp": int((datetime.now(UTC) + timedelta(hours=1)).timestamp()),
             },

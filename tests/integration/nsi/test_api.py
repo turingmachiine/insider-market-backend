@@ -1,7 +1,9 @@
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import httpx
 import pytest
+
+from src.common.domain.security import Permission
 
 
 class TestPlayerAPI:
@@ -339,9 +341,12 @@ class TestTeamAPI:
     """Интеграционные тесты Team API"""
 
     @pytest.mark.asyncio
-    async def test_create_and_get_team(self, api_client: httpx.AsyncClient) -> None:
+    async def test_create_and_get_team(
+        self,
+        api_client: httpx.AsyncClient,
+        authenticated_user_id: UUID,
+    ) -> None:
         """Тест создания и получения команды"""
-        user_id = str(uuid4())
         team_data = {
             "name": "My Team",
             "description": "Test team",
@@ -351,7 +356,6 @@ class TestTeamAPI:
         response = await api_client.post(
             "/api/v1/teams",
             json=team_data,
-            headers={"X-User-Id": user_id},
         )
         assert response.status_code == 201
 
@@ -359,7 +363,7 @@ class TestTeamAPI:
         team_id = data["id"]
 
         assert data["name"] == "My Team"
-        assert data["user_id"] == user_id
+        assert data["user_id"] == str(authenticated_user_id)
         assert data["player_count"] == 0
 
         # Получение
@@ -370,24 +374,21 @@ class TestTeamAPI:
         assert data["id"] == team_id
 
     @pytest.mark.asyncio
-    async def test_get_user_teams(self, api_client: httpx.AsyncClient) -> None:
+    async def test_get_user_teams(
+        self,
+        api_client: httpx.AsyncClient,
+    ) -> None:
         """Тест получения команд пользователя"""
-        user_id = str(uuid4())
-
         # Создаем команду
         team_data = {"name": "Team 1"}
         response = await api_client.post(
             "/api/v1/teams",
             json=team_data,
-            headers={"X-User-Id": user_id},
         )
         assert response.status_code == 201
 
         # Получаем команды пользователя
-        response = await api_client.get(
-            "/api/v1/teams",
-            headers={"X-User-Id": user_id},
-        )
+        response = await api_client.get("/api/v1/teams")
         assert response.status_code == 200
 
         data = response.json()
@@ -395,28 +396,30 @@ class TestTeamAPI:
         assert len(data["items"]) >= 1
 
     @pytest.mark.asyncio
-    async def test_team_requires_user_id(self, api_client: httpx.AsyncClient) -> None:
-        """Тест что команда требует X-User-Id"""
-        team_data = {"name": "Team"}
+    async def test_team_ignores_spoofed_user_id_header(
+        self,
+        api_client: httpx.AsyncClient,
+        authenticated_user_id: UUID,
+    ) -> None:
+        """Команда создается для subject из JWT, а не для X-User-Id."""
+        spoofed_user_id = str(uuid4())
 
         response = await api_client.post(
             "/api/v1/teams",
-            json=team_data,
+            json={"name": "Team"},
+            headers={"X-User-Id": spoofed_user_id},
         )
-        # Должна быть ошибка из-за отсутствия заголовка
-        assert response.status_code in [400, 422]
+        assert response.status_code == 201
+        assert response.json()["user_id"] == str(authenticated_user_id)
 
     @pytest.mark.asyncio
     async def test_add_player_to_team(self, api_client: httpx.AsyncClient) -> None:
         """Тест добавления игрока в команду"""
-        user_id = str(uuid4())
-
         # Создаем команду
         team_data = {"name": "Team with Player"}
         response = await api_client.post(
             "/api/v1/teams",
             json=team_data,
-            headers={"X-User-Id": user_id},
         )
         assert response.status_code == 201
         team_id = response.json()["id"]
@@ -449,14 +452,11 @@ class TestTeamAPI:
     @pytest.mark.asyncio
     async def test_delete_team(self, api_client: httpx.AsyncClient) -> None:
         """Тест удаления команды"""
-        user_id = str(uuid4())
-
         # Создаем команду
         team_data = {"name": "Delete Team"}
         response = await api_client.post(
             "/api/v1/teams",
             json=team_data,
-            headers={"X-User-Id": user_id},
         )
         assert response.status_code == 201
         team_id = response.json()["id"]
@@ -468,3 +468,72 @@ class TestTeamAPI:
         # Проверяем что удалена
         response = await api_client.get(f"/api/v1/teams/{team_id}")
         assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_user_cannot_modify_another_users_team(
+        self,
+        api_client: httpx.AsyncClient,
+        token_factory,
+    ) -> None:
+        """Даже с TEAM_WRITE пользователь не может менять чужую команду."""
+        owner_id = uuid4()
+        attacker_id = uuid4()
+        api_client.headers["Authorization"] = f"Bearer {token_factory(owner_id)}"
+
+        response = await api_client.post("/api/v1/teams", json={"name": "Owner Team"})
+        assert response.status_code == 201
+        team_id = response.json()["id"]
+
+        api_client.headers["Authorization"] = f"Bearer {token_factory(attacker_id)}"
+        response = await api_client.delete(f"/api/v1/teams/{team_id}")
+
+        assert response.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_user_cannot_read_another_users_team_without_read_any(
+        self,
+        api_client: httpx.AsyncClient,
+        token_factory,
+    ) -> None:
+        """NSI_READ без team:read:any не дает читать чужую команду."""
+        owner_id = uuid4()
+        reader_id = uuid4()
+        api_client.headers["Authorization"] = f"Bearer {token_factory(owner_id)}"
+
+        response = await api_client.post("/api/v1/teams", json={"name": "Private"})
+        assert response.status_code == 201
+        team_id = response.json()["id"]
+
+        token = token_factory(
+            reader_id,
+            permissions=[Permission.NSI_READ, Permission.TEAM_WRITE],
+        )
+        api_client.headers["Authorization"] = f"Bearer {token}"
+        response = await api_client.get(f"/api/v1/teams/{team_id}")
+
+        assert response.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_read_any_permission_allows_reading_another_users_team(
+        self,
+        api_client: httpx.AsyncClient,
+        token_factory,
+    ) -> None:
+        """team:read:any разрешает читать команду другого пользователя."""
+        owner_id = uuid4()
+        admin_id = uuid4()
+        api_client.headers["Authorization"] = f"Bearer {token_factory(owner_id)}"
+
+        response = await api_client.post("/api/v1/teams", json={"name": "Audited"})
+        assert response.status_code == 201
+        team_id = response.json()["id"]
+
+        token = token_factory(
+            admin_id,
+            permissions=[Permission.NSI_READ, Permission.TEAM_READ_ANY],
+        )
+        api_client.headers["Authorization"] = f"Bearer {token}"
+        response = await api_client.get(f"/api/v1/teams/{team_id}")
+
+        assert response.status_code == 200
+        assert response.json()["id"] == team_id

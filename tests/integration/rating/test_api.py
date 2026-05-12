@@ -1,15 +1,18 @@
 from decimal import Decimal
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import httpx
 import pytest
+
+from src.common.domain.security import Permission
 
 
 @pytest.mark.asyncio
 async def test_rating_event_profile_achievement_and_reward_flow(
     rating_client: httpx.AsyncClient,
+    authenticated_user_id: UUID,
 ) -> None:
-    user_id = str(uuid4())
+    user_id = str(authenticated_user_id)
 
     event_response = await rating_client.post(
         "/api/v1/ratings/events",
@@ -46,8 +49,11 @@ async def test_rating_event_profile_achievement_and_reward_flow(
 
 
 @pytest.mark.asyncio
-async def test_rating_event_is_idempotent(rating_client: httpx.AsyncClient) -> None:
-    user_id = str(uuid4())
+async def test_rating_event_is_idempotent(
+    rating_client: httpx.AsyncClient,
+    authenticated_user_id: UUID,
+) -> None:
+    user_id = str(authenticated_user_id)
     payload = {
         "user_id": user_id,
         "event_type": "daily_active",
@@ -60,3 +66,80 @@ async def test_rating_event_is_idempotent(rating_client: httpx.AsyncClient) -> N
     assert first.status_code == 201
     assert second.status_code == 201
     assert first.json()["id"] == second.json()["id"]
+
+
+@pytest.mark.asyncio
+async def test_rating_event_ignores_spoofed_user_id(
+    rating_client: httpx.AsyncClient,
+    authenticated_user_id: UUID,
+) -> None:
+    response = await rating_client.post(
+        "/api/v1/ratings/events",
+        json={
+            "user_id": str(uuid4()),
+            "event_type": "daily_active",
+            "idempotency_key": "spoofed-daily-active",
+        },
+    )
+
+    assert response.status_code == 201
+    assert response.json()["user_id"] == str(authenticated_user_id)
+
+
+@pytest.mark.asyncio
+async def test_user_cannot_read_another_users_rating_without_read_any(
+    rating_client: httpx.AsyncClient,
+    token_factory,
+) -> None:
+    owner_id = uuid4()
+    reader_id = uuid4()
+    rating_client.headers["Authorization"] = f"Bearer {token_factory(owner_id)}"
+
+    response = await rating_client.post(
+        "/api/v1/ratings/events",
+        json={
+            "user_id": str(owner_id),
+            "event_type": "daily_active",
+            "idempotency_key": "owner-daily-active",
+        },
+    )
+    assert response.status_code == 201
+
+    token = token_factory(
+        reader_id,
+        permissions=[Permission.RATING_READ, Permission.RATING_WRITE],
+    )
+    rating_client.headers["Authorization"] = f"Bearer {token}"
+    response = await rating_client.get(f"/api/v1/ratings/profiles/{owner_id}")
+
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_read_any_permission_allows_reading_another_users_rating(
+    rating_client: httpx.AsyncClient,
+    token_factory,
+) -> None:
+    owner_id = uuid4()
+    reader_id = uuid4()
+    rating_client.headers["Authorization"] = f"Bearer {token_factory(owner_id)}"
+
+    response = await rating_client.post(
+        "/api/v1/ratings/events",
+        json={
+            "user_id": str(owner_id),
+            "event_type": "daily_active",
+            "idempotency_key": "read-any-owner-daily-active",
+        },
+    )
+    assert response.status_code == 201
+
+    token = token_factory(
+        reader_id,
+        permissions=[Permission.RATING_READ, Permission.RATING_READ_ANY],
+    )
+    rating_client.headers["Authorization"] = f"Bearer {token}"
+    response = await rating_client.get(f"/api/v1/ratings/profiles/{owner_id}")
+
+    assert response.status_code == 200
+    assert response.json()["user_id"] == str(owner_id)

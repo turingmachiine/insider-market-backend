@@ -4,6 +4,7 @@ from uuid import UUID
 from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from src.common.application.user_context import UserContext
 from src.common.domain.security import Permission
 from src.common.presentation.decorators import require_permission
 from src.market_service.application.dto import (
@@ -71,11 +72,13 @@ async def get_market(
 async def create_market(
     market_data: MarketCreate,
     market_use_cases: FromDishka[MarketUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.MARKET_WRITE))
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.MARKET_WRITE))
     ],
 ) -> MarketResponse:
-    dto = CreateMarketDTO(**market_data.model_dump())
+    market_payload = market_data.model_dump()
+    market_payload["created_by_user_id"] = auth_payload.user_id
+    dto = CreateMarketDTO(**market_payload)
     try:
         result = await market_use_cases.create_market(dto)
     except ValueError as exc:
@@ -92,11 +95,13 @@ async def place_bet(
     market_id: UUID,
     bet_data: BetCreate,
     market_use_cases: FromDishka[MarketUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.MARKET_TRADE))
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.MARKET_TRADE))
     ],
 ) -> BetResponse:
-    dto = PlaceBetDTO(**bet_data.model_dump())
+    bet_payload = bet_data.model_dump()
+    bet_payload["user_id"] = auth_payload.user_id
+    dto = PlaceBetDTO(**bet_payload)
     try:
         result = await market_use_cases.place_bet(market_id, dto)
     except ValueError as exc:
@@ -112,9 +117,7 @@ async def place_bet(
 async def get_market_bets(
     market_id: UUID,
     market_use_cases: FromDishka[MarketUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.MARKET_READ))
-    ],
+    _: Annotated[UserContext, Depends(require_permission(Permission.MARKET_READ))],
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
     user_id: UUID | None = None,
@@ -151,9 +154,7 @@ async def get_market_positions(
 async def close_market(
     market_id: UUID,
     market_use_cases: FromDishka[MarketUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.MARKET_MANAGE))
-    ],
+    _: Annotated[UserContext, Depends(require_permission(Permission.MARKET_MANAGE))],
 ) -> MarketResponse:
     try:
         result = await market_use_cases.close_market(market_id)
@@ -176,11 +177,13 @@ async def resolve_market(
     market_id: UUID,
     resolve_data: MarketResolve,
     market_use_cases: FromDishka[MarketUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.MARKET_MANAGE))
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.MARKET_MANAGE))
     ],
 ) -> MarketResponse:
-    dto = ResolveMarketDTO(**resolve_data.model_dump())
+    resolve_payload = resolve_data.model_dump()
+    resolve_payload["resolved_by_user_id"] = auth_payload.user_id
+    dto = ResolveMarketDTO(**resolve_payload)
     try:
         result = await market_use_cases.resolve_market(market_id, dto)
     except ValueError as exc:

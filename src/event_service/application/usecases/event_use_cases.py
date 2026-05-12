@@ -3,6 +3,7 @@ from uuid import UUID, uuid4
 from src.common.application.decorators import transactional, use_case
 from src.common.application.protocols import HasTransactionManager
 from src.common.domain.interfaces import TransactionManager
+from src.event_service.application.constants import EVENT_ACCESS_DENIED_DETAIL
 from src.event_service.application.dto import (
     CancelEventDTO,
     CreateEventDTO,
@@ -74,10 +75,13 @@ class EventUseCases(HasTransactionManager):
         self,
         event_id: UUID,
         dto: UpdateEventDTO,
+        owner_user_id: UUID | None = None,
     ) -> EventDTO | None:
         event = await self.event_repository.get_by_id(event_id)
         if event is None:
             return None
+        if owner_user_id is not None and event.created_by_user_id != owner_user_id:
+            raise PermissionError(EVENT_ACCESS_DENIED_DETAIL)
         event.update_details(
             title=dto.title,
             description=dto.description,
@@ -89,10 +93,16 @@ class EventUseCases(HasTransactionManager):
         return self.event_mapper.to_dto(saved_event)
 
     @transactional()
-    async def submit_for_moderation(self, event_id: UUID) -> EventDTO | None:
+    async def submit_for_moderation(
+        self,
+        event_id: UUID,
+        owner_user_id: UUID | None = None,
+    ) -> EventDTO | None:
         event = await self.event_repository.get_by_id(event_id)
         if event is None:
             return None
+        if owner_user_id is not None and event.created_by_user_id != owner_user_id:
+            raise PermissionError(EVENT_ACCESS_DENIED_DETAIL)
         event.submit_for_moderation()
         saved_event = await self.event_repository.save(event)
         return self.event_mapper.to_dto(saved_event)

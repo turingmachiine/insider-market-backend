@@ -4,6 +4,7 @@ from uuid import UUID
 from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from src.common.application.user_context import UserContext
 from src.common.domain.security import Permission
 from src.common.presentation.decorators import require_permission
 from src.rumor_service.application.dto import CreateRawPublicationDTO
@@ -58,9 +59,7 @@ async def get_publication(
 async def create_publication(
     publication_data: RawPublicationCreate,
     raw_publication_use_cases: FromDishka[RawPublicationUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.RUMOR_WRITE))
-    ],
+    _: Annotated[UserContext, Depends(require_permission(Permission.RUMOR_WRITE))],
 ) -> RawPublicationResponse:
     dto = CreateRawPublicationDTO(**publication_data.model_dump())
     try:

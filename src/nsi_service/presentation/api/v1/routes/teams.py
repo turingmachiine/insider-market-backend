@@ -5,10 +5,13 @@ from typing import Annotated
 from uuid import UUID
 
 from dishka.integrations.fastapi import FromDishka, inject
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from src.common.application.user_context import UserContext
 from src.common.domain.security import Permission
 from src.common.presentation.decorators import require_permission
+from src.common.presentation.utils import can_access_user_resource, raise_forbidden
+from src.nsi_service.application.constants import TEAM_ACCESS_DENIED_DETAIL
 from src.nsi_service.application.dto import CreateTeamDTO
 from src.nsi_service.application.usecases import TeamUseCases
 from src.nsi_service.presentation.api.v1.mappers import ITeamResponseMapper
@@ -31,19 +34,14 @@ router = APIRouter(prefix="/teams", tags=["Teams"])
 async def get_user_teams(
     team_use_cases: FromDishka[TeamUseCases],
     response_mapper: FromDishka[ITeamResponseMapper],
-    x_user_id: Annotated[str, Header(description="ID пользователя")],
-    _: Annotated[dict[str, object], Depends(require_permission(Permission.NSI_READ))],
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.NSI_READ))
+    ],
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> TeamListResponse:
     """Получить команды пользователя"""
-    try:
-        user_id = UUID(x_user_id)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid user ID format",
-        )
+    user_id = auth_payload.user_id
 
     dtos = await team_use_cases.get_user_teams(user_id)
     return TeamListResponse(
@@ -60,7 +58,9 @@ async def get_team(
     team_id: UUID,
     team_use_cases: FromDishka[TeamUseCases],
     response_mapper: FromDishka[ITeamResponseMapper],
-    _: Annotated[dict[str, object], Depends(require_permission(Permission.NSI_READ))],
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.NSI_READ))
+    ],
 ) -> TeamResponse:
     """Получить команду по ID"""
     dto = await team_use_cases.get_team(team_id)
@@ -68,6 +68,13 @@ async def get_team(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Team {team_id} not found",
+        )
+    if not can_access_user_resource(
+        auth_payload, dto.user_id, Permission.TEAM_READ_ANY
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=TEAM_ACCESS_DENIED_DETAIL,
         )
     return response_mapper.to_response(dto)
 
@@ -78,17 +85,12 @@ async def create_team(
     team_data: TeamCreate,
     team_use_cases: FromDishka[TeamUseCases],
     response_mapper: FromDishka[ITeamResponseMapper],
-    x_user_id: Annotated[str, Header(description="ID пользователя")],
-    _: Annotated[dict[str, object], Depends(require_permission(Permission.TEAM_WRITE))],
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.TEAM_WRITE))
+    ],
 ) -> TeamResponse:
     """Создать новую команду"""
-    try:
-        user_id = UUID(x_user_id)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid user ID format",
-        )
+    user_id = auth_payload.user_id
 
     dto = CreateTeamDTO(
         name=team_data.name,
@@ -110,14 +112,20 @@ async def add_player_to_team(
     request: AddPlayerToTeamRequest,
     team_use_cases: FromDishka[TeamUseCases],
     response_mapper: FromDishka[ITeamResponseMapper],
-    _: Annotated[dict[str, object], Depends(require_permission(Permission.TEAM_WRITE))],
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.TEAM_WRITE))
+    ],
 ) -> TeamResponse:
     """Добавить игрока в команду"""
-    dto = await team_use_cases.add_player_to_team(
-        team_id=team_id,
-        position=request.position,
-        player_id=request.player_id,
-    )
+    try:
+        dto = await team_use_cases.add_player_to_team(
+            team_id=team_id,
+            position=request.position,
+            player_id=request.player_id,
+            owner_user_id=auth_payload.user_id,
+        )
+    except PermissionError:
+        raise_forbidden(TEAM_ACCESS_DENIED_DETAIL)
     if not dto:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -131,16 +139,22 @@ async def add_player_to_team(
 async def remove_player_from_team(
     team_id: UUID,
     team_use_cases: FromDishka[TeamUseCases],
-    _: Annotated[dict[str, object], Depends(require_permission(Permission.TEAM_WRITE))],
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.TEAM_WRITE))
+    ],
     position: Annotated[str, Query(description="Позиция игрока")],
     player_id: Annotated[UUID, Query(description="ID игрока")],
 ) -> BaseResponse:
     """Удалить игрока из команды"""
-    dto = await team_use_cases.remove_player_from_team(
-        team_id=team_id,
-        position=position,
-        player_id=player_id,
-    )
+    try:
+        dto = await team_use_cases.remove_player_from_team(
+            team_id=team_id,
+            position=position,
+            player_id=player_id,
+            owner_user_id=auth_payload.user_id,
+        )
+    except PermissionError:
+        raise_forbidden(TEAM_ACCESS_DENIED_DETAIL)
     if not dto:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -154,10 +168,18 @@ async def remove_player_from_team(
 async def delete_team(
     team_id: UUID,
     team_use_cases: FromDishka[TeamUseCases],
-    _: Annotated[dict[str, object], Depends(require_permission(Permission.TEAM_WRITE))],
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.TEAM_WRITE))
+    ],
 ) -> BaseResponse:
     """Удалить команду"""
-    success = await team_use_cases.delete_by_id(team_id)
+    try:
+        success = await team_use_cases.delete_by_id(
+            team_id,
+            owner_user_id=auth_payload.user_id,
+        )
+    except PermissionError:
+        raise_forbidden(TEAM_ACCESS_DENIED_DETAIL)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -171,17 +193,23 @@ async def delete_team(
 async def build_shadow_team(
     team_id: UUID,
     team_use_cases: FromDishka[TeamUseCases],
-    _: Annotated[dict[str, object], Depends(require_permission(Permission.TEAM_WRITE))],
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.TEAM_WRITE))
+    ],
     budget: Annotated[
         float | None,
         Query(ge=0, description="Бюджет на трансферы"),
     ] = None,
 ) -> ShadowTeamResponse:
     """Построить shadow-team для усиления состава"""
-    shadow_team = await team_use_cases.build_shadow_team(
-        team_id=team_id,
-        budget=budget,
-    )
+    try:
+        shadow_team = await team_use_cases.build_shadow_team(
+            team_id=team_id,
+            budget=budget,
+            owner_user_id=auth_payload.user_id,
+        )
+    except PermissionError:
+        raise_forbidden(TEAM_ACCESS_DENIED_DETAIL)
     if not shadow_team:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

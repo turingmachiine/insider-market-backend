@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -7,7 +6,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from src.auth_service.application.service import AuthError, AuthService
 from src.auth_service.core.config import AuthSettings
-from src.auth_service.domain.entities import User
 from src.auth_service.presentation.api.v1.schemas import (
     LoginRequest,
     RegisterRequest,
@@ -18,6 +16,8 @@ from src.auth_service.presentation.api.v1.schemas import (
     UserRoleGrantRequest,
     UserStatusUpdateRequest,
 )
+from src.auth_service.presentation.api.v1.utils import to_user_response
+from src.common.application.user_context import UserContext
 from src.common.domain.security import Permission
 from src.common.presentation.decorators import require_permission
 
@@ -69,16 +69,14 @@ async def login(
 @inject
 async def list_users(
     auth_service: FromDishka[AuthService],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.AUTH_USERS_READ))
-    ],
+    _: Annotated[UserContext, Depends(require_permission(Permission.AUTH_USERS_READ))],
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> UserListResponse:
     users = await auth_service.list_users(limit=limit, offset=offset)
     total = await auth_service.count_users()
     return UserListResponse(
-        items=[_to_user_response(user) for user in users],
+        items=[to_user_response(user) for user in users],
         total=total,
         limit=limit,
         offset=offset,
@@ -90,9 +88,7 @@ async def list_users(
 async def get_user(
     user_id: UUID,
     auth_service: FromDishka[AuthService],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.AUTH_USERS_READ))
-    ],
+    _: Annotated[UserContext, Depends(require_permission(Permission.AUTH_USERS_READ))],
 ) -> UserResponse:
     user = await auth_service.get_user(user_id)
     if user is None:
@@ -100,7 +96,7 @@ async def get_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User {str(user_id)} not found",
         )
-    return _to_user_response(user)
+    return to_user_response(user)
 
 
 @router.get("/users/{user_id}/permissions")
@@ -109,7 +105,7 @@ async def get_user_permissions(
     user_id: UUID,
     auth_service: FromDishka[AuthService],
     _: Annotated[
-        dict[str, object],
+        UserContext,
         Depends(require_permission(Permission.AUTH_PERMISSIONS_READ)),
     ],
 ) -> dict[str, object]:
@@ -129,9 +125,7 @@ async def set_user_status(
     user_id: UUID,
     request: UserStatusUpdateRequest,
     auth_service: FromDishka[AuthService],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.AUTH_USERS_WRITE))
-    ],
+    _: Annotated[UserContext, Depends(require_permission(Permission.AUTH_USERS_WRITE))],
 ) -> UserResponse:
     user = await auth_service.set_user_status(user_id, request.is_active)
     if user is None:
@@ -139,7 +133,7 @@ async def set_user_status(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User {str(user_id)} not found",
         )
-    return _to_user_response(user)
+    return to_user_response(user)
 
 
 @router.post("/users/{user_id}/roles")
@@ -148,9 +142,7 @@ async def assign_role(
     user_id: UUID,
     request: UserRoleGrantRequest,
     auth_service: FromDishka[AuthService],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.AUTH_ROLES_WRITE))
-    ],
+    _: Annotated[UserContext, Depends(require_permission(Permission.AUTH_ROLES_WRITE))],
 ) -> UserResponse:
     user = await auth_service.assign_role(
         user_id=user_id,
@@ -161,33 +153,17 @@ async def assign_role(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User {str(user_id)} not found",
         )
-    return _to_user_response(user)
+    return to_user_response(user)
 
 
 @router.get("/permissions/me")
 def get_my_permissions(
     payload: Annotated[
-        dict[str, object],
+        UserContext,
         Depends(require_permission(Permission.AUTH_PERMISSIONS_READ)),
     ],
 ) -> dict[str, object]:
     return {
-        "user_id": payload["sub"],
-        "permissions": payload.get("permissions", []),
+        "user_id": str(payload.user_id),
+        "permissions": sorted(payload.permissions),
     }
-
-
-def _to_user_response(user: User) -> UserResponse:
-    created_at = getattr(user, "created_at", None)
-    if not isinstance(created_at, datetime):
-        created_at = None
-    return UserResponse(
-        id=user.id,
-        email=user.email,
-        is_active=user.is_active,
-        roles=[role.name for role in user.roles],
-        permissions=sorted(
-            {permission.name for role in user.roles for permission in role.permissions}
-        ),
-        created_at=created_at,
-    )

@@ -4,8 +4,15 @@ from uuid import UUID
 from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from src.common.application.user_context import UserContext
 from src.common.domain.security import Permission
 from src.common.presentation.decorators import require_permission
+from src.common.presentation.utils import (
+    can_access_user_resource,
+    raise_forbidden,
+    require_user_owner,
+)
+from src.profile_service.application.constants import PROFILE_ACCESS_DENIED_DETAIL
 from src.profile_service.application.dto import (
     AwardAchievementDTO,
     BalanceOperationDTO,
@@ -47,9 +54,7 @@ ActivityTypeQuery = Annotated[ActivityType | None, Query()]
 @inject
 async def get_profiles(
     profile_use_cases: FromDishka[ProfileUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.PROFILE_READ))
-    ],
+    _: Annotated[UserContext, Depends(require_permission(Permission.PROFILE_READ_ANY))],
     limit: LimitQuery = 100,
     offset: OffsetQuery = 0,
 ) -> ProfileListResponse:
@@ -68,11 +73,13 @@ async def get_profiles(
 async def create_profile(
     profile_data: ProfileCreate,
     profile_use_cases: FromDishka[ProfileUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.PROFILE_WRITE))
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.PROFILE_WRITE))
     ],
 ) -> ProfileResponse:
-    dto = CreateProfileDTO(**profile_data.model_dump())
+    profile_payload = profile_data.model_dump()
+    profile_payload["user_id"] = auth_payload.user_id
+    dto = CreateProfileDTO(**profile_payload)
     try:
         result = await profile_use_cases.create_profile(dto)
     except ValueError as exc:
@@ -88,8 +95,8 @@ async def create_profile(
 async def get_profile(
     user_id: UUID,
     profile_use_cases: FromDishka[ProfileUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.PROFILE_READ))
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.PROFILE_READ))
     ],
 ) -> ProfileResponse:
     profile = await profile_use_cases.get_profile(user_id)
@@ -98,6 +105,8 @@ async def get_profile(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Profile for user {str(user_id)} not found",
         )
+    if not can_access_user_resource(auth_payload, user_id, Permission.PROFILE_READ_ANY):
+        raise_forbidden(PROFILE_ACCESS_DENIED_DETAIL)
     return ProfileResponse(**profile.__dict__)
 
 
@@ -107,10 +116,11 @@ async def update_profile(
     user_id: UUID,
     profile_data: ProfileUpdate,
     profile_use_cases: FromDishka[ProfileUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.PROFILE_WRITE))
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.PROFILE_WRITE))
     ],
 ) -> ProfileResponse:
+    require_user_owner(auth_payload, user_id, PROFILE_ACCESS_DENIED_DETAIL)
     dto = UpdateProfileDTO(**profile_data.model_dump(exclude_unset=True))
     try:
         profile = await profile_use_cases.update_profile(user_id, dto)
@@ -132,8 +142,8 @@ async def update_profile(
 async def get_balance(
     user_id: UUID,
     profile_use_cases: FromDishka[ProfileUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.PROFILE_READ))
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.PROFILE_READ))
     ],
 ) -> BalanceResponse:
     balance = await profile_use_cases.get_balance(user_id)
@@ -142,6 +152,8 @@ async def get_balance(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Profile for user {str(user_id)} not found",
         )
+    if not can_access_user_resource(auth_payload, user_id, Permission.PROFILE_READ_ANY):
+        raise_forbidden(PROFILE_ACCESS_DENIED_DETAIL)
     return BalanceResponse(**balance.__dict__)
 
 
@@ -151,10 +163,11 @@ async def apply_balance_operation(
     user_id: UUID,
     operation_data: BalanceOperation,
     profile_use_cases: FromDishka[ProfileUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.PROFILE_WRITE))
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.PROFILE_WRITE))
     ],
 ) -> BalanceTransactionResponse:
+    require_user_owner(auth_payload, user_id, PROFILE_ACCESS_DENIED_DETAIL)
     dto = BalanceOperationDTO(**operation_data.model_dump())
     try:
         transaction = await profile_use_cases.apply_balance_operation(user_id, dto)
@@ -176,12 +189,14 @@ async def apply_balance_operation(
 async def get_balance_transactions(
     user_id: UUID,
     profile_use_cases: FromDishka[ProfileUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.PROFILE_READ))
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.PROFILE_READ))
     ],
     limit: LimitQuery = 100,
     offset: OffsetQuery = 0,
 ) -> BalanceTransactionListResponse:
+    if not can_access_user_resource(auth_payload, user_id, Permission.PROFILE_READ_ANY):
+        raise_forbidden(PROFILE_ACCESS_DENIED_DETAIL)
     transactions = await profile_use_cases.get_balance_transactions(
         user_id=user_id,
         limit=limit,
@@ -197,13 +212,15 @@ async def get_balance_transactions(
 async def get_activity(
     user_id: UUID,
     profile_use_cases: FromDishka[ProfileUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.PROFILE_READ))
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.PROFILE_READ))
     ],
     limit: LimitQuery = 100,
     offset: OffsetQuery = 0,
     activity_type: ActivityTypeQuery = None,
 ) -> ActivityListResponse:
+    if not can_access_user_resource(auth_payload, user_id, Permission.PROFILE_READ_ANY):
+        raise_forbidden(PROFILE_ACCESS_DENIED_DETAIL)
     activities = await profile_use_cases.get_activity(
         user_id=user_id,
         limit=limit,
@@ -221,10 +238,11 @@ async def add_activity(
     user_id: UUID,
     activity_data: ActivityCreate,
     profile_use_cases: FromDishka[ProfileUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.PROFILE_WRITE))
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.PROFILE_WRITE))
     ],
 ) -> ActivityResponse:
+    require_user_owner(auth_payload, user_id, PROFILE_ACCESS_DENIED_DETAIL)
     dto = CreateActivityDTO(**activity_data.model_dump())
     try:
         activity = await profile_use_cases.add_activity(user_id, dto)
@@ -245,9 +263,7 @@ async def add_activity(
 @inject
 async def get_achievements(
     profile_use_cases: FromDishka[ProfileUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.PROFILE_READ))
-    ],
+    _: Annotated[UserContext, Depends(require_permission(Permission.PROFILE_READ))],
 ) -> list[AchievementResponse]:
     achievements = await profile_use_cases.get_achievements()
     return [AchievementResponse(**item.__dict__) for item in achievements]
@@ -258,9 +274,7 @@ async def get_achievements(
 async def create_achievement(
     achievement_data: AchievementCreate,
     profile_use_cases: FromDishka[ProfileUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.PROFILE_WRITE))
-    ],
+    _: Annotated[UserContext, Depends(require_permission(Permission.PROFILE_WRITE))],
 ) -> AchievementResponse:
     dto = CreateAchievementDTO(**achievement_data.model_dump())
     try:
@@ -278,10 +292,12 @@ async def create_achievement(
 async def get_user_achievements(
     user_id: UUID,
     profile_use_cases: FromDishka[ProfileUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.PROFILE_READ))
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.PROFILE_READ))
     ],
 ) -> UserAchievementListResponse:
+    if not can_access_user_resource(auth_payload, user_id, Permission.PROFILE_READ_ANY):
+        raise_forbidden(PROFILE_ACCESS_DENIED_DETAIL)
     achievements = await profile_use_cases.get_user_achievements(user_id)
     return UserAchievementListResponse(
         items=[UserAchievementResponse(**item.__dict__) for item in achievements]
@@ -294,10 +310,11 @@ async def award_achievement(
     user_id: UUID,
     achievement_data: AwardAchievement,
     profile_use_cases: FromDishka[ProfileUseCases],
-    _: Annotated[
-        dict[str, object], Depends(require_permission(Permission.PROFILE_WRITE))
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.PROFILE_WRITE))
     ],
 ) -> UserAchievementResponse:
+    require_user_owner(auth_payload, user_id, PROFILE_ACCESS_DENIED_DETAIL)
     dto = AwardAchievementDTO(**achievement_data.model_dump())
     try:
         achievement = await profile_use_cases.award_achievement(user_id, dto)

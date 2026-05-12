@@ -5,6 +5,7 @@ import structlog
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from src.common.application.user_context import UserContext
 from src.common.domain.security import Permission, normalize_permission
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -20,37 +21,42 @@ PERMISSION_DENIED_DETAIL = "Permission denied"
 
 def require_permission(
     permission: Permission | str,
-) -> Callable[..., dict[str, Any]]:
+) -> Callable[..., UserContext]:
     required_permission = normalize_permission(permission)
 
     def dependency(
         request: Request,
         credentials: BearerCredentials,
-    ) -> dict[str, Any]:
+    ) -> UserContext:
         if credentials is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=BEARER_TOKEN_MISSING_DETAIL,
             )
 
-        payload = getattr(request.state, "auth_payload", None)
-        if payload is None:
+        user_context = getattr(request.state, "user_context", None)
+        if user_context is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=AUTH_CONTEXT_MISSING_DETAIL,
             )
 
-        permissions = set(getattr(request.state, "permissions", set()))
-        if required_permission not in permissions:
+        if not isinstance(user_context, UserContext):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=AUTH_CONTEXT_MISSING_DETAIL,
+            )
+
+        if not user_context.has_permission(required_permission):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=PERMISSION_DENIED_DETAIL,
             )
 
-        request.state.user_id = payload["sub"]
-        request.state.permissions = permissions
-        structlog.contextvars.bind_contextvars(user_id=str(payload["sub"]))
-        return cast(dict[str, Any], payload)
+        request.state.user_id = user_context.user_id
+        request.state.permissions = user_context.permissions
+        structlog.contextvars.bind_contextvars(user_id=str(user_context.user_id))
+        return user_context
 
     dependency_any = cast(Any, dependency)
     dependency_any.__auth_required__ = True

@@ -4,6 +4,8 @@ from uuid import UUID
 
 import httpx
 
+from src.common.domain.service_auth import RUMOR_INGEST_SCOPE, RUMOR_SERVICE_AUDIENCE
+from src.common.infrastructure.integration import create_service_auth_headers
 from src.etl_service.application.dto import (
     CreateRawPublicationDTO,
     CreateRumorDTO,
@@ -11,11 +13,17 @@ from src.etl_service.application.dto import (
     RumorDTO,
     SourceDTO,
 )
+from src.etl_service.core.config import ETLSettings
 
 
 class RumorServiceHttpClient:
-    def __init__(self, http_client: httpx.AsyncClient) -> None:
+    def __init__(
+        self,
+        http_client: httpx.AsyncClient,
+        settings: ETLSettings,
+    ) -> None:
         self._http_client = http_client
+        self._settings = settings
 
     async def get_active_sources(self) -> list[SourceDTO]:
         response = await self._http_client.get(
@@ -49,7 +57,8 @@ class RumorServiceHttpClient:
         dto: CreateRawPublicationDTO,
     ) -> RawPublicationDTO:
         response = await self._http_client.post(
-            "/api/v1/raw-publications",
+            "/api/v1/internal/raw-publications",
+            headers=self._service_headers(),
             json=self._create_raw_publication_payload(dto),
         )
         response.raise_for_status()
@@ -73,7 +82,8 @@ class RumorServiceHttpClient:
 
     async def create_rumor(self, dto: CreateRumorDTO) -> RumorDTO:
         response = await self._http_client.post(
-            "/api/v1/rumors",
+            "/api/v1/internal/rumors",
+            headers=self._service_headers(),
             json=self._create_rumor_payload(dto),
         )
         response.raise_for_status()
@@ -162,3 +172,10 @@ class RumorServiceHttpClient:
         if value is None:
             return None
         return datetime.fromisoformat(value)
+
+    def _service_headers(self) -> dict[str, str]:
+        return create_service_auth_headers(
+            RUMOR_SERVICE_AUDIENCE,
+            self._settings,
+            [RUMOR_INGEST_SCOPE],
+        )

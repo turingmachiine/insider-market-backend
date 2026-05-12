@@ -499,6 +499,8 @@ services:
     environment:
       DATABASE_URL_RUMOR: postgresql+asyncpg://${POSTGRES_USER_RUMOR:-postgres}:${POSTGRES_PASSWORD_RUMOR:-postgres}@postgres_rumor:5432/${POSTGRES_DB_RUMOR:-rumor_db}
       REDIS_URL: redis://redis:6379
+      SERVICE_JWT_SECRET: ${SERVICE_JWT_SECRET:-change-me-service}
+      SERVICE_JWT_ALGORITHM: ${SERVICE_JWT_ALGORITHM:-HS256}
       DEBUG: "false"
       LOG_LEVEL: "${LOG_LEVEL:-INFO}"
       JSON_LOGS: "true"
@@ -639,6 +641,8 @@ services:
     environment:
       DATABASE_URL_PROFILE: postgresql+asyncpg://${POSTGRES_USER_PROFILE:-postgres}:${POSTGRES_PASSWORD_PROFILE:-postgres}@postgres_profile:5432/${POSTGRES_DB_PROFILE:-profile_db}
       REDIS_URL: redis://redis:6379
+      SERVICE_JWT_SECRET: ${SERVICE_JWT_SECRET:-change-me-service}
+      SERVICE_JWT_ALGORITHM: ${SERVICE_JWT_ALGORITHM:-HS256}
       DEBUG: "false"
       LOG_LEVEL: "${LOG_LEVEL:-INFO}"
       JSON_LOGS: "true"
@@ -676,6 +680,8 @@ services:
       DATABASE_URL_RATING: postgresql+asyncpg://${POSTGRES_USER_RATING:-postgres}:${POSTGRES_PASSWORD_RATING:-postgres}@postgres_rating:5432/${POSTGRES_DB_RATING:-rating_db}
       PROFILE_SERVICE_URL: ${PROFILE_SERVICE_URL:-http://profile_service:8007}
       REDIS_URL: redis://redis:6379
+      SERVICE_JWT_SECRET: ${SERVICE_JWT_SECRET:-change-me-service}
+      SERVICE_JWT_ALGORITHM: ${SERVICE_JWT_ALGORITHM:-HS256}
       TASKIQ_REDIS_URL: ${TASKIQ_REDIS_URL:-redis://redis:6379/0}
       TASKIQ_QUEUE_NAME: ${RATING_TASKIQ_QUEUE_NAME:-insider_market_backend_rating}
       DEBUG: "false"
@@ -785,6 +791,8 @@ services:
       SOURCE_FETCH_LIMIT: ${SOURCE_FETCH_LIMIT:-20}
       RAW_PUBLICATIONS_LIMIT: ${RAW_PUBLICATIONS_LIMIT:-500}
       EXISTING_RUMORS_LIMIT: ${EXISTING_RUMORS_LIMIT:-500}
+      SERVICE_JWT_SECRET: ${SERVICE_JWT_SECRET:-change-me-service}
+      SERVICE_JWT_ALGORITHM: ${SERVICE_JWT_ALGORITHM:-HS256}
     depends_on:
       rumor_service:
         condition: service_healthy
@@ -811,6 +819,8 @@ services:
       SOURCE_FETCH_LIMIT: ${SOURCE_FETCH_LIMIT:-20}
       RAW_PUBLICATIONS_LIMIT: ${RAW_PUBLICATIONS_LIMIT:-500}
       EXISTING_RUMORS_LIMIT: ${EXISTING_RUMORS_LIMIT:-500}
+      SERVICE_JWT_SECRET: ${SERVICE_JWT_SECRET:-change-me-service}
+      SERVICE_JWT_ALGORITHM: ${SERVICE_JWT_ALGORITHM:-HS256}
     depends_on:
       redis:
         condition: service_healthy
@@ -831,6 +841,8 @@ services:
       PROFILE_SERVICE_URL: ${PROFILE_SERVICE_URL:-http://profile_service:8007}
       TASKIQ_REDIS_URL: ${TASKIQ_REDIS_URL:-redis://redis:6379/0}
       TASKIQ_QUEUE_NAME: ${RATING_TASKIQ_QUEUE_NAME:-insider_market_backend_rating}
+      SERVICE_JWT_SECRET: ${SERVICE_JWT_SECRET:-change-me-service}
+      SERVICE_JWT_ALGORITHM: ${SERVICE_JWT_ALGORITHM:-HS256}
       RATING_EVENTS_CRON: "${RATING_EVENTS_CRON:-*/5 * * * *}"
       RATING_REWARDS_CRON: "${RATING_REWARDS_CRON:-*/2 * * * *}"
       BACKGROUND_BATCH_SIZE: ${RATING_BACKGROUND_BATCH_SIZE:-250}
@@ -856,6 +868,8 @@ services:
       PROFILE_SERVICE_URL: ${PROFILE_SERVICE_URL:-http://profile_service:8007}
       TASKIQ_REDIS_URL: ${TASKIQ_REDIS_URL:-redis://redis:6379/0}
       TASKIQ_QUEUE_NAME: ${RATING_TASKIQ_QUEUE_NAME:-insider_market_backend_rating}
+      SERVICE_JWT_SECRET: ${SERVICE_JWT_SECRET:-change-me-service}
+      SERVICE_JWT_ALGORITHM: ${SERVICE_JWT_ALGORITHM:-HS256}
       RATING_EVENTS_CRON: "${RATING_EVENTS_CRON:-*/5 * * * *}"
       RATING_REWARDS_CRON: "${RATING_REWARDS_CRON:-*/2 * * * *}"
       BACKGROUND_BATCH_SIZE: ${RATING_BACKGROUND_BATCH_SIZE:-250}

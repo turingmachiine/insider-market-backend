@@ -3,7 +3,14 @@ from uuid import UUID, uuid4
 import httpx
 import pytest
 
+from src.common.application.security import create_service_token
 from src.common.domain.security import Permission
+from src.common.domain.service_auth import (
+    PROFILE_BALANCE_WRITE_SCOPE,
+    PROFILE_SERVICE_AUDIENCE,
+    SERVICE_AUTHORIZATION_HEADER,
+)
+from src.profile_service.core.config import settings
 
 
 @pytest.mark.asyncio
@@ -84,6 +91,45 @@ async def test_balance_operation_requires_profile(
     )
 
     assert response.status_code == 404
+
+
+async def test_internal_balance_operation_requires_service_auth(
+    profile_client: httpx.AsyncClient,
+    authenticated_user_id: UUID,
+) -> None:
+    create_response = await profile_client.post(
+        "/api/v1/profiles",
+        json={
+            "user_id": str(UUID("00000000-0000-0000-0000-000000000002")),
+            "display_name": "Internal Reward Target",
+            "initial_balance": 100.0,
+        },
+    )
+    assert create_response.status_code == 201
+
+    url = f"/api/v1/internal/profiles/{authenticated_user_id}/balance/transactions"
+    payload = {
+        "transaction_type": "credit",
+        "amount": "25.00",
+        "source": "rating.achievement_reward",
+        "idempotency_key": "reward-integration-1",
+    }
+
+    user_token_response = await profile_client.post(url, json=payload)
+    assert user_token_response.status_code == 401
+
+    service_token = create_service_token(
+        PROFILE_SERVICE_AUDIENCE,
+        settings,
+        [PROFILE_BALANCE_WRITE_SCOPE],
+    )
+    service_response = await profile_client.post(
+        url,
+        headers={SERVICE_AUTHORIZATION_HEADER: f"Bearer {service_token}"},
+        json=payload,
+    )
+    assert service_response.status_code == 201
+    assert service_response.json()["amount"] == pytest.approx(25.0)
 
 
 @pytest.mark.asyncio

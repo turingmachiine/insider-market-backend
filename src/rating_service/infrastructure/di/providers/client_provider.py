@@ -26,4 +26,8 @@ class ClientProvider(Provider):
         settings: RatingSettings,
         http_client: httpx.AsyncClient,
     ) -> ProfileBalancePort:
-        return ProfileBalanceClient(str(settings.PROFILE_SERVICE_URL), http_client)
+        return ProfileBalanceClient(
+            str(settings.PROFILE_SERVICE_URL),
+            http_client,
+            settings,
+        )

@@ -5,11 +5,12 @@ import structlog
 from dishka.integrations.fastapi import AsyncContainer, setup_dishka
 from fastapi import FastAPI
 
-from src.common.infrastructure.integration import JwtUserProvider
+from src.common.infrastructure.integration import JwtServiceProvider, JwtUserProvider
 from src.common.logging import RequestContextMiddleware, setup_logging, shutdown_logging
 from src.common.presentation.middleware import (
     build_jwt_auth_middleware,
     collect_protected_routes,
+    collect_service_protected_routes,
 )
 from src.rumor_service.core.config import settings
 from src.rumor_service.infrastructure.db import setup_mapping
@@ -52,8 +53,14 @@ def create_app(container: AsyncContainer | None = None) -> FastAPI:
         ],
     )
     protected_routes: list = []
+    service_protected_routes: list = []
     app.middleware("http")(
-        build_jwt_auth_middleware(JwtUserProvider(settings), protected_routes)
+        build_jwt_auth_middleware(
+            JwtUserProvider(settings),
+            protected_routes,
+            JwtServiceProvider(settings),
+            service_protected_routes,
+        )
     )
     app.add_middleware(RequestContextMiddleware)
 
@@ -63,6 +70,7 @@ def create_app(container: AsyncContainer | None = None) -> FastAPI:
 
     app.include_router(v1_router, prefix="/api")
     protected_routes.extend(collect_protected_routes(app))
+    service_protected_routes.extend(collect_service_protected_routes(app))
 
     if container is None:
         container = create_container(settings)

@@ -69,6 +69,15 @@
 - Отделить user auth от service auth.
 - Ввести отдельные credentials или signed service tokens для gateway/BFF/internal clients.
 
+Статус:
+
+- Добавлен отдельный service-auth контур на signed JWT: сервисный токен передается через `X-Service-Authorization`, содержит `token_use=service`, `sub`, `aud`, `scopes`, `iat`, `exp` и проверяется отдельным middleware/dependency.
+- User auth и service auth разделены: пользовательский `Authorization` не принимается как service identity.
+- `profile_service` открыл внутренний endpoint `/api/v1/internal/profiles/{user_id}/balance/transactions` для начислений от `rating_service`; доступ требует scope `profile:balance:write`.
+- `rumor_service` открыл внутренние ingest endpoints `/api/v1/internal/raw-publications` и `/api/v1/internal/rumors` для `etl_service`; доступ требует scope `rumor:ingest`.
+- `rating_service` и `etl_service` подписывают service tokens для своих внутренних HTTP-вызовов.
+- В `docker-compose.yml` и `docker-compose.local.yml` добавлены переменные `SERVICE_JWT_SECRET`/`SERVICE_JWT_ALGORITHM` для сервисов и workers, участвующих во внутренних вызовах.
+
 Критерий готовности:
 
 - Внутренний endpoint нельзя дернуть просто по сети без доверенного service identity.

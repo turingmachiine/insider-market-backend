@@ -24,6 +24,16 @@ class HasJwtEncodeSettings(HasJwtDecodeSettings, Protocol):
     JWT_TTL: int
 
 
+class HasServiceJwtDecodeSettings(Protocol):
+    SERVICE_JWT_SECRET: str
+    SERVICE_JWT_ALGORITHM: str
+    SERVICE_NAME: str
+
+
+class HasServiceJwtEncodeSettings(HasServiceJwtDecodeSettings, Protocol):
+    SERVICE_JWT_TTL: int
+
+
 def _b64url_encode(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
 
@@ -122,4 +132,61 @@ def decode_access_token(
         raise TokenError("Token expired")
     if not payload.get("sub"):
         raise TokenError("Invalid token subject")
+    return payload
+
+
+def create_service_token(
+    audience: str,
+    settings: HasServiceJwtEncodeSettings,
+    scopes: list[str] | None = None,
+) -> str:
+    issued_at = datetime.now(UTC)
+    expires_at = issued_at + timedelta(seconds=settings.SERVICE_JWT_TTL)
+    payload: dict[str, Any] = {
+        "token_use": "service",
+        "sub": settings.SERVICE_NAME,
+        "aud": audience,
+        "scopes": scopes or [],
+        "iat": int(issued_at.timestamp()),
+        "exp": int(expires_at.timestamp()),
+    }
+    return encode_jwt(
+        payload,
+        settings.SERVICE_JWT_SECRET,
+        settings.SERVICE_JWT_ALGORITHM,
+    )
+
+
+def decode_service_token(
+    token: str,
+    settings: HasServiceJwtDecodeSettings,
+) -> dict[str, Any]:
+    payload = decode_jwt(
+        token,
+        settings.SERVICE_JWT_SECRET,
+        settings.SERVICE_JWT_ALGORITHM,
+    )
+
+    if payload.get("token_use") != "service":
+        raise TokenError("Invalid service token type")
+
+    exp = payload.get("exp")
+    if not isinstance(exp, (int, float)):
+        raise TokenError("Invalid token expiration")
+    if datetime.now(UTC).timestamp() > float(exp):
+        raise TokenError("Token expired")
+
+    subject = payload.get("sub")
+    if not isinstance(subject, str) or not subject:
+        raise TokenError("Invalid service token subject")
+
+    if payload.get("aud") != settings.SERVICE_NAME:
+        raise TokenError("Invalid service token audience")
+
+    scopes = payload.get("scopes", [])
+    if not isinstance(scopes, list) or not all(
+        isinstance(scope, str) for scope in scopes
+    ):
+        raise TokenError("Invalid service token scopes")
+
     return payload

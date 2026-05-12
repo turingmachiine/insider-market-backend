@@ -20,6 +20,10 @@ class ETLSettings(BaseSettings):
     EXISTING_RUMORS_LIMIT: int = 500
     RAW_IMPORT_CRON: str = "*/30 * * * *"
     RUMOR_NORMALIZATION_CRON: str = "*/15 * * * *"
+    SERVICE_NAME: str = "etl_service"
+    SERVICE_JWT_SECRET: str = "change-me-service"
+    SERVICE_JWT_ALGORITHM: str = "HS256"
+    SERVICE_JWT_TTL: int = 300
 
 
 def get_settings() -> ETLSettings:

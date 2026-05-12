@@ -19,8 +19,9 @@ class PortProvider(Provider):
     def provide_rumor_service_port(
         self,
         http_client: httpx.AsyncClient,
+        settings: ETLSettings,
     ) -> RumorServicePort:
-        return RumorServiceHttpClient(http_client)
+        return RumorServiceHttpClient(http_client, settings)
 
     @provide
     def provide_publication_fetcher(

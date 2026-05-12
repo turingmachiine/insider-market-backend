@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from src.rumor_service.presentation.api.v1.routes import (
+    internal_rumors,
     raw_publications,
     rumors,
     sources,
@@ -8,6 +9,7 @@ from src.rumor_service.presentation.api.v1.routes import (
 
 router = APIRouter(prefix="/v1")
 
+router.include_router(internal_rumors.router)
 router.include_router(sources.router)
 router.include_router(raw_publications.router)
 router.include_router(rumors.router)

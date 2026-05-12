@@ -2,10 +2,11 @@ from sqlalchemy import inspect
 from sqlalchemy.exc import NoInspectionAvailable
 from sqlalchemy.orm import relationship
 
-from src.auth_service.domain.entities import Permission, Role, User
+from src.auth_service.domain.entities import Permission, RefreshToken, Role, User
 from src.auth_service.infrastructure.db.metadata import mapper_registry
 from src.auth_service.infrastructure.db.tables import (
     permissions_table,
+    refresh_tokens_table,
     role_permissions_table,
     roles_table,
     user_roles_table,
@@ -66,6 +67,7 @@ def setup_mapping() -> None:
             )
         },
     )
+    mapper_registry.map_imperatively(RefreshToken, refresh_tokens_table)
 
 
 __all__ = ["setup_mapping"]

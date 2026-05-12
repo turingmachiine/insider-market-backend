@@ -96,10 +96,12 @@ def create_access_token(
     settings: HasJwtEncodeSettings,
     roles: list[str] | None = None,
 ) -> str:
-    expires_at = datetime.now(UTC) + timedelta(seconds=settings.JWT_TTL)
+    issued_at = datetime.now(UTC)
+    expires_at = issued_at + timedelta(seconds=settings.JWT_TTL)
     payload: dict[str, Any] = {
         "sub": str(user_id),
         "permissions": [normalize_permission(permission) for permission in permissions],
+        "iat": int(issued_at.timestamp()),
         "exp": int(expires_at.timestamp()),
     }
     if roles is not None:

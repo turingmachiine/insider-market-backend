@@ -27,6 +27,7 @@ class AuthSettings(BaseSettings):
     JWT_SECRET: str = "change-me"
     JWT_ALGORITHM: str = "HS256"
     JWT_TTL: int = 3600
+    REFRESH_TOKEN_TTL: int = 2_592_000
 
     REDIS_URL: str | None = None
     PERMISSIONS_CACHE_TTL: int = 300

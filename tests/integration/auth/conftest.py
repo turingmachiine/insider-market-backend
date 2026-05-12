@@ -24,18 +24,21 @@ class AuthTestSettings:
         self.original_redis_url = settings.REDIS_URL
         self.original_jwt_secret = settings.JWT_SECRET
         self.original_jwt_ttl = settings.JWT_TTL
+        self.original_refresh_token_ttl = settings.REFRESH_TOKEN_TTL
 
     def apply(self) -> None:
         settings.DATABASE_URL_AUTH = cast(Any, self.database_url)
         settings.REDIS_URL = None
         settings.JWT_SECRET = "test-secret"
         settings.JWT_TTL = 3600
+        settings.REFRESH_TOKEN_TTL = 3600
 
     def restore(self) -> None:
         settings.DATABASE_URL_AUTH = self.original_database_url
         settings.REDIS_URL = self.original_redis_url
         settings.JWT_SECRET = self.original_jwt_secret
         settings.JWT_TTL = self.original_jwt_ttl
+        settings.REFRESH_TOKEN_TTL = self.original_refresh_token_ttl
 
 
 @pytest.fixture

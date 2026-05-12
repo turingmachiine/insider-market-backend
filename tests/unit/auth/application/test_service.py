@@ -1,13 +1,18 @@
 from collections.abc import Iterable
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
 
-from src.auth_service.application.security import decode_access_token
+from src.auth_service.application.security import (
+    decode_access_token,
+    hash_refresh_token,
+)
 from src.auth_service.application.service import AuthService
 from src.auth_service.core.config import AuthSettings
-from src.auth_service.domain.entities import Permission, Role, User
+from src.auth_service.domain.entities import Permission, RefreshToken, Role, User
 from src.auth_service.domain.interfaces.repositories import (
+    IRefreshTokenRepository,
     IRoleRepository,
     IUserRepository,
 )
@@ -61,23 +66,106 @@ class FakeRoleRepository(IRoleRepository):
         raise AssertionError("bootstrap-only path should not be used in this test")
 
 
+class FakeRefreshTokenRepository(IRefreshTokenRepository):
+    def __init__(self) -> None:
+        self.tokens_by_hash: dict[str, RefreshToken] = {}
+
+    async def get_by_token_hash(self, token_hash: str) -> RefreshToken | None:
+        return self.tokens_by_hash.get(token_hash)
+
+    async def save(self, refresh_token: RefreshToken) -> RefreshToken:
+        refresh_token.id = uuid4()
+        self.tokens_by_hash[refresh_token.token_hash] = refresh_token
+        return refresh_token
+
+    async def revoke_all_for_user(self, user_id: object) -> None:
+        now = datetime.now(UTC)
+        for refresh_token in self.tokens_by_hash.values():
+            if refresh_token.user_id == user_id and refresh_token.revoked_at is None:
+                refresh_token.revoke(now)
+
+
 @pytest.mark.asyncio
 async def test_login_uses_permissions_from_database_relations() -> None:
     custom_permission = Permission(name="catalog:read")
     user_role = Role(name="user", permissions=[custom_permission])
     user_repo = FakeUserRepository()
     role_repo = FakeRoleRepository({"user": user_role})
+    refresh_token_repo = FakeRefreshTokenRepository()
     settings = AuthSettings(
         JWT_SECRET="secret",
         JWT_ALGORITHM="HS256",
         JWT_TTL=3600,
+        REFRESH_TOKEN_TTL=3600,
     )
-    service = AuthService(user_repo, role_repo, settings)
+    service = AuthService(user_repo, role_repo, refresh_token_repo, settings)
 
     await service.register("alice@example.com", "password")
-    token, user_id, permissions = await service.login("alice@example.com", "password")
+    token, refresh_token, user_id, permissions = await service.login(
+        "alice@example.com",
+        "password",
+    )
     claims = decode_access_token(token, settings)
 
     assert user_id is not None
+    assert refresh_token
     assert permissions == ["catalog:read"]
     assert claims["permissions"] == ["catalog:read"]
+    assert claims["iat"]
+
+
+@pytest.mark.asyncio
+async def test_refresh_rotates_refresh_token() -> None:
+    user_role = Role(name="user", permissions=[Permission(name="catalog:read")])
+    user_repo = FakeUserRepository()
+    role_repo = FakeRoleRepository({"user": user_role})
+    refresh_token_repo = FakeRefreshTokenRepository()
+    settings = AuthSettings(
+        JWT_SECRET="secret",
+        JWT_ALGORITHM="HS256",
+        JWT_TTL=3600,
+        REFRESH_TOKEN_TTL=3600,
+    )
+    service = AuthService(user_repo, role_repo, refresh_token_repo, settings)
+
+    await service.register("alice@example.com", "password")
+    _, old_refresh_token, _, _ = await service.login("alice@example.com", "password")
+    access_token, new_refresh_token, user_id, permissions = await service.refresh(
+        old_refresh_token,
+    )
+
+    old_stored_token = await refresh_token_repo.get_by_token_hash(
+        hash_refresh_token(old_refresh_token),
+    )
+    claims = decode_access_token(access_token, settings)
+    assert new_refresh_token != old_refresh_token
+    assert old_stored_token is not None
+    assert old_stored_token.revoked_at is not None
+    assert old_stored_token.replaced_by_token_id is not None
+    assert claims["sub"] == str(user_id)
+    assert permissions == ["catalog:read"]
+
+
+@pytest.mark.asyncio
+async def test_logout_revokes_refresh_token() -> None:
+    user_role = Role(name="user", permissions=[Permission(name="catalog:read")])
+    user_repo = FakeUserRepository()
+    role_repo = FakeRoleRepository({"user": user_role})
+    refresh_token_repo = FakeRefreshTokenRepository()
+    settings = AuthSettings(
+        JWT_SECRET="secret",
+        JWT_ALGORITHM="HS256",
+        JWT_TTL=3600,
+        REFRESH_TOKEN_TTL=3600,
+    )
+    service = AuthService(user_repo, role_repo, refresh_token_repo, settings)
+
+    await service.register("alice@example.com", "password")
+    _, refresh_token, _, _ = await service.login("alice@example.com", "password")
+    await service.logout(refresh_token)
+
+    stored_token = await refresh_token_repo.get_by_token_hash(
+        hash_refresh_token(refresh_token),
+    )
+    assert stored_token is not None
+    assert stored_token.revoked_at is not None

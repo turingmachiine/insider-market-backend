@@ -3,6 +3,7 @@ from dishka import Provider, Scope, provide
 from src.auth_service.application.service import AuthService
 from src.auth_service.core.config import AuthSettings
 from src.auth_service.domain.interfaces.repositories import (
+    IRefreshTokenRepository,
     IRoleRepository,
     IUserRepository,
 )
@@ -18,6 +19,12 @@ class ServiceProvider(Provider):
         self,
         user_repository: IUserRepository,
         role_repository: IRoleRepository,
+        refresh_token_repository: IRefreshTokenRepository,
         settings: AuthSettings,
     ) -> AuthService:
-        return AuthService(user_repository, role_repository, settings)
+        return AuthService(
+            user_repository,
+            role_repository,
+            refresh_token_repository,
+            settings,
+        )

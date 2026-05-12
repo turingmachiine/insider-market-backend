@@ -3,11 +3,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth_service.domain.interfaces.repositories import (
     IPermissionRepository,
+    IRefreshTokenRepository,
     IRoleRepository,
     IUserRepository,
 )
 from src.auth_service.infrastructure.db.repositories import (
     PermissionRepository,
+    RefreshTokenRepository,
     RoleRepository,
     UserRepository,
 )
@@ -28,6 +30,13 @@ class RepositoryProvider(Provider):
         session: AsyncSession,
     ) -> IPermissionRepository:
         return PermissionRepository(session)
+
+    @provide
+    def provide_refresh_token_repository(
+        self,
+        session: AsyncSession,
+    ) -> IRefreshTokenRepository:
+        return RefreshTokenRepository(session)
 
     @provide
     def provide_role_repository(

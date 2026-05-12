@@ -8,6 +8,8 @@ from src.auth_service.application.service import AuthError, AuthService
 from src.auth_service.core.config import AuthSettings
 from src.auth_service.presentation.api.v1.schemas import (
     LoginRequest,
+    LogoutRequest,
+    RefreshTokenRequest,
     RegisterRequest,
     RegisterResponse,
     TokenResponse,
@@ -48,7 +50,7 @@ async def login(
     settings: FromDishka[AuthSettings],
 ) -> TokenResponse:
     try:
-        token, user_id, permissions = await auth_service.login(
+        access_token, refresh_token, user_id, permissions = await auth_service.login(
             request.email,
             request.password,
         )
@@ -58,11 +60,46 @@ async def login(
             detail="Invalid credentials",
         )
     return TokenResponse(
-        access_token=token,
+        access_token=access_token,
+        refresh_token=refresh_token,
         expires_in=settings.JWT_TTL,
         user_id=user_id,
         permissions=permissions,
     )
+
+
+@router.post("/refresh")
+@inject
+async def refresh_token(
+    request: RefreshTokenRequest,
+    auth_service: FromDishka[AuthService],
+    settings: FromDishka[AuthSettings],
+) -> TokenResponse:
+    try:
+        access_token, refresh_token, user_id, permissions = await auth_service.refresh(
+            request.refresh_token,
+        )
+    except AuthError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_in=settings.JWT_TTL,
+        user_id=user_id,
+        permissions=permissions,
+    )
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@inject
+async def logout(
+    request: LogoutRequest,
+    auth_service: FromDishka[AuthService],
+) -> None:
+    await auth_service.logout(request.refresh_token)
 
 
 @router.get("/users")
@@ -134,6 +171,21 @@ async def set_user_status(
             detail=f"User {str(user_id)} not found",
         )
     return to_user_response(user)
+
+
+@router.post("/users/{user_id}/tokens/revoke", status_code=status.HTTP_204_NO_CONTENT)
+@inject
+async def revoke_user_tokens(
+    user_id: UUID,
+    auth_service: FromDishka[AuthService],
+    _: Annotated[UserContext, Depends(require_permission(Permission.AUTH_USERS_WRITE))],
+) -> None:
+    user = await auth_service.revoke_user_tokens(user_id)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User {str(user_id)} not found",
+        )
 
 
 @router.post("/users/{user_id}/roles")

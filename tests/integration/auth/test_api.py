@@ -23,7 +23,61 @@ async def test_register_login_token(auth_client: httpx.AsyncClient) -> None:
     data = response.json()
     assert data["token_type"] == "bearer"
     assert data["access_token"]
+    assert data["refresh_token"]
     assert "nsi:read" in data["permissions"]
+
+
+@pytest.mark.asyncio
+async def test_refresh_rotates_token(auth_client: httpx.AsyncClient) -> None:
+    await auth_client.post(
+        "/api/v1/register",
+        json={"email": "refresh@example.com", "password": "password123"},
+    )
+    response = await auth_client.post(
+        "/api/v1/login",
+        json={"email": "refresh@example.com", "password": "password123"},
+    )
+    refresh_token = response.json()["refresh_token"]
+
+    response = await auth_client.post(
+        "/api/v1/refresh",
+        json={"refresh_token": refresh_token},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["access_token"]
+    assert data["refresh_token"] != refresh_token
+
+    response = await auth_client.post(
+        "/api/v1/refresh",
+        json={"refresh_token": refresh_token},
+    )
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_logout_revokes_refresh_token(auth_client: httpx.AsyncClient) -> None:
+    await auth_client.post(
+        "/api/v1/register",
+        json={"email": "logout@example.com", "password": "password123"},
+    )
+    response = await auth_client.post(
+        "/api/v1/login",
+        json={"email": "logout@example.com", "password": "password123"},
+    )
+    refresh_token = response.json()["refresh_token"]
+
+    response = await auth_client.post(
+        "/api/v1/logout",
+        json={"refresh_token": refresh_token},
+    )
+    assert response.status_code == 204
+
+    response = await auth_client.post(
+        "/api/v1/refresh",
+        json={"refresh_token": refresh_token},
+    )
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio

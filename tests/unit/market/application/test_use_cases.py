@@ -18,8 +18,10 @@ from src.market_service.application.mappers import (
 )
 from src.market_service.application.usecases import MarketUseCases, WalletUseCases
 from src.market_service.domain.entities import (
+    AuditLog,
     Bet,
     Market,
+    MarketAuditAction,
     MarketOutcome,
     MarketSide,
     MarketStatus,
@@ -27,6 +29,7 @@ from src.market_service.domain.entities import (
     Wallet,
 )
 from src.market_service.domain.interfaces.repositories import (
+    IAuditLogRepository,
     IBetRepository,
     IMarketRepository,
     IPositionRepository,
@@ -177,11 +180,48 @@ class FakeWalletRepository(IWalletRepository):
         return wallet
 
 
+class FakeAuditLogRepository(IAuditLogRepository):
+    def __init__(self) -> None:
+        self.items: list[AuditLog] = []
+
+    async def save(self, audit_log: AuditLog) -> AuditLog:
+        self.items.append(audit_log)
+        return audit_log
+
+    async def get_all(
+        self,
+        limit: int = 100,
+        offset: int = 0,
+        action: MarketAuditAction | None = None,
+        actor_user_id: UUID | None = None,
+    ) -> list[AuditLog]:
+        items = self.items
+        if action is not None:
+            items = [item for item in items if item.action == action]
+        if actor_user_id is not None:
+            items = [item for item in items if item.actor_user_id == actor_user_id]
+        return items[offset : offset + limit]
+
+    async def count_all(
+        self,
+        action: MarketAuditAction | None = None,
+        actor_user_id: UUID | None = None,
+    ) -> int:
+        return len(
+            await self.get_all(
+                limit=len(self.items),
+                action=action,
+                actor_user_id=actor_user_id,
+            )
+        )
+
+
 def create_market_use_cases(
     market_repository: FakeMarketRepository,
     bet_repository: FakeBetRepository,
     position_repository: FakePositionRepository,
     wallet_repository: FakeWalletRepository,
+    audit_log_repository: FakeAuditLogRepository,
     transaction_manager: FakeTransactionManager,
 ) -> MarketUseCases:
     return MarketUseCases(
@@ -189,6 +229,7 @@ def create_market_use_cases(
         bet_repository=bet_repository,
         position_repository=position_repository,
         wallet_repository=wallet_repository,
+        audit_log_repository=audit_log_repository,
         market_mapper=MarketMapper(),
         bet_mapper=BetMapper(),
         position_mapper=PositionMapper(),
@@ -203,9 +244,11 @@ async def test_create_wallet_and_place_bet_updates_market_state() -> None:
     bet_repository = FakeBetRepository()
     position_repository = FakePositionRepository()
     wallet_repository = FakeWalletRepository()
+    audit_log_repository = FakeAuditLogRepository()
     transaction_manager = FakeTransactionManager()
     wallet_use_cases = WalletUseCases(
         wallet_repository=wallet_repository,
+        audit_log_repository=audit_log_repository,
         wallet_mapper=WalletMapper(),
         transaction_manager=transaction_manager,
     )
@@ -214,11 +257,13 @@ async def test_create_wallet_and_place_bet_updates_market_state() -> None:
         bet_repository,
         position_repository,
         wallet_repository,
+        audit_log_repository,
         transaction_manager,
     )
     user_id = uuid4()
     await wallet_use_cases.create_wallet(
-        CreateWalletDTO(user_id=user_id, initial_balance=Decimal("1000"))
+        CreateWalletDTO(user_id=user_id, initial_balance=Decimal("1000")),
+        correlation_id="wallet-request",
     )
     market = await market_use_cases.create_market(
         CreateMarketDTO(
@@ -233,6 +278,7 @@ async def test_create_wallet_and_place_bet_updates_market_state() -> None:
     bet = await market_use_cases.place_bet(
         market.id,
         PlaceBetDTO(user_id=user_id, side=MarketSide.YES, amount=Decimal("100")),
+        correlation_id="bet-request",
     )
 
     wallet = await wallet_repository.get_by_user_id(user_id)
@@ -240,6 +286,12 @@ async def test_create_wallet_and_place_bet_updates_market_state() -> None:
     assert bet.shares > 0
     assert wallet is not None
     assert wallet.balance == Decimal("900.000000")
+    assert [item.action for item in audit_log_repository.items] == [
+        MarketAuditAction.WALLET_CREATE,
+        MarketAuditAction.BET_PLACE,
+    ]
+    assert audit_log_repository.items[0].correlation_id == "wallet-request"
+    assert audit_log_repository.items[1].correlation_id == "bet-request"
 
 
 @pytest.mark.asyncio
@@ -248,12 +300,14 @@ async def test_resolve_market_pays_winning_shares() -> None:
     bet_repository = FakeBetRepository()
     position_repository = FakePositionRepository()
     wallet_repository = FakeWalletRepository()
+    audit_log_repository = FakeAuditLogRepository()
     transaction_manager = FakeTransactionManager()
     market_use_cases = create_market_use_cases(
         market_repository,
         bet_repository,
         position_repository,
         wallet_repository,
+        audit_log_repository,
         transaction_manager,
     )
     user_id = uuid4()
@@ -277,6 +331,7 @@ async def test_resolve_market_pays_winning_shares() -> None:
     result = await market_use_cases.resolve_market(
         market.id,
         ResolveMarketDTO(outcome=MarketOutcome.YES),
+        correlation_id="resolve-request",
     )
 
     wallet = await wallet_repository.get_by_user_id(user_id)
@@ -286,3 +341,6 @@ async def test_resolve_market_pays_winning_shares() -> None:
     assert wallet is not None
     assert wallet.balance == Decimal("900.000000") + bet.shares
     assert positions[0].realized_payout == bet.shares
+    assert audit_log_repository.items[-1].action == MarketAuditAction.MARKET_RESOLVE
+    assert audit_log_repository.items[-1].target_id == str(market.id)
+    assert audit_log_repository.items[-1].correlation_id == "resolve-request"

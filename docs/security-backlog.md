@@ -96,6 +96,14 @@
   - moderation actions.
 - Сохранять actor, target, action, before/after, correlation id.
 
+Статус:
+
+- `auth_service` пишет audit trail для `register`, `login`, `logout`, изменения статуса пользователя, назначения роли и ручного отзыва refresh-сессий. Запись содержит `actor_user_id`, `target_type`/`target_id`, `action`, `before`/`after` и `correlation_id` из `X-Request-ID`.
+- Для `auth_service` добавлены доменная сущность audit log, интерфейс репозитория, SQLAlchemy table/mapping, concrete repository, Dishka wiring и миграция `003_audit_logs`.
+- `market_service` пишет audit trail для создания кошелька, размещения ставки и разрешения рынка. Запись содержит actor, target, action, before/after и correlation id.
+- Для `market_service` добавлены доменная сущность audit log, интерфейс репозитория, SQLAlchemy table/mapping, concrete repository, Dishka wiring и миграция `002_audit_logs`.
+- `admin_service` расширил существующие `admin_actions`: moderation actions, изменения пользователей и saved filters теперь сохраняют `before`/`after` и `correlation_id`.
+
 Критерий готовности:
 
 - По audit trail можно восстановить, кто и что изменил.

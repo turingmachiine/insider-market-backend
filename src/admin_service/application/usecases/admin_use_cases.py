@@ -99,6 +99,7 @@ class AdminUseCases(HasTransactionManager):
         self,
         event_id: UUID,
         actor_user_id: UUID | None = None,
+        correlation_id: str | None = None,
     ) -> dict:
         result = await self.gateway_client.call_event_action(
             event_id,
@@ -111,6 +112,8 @@ class AdminUseCases(HasTransactionManager):
             "Submitted event for moderation",
             result,
             actor_user_id=actor_user_id,
+            after=result,
+            correlation_id=correlation_id,
         )
         return result
 
@@ -119,6 +122,7 @@ class AdminUseCases(HasTransactionManager):
         self,
         event_id: UUID,
         actor_user_id: UUID | None = None,
+        correlation_id: str | None = None,
     ) -> dict:
         result = await self.gateway_client.call_event_action(event_id, "approve")
         await self._record_action(
@@ -128,6 +132,8 @@ class AdminUseCases(HasTransactionManager):
             "Approved event",
             result,
             actor_user_id=actor_user_id,
+            after=result,
+            correlation_id=correlation_id,
         )
         return result
 
@@ -137,11 +143,13 @@ class AdminUseCases(HasTransactionManager):
         event_id: UUID,
         notes: str | None = None,
         actor_user_id: UUID | None = None,
+        correlation_id: str | None = None,
     ) -> dict:
+        request_payload = {"notes": notes} if notes else {}
         result = await self.gateway_client.call_event_action(
             event_id,
             "reject",
-            payload={"notes": notes} if notes else {},
+            payload=request_payload,
         )
         await self._record_action(
             AdminActionType.EVENT_REJECT,
@@ -150,6 +158,9 @@ class AdminUseCases(HasTransactionManager):
             "Rejected event",
             result,
             actor_user_id=actor_user_id,
+            before={"request": request_payload},
+            after=result,
+            correlation_id=correlation_id,
         )
         return result
 
@@ -159,6 +170,7 @@ class AdminUseCases(HasTransactionManager):
         event_id: UUID,
         dto: EventModerationCommandDTO,
         actor_user_id: UUID | None = None,
+        correlation_id: str | None = None,
     ) -> dict:
         payload = {}
         if dto.resolved_by_user_id is not None:
@@ -179,6 +191,9 @@ class AdminUseCases(HasTransactionManager):
             "Resolved event",
             result,
             actor_user_id=actor_user_id,
+            before={"request": payload},
+            after=result,
+            correlation_id=correlation_id,
         )
         return result
 
@@ -188,11 +203,13 @@ class AdminUseCases(HasTransactionManager):
         event_id: UUID,
         notes: str | None = None,
         actor_user_id: UUID | None = None,
+        correlation_id: str | None = None,
     ) -> dict:
+        request_payload = {"notes": notes} if notes else {}
         result = await self.gateway_client.call_event_action(
             event_id,
             "cancel",
-            payload={"notes": notes} if notes else {},
+            payload=request_payload,
         )
         await self._record_action(
             AdminActionType.EVENT_CANCEL,
@@ -201,6 +218,9 @@ class AdminUseCases(HasTransactionManager):
             "Cancelled event",
             result,
             actor_user_id=actor_user_id,
+            before={"request": request_payload},
+            after=result,
+            correlation_id=correlation_id,
         )
         return result
 
@@ -233,7 +253,9 @@ class AdminUseCases(HasTransactionManager):
         user_id: UUID,
         dto: UserStatusUpdateDTO,
         actor_user_id: UUID | None = None,
+        correlation_id: str | None = None,
     ) -> UserSummaryDTO | None:
+        before = await self.gateway_client.get_user(user_id)
         result = await self.gateway_client.set_user_status(user_id, dto.is_active)
         if not result:
             return None
@@ -244,6 +266,9 @@ class AdminUseCases(HasTransactionManager):
             "Updated user status",
             result,
             actor_user_id=actor_user_id,
+            before=before,
+            after=result,
+            correlation_id=correlation_id,
         )
         return self.mapper.user_to_dto(result)
 
@@ -253,7 +278,9 @@ class AdminUseCases(HasTransactionManager):
         user_id: UUID,
         dto: UserRoleGrantDTO,
         actor_user_id: UUID | None = None,
+        correlation_id: str | None = None,
     ) -> UserSummaryDTO | None:
+        before = await self.gateway_client.get_user(user_id)
         result = await self.gateway_client.assign_role(
             user_id,
             dto.role_name.value,
@@ -267,6 +294,9 @@ class AdminUseCases(HasTransactionManager):
             f"Granted role {dto.role_name}",
             result,
             actor_user_id=actor_user_id,
+            before=before,
+            after=result,
+            correlation_id=correlation_id,
         )
         return self.mapper.user_to_dto(result)
 
@@ -331,6 +361,7 @@ class AdminUseCases(HasTransactionManager):
     async def save_filter(
         self,
         dto: SavedFilterCreateDTO,
+        correlation_id: str | None = None,
     ) -> SavedFilterDTO:
         saved_filter = SavedFilter(
             id=uuid4(),
@@ -350,6 +381,11 @@ class AdminUseCases(HasTransactionManager):
                 "criteria": saved.criteria,
             },
             actor_user_id=dto.actor_user_id,
+            after={
+                "scope": saved.scope,
+                "criteria": saved.criteria,
+            },
+            correlation_id=correlation_id,
         )
         return self.mapper.filter_to_dto(saved)
 
@@ -362,6 +398,9 @@ class AdminUseCases(HasTransactionManager):
         payload: dict | None = None,
         *,
         actor_user_id: UUID | None = None,
+        before: dict | None = None,
+        after: dict | None = None,
+        correlation_id: str | None = None,
     ) -> None:
         await self.action_repository.save(
             AdminAction(
@@ -372,5 +411,8 @@ class AdminUseCases(HasTransactionManager):
                 summary=summary,
                 actor_user_id=actor_user_id,
                 payload=payload,
+                before=before,
+                after=after,
+                correlation_id=correlation_id,
             )
         )

@@ -25,6 +25,9 @@ admin_actions_table = Table(
     Column("entity_id", String(100), nullable=False),
     Column("summary", String(200), nullable=False),
     Column("payload", JSONB(), nullable=True),
+    Column("before", JSONB(), nullable=True),
+    Column("after", JSONB(), nullable=True),
+    Column("correlation_id", String(100), nullable=True, index=True),
     Column("created_at", DateTime(timezone=True), default=utc_now, nullable=False),
 )
 

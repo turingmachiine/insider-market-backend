@@ -2,8 +2,11 @@ from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from src.auth_service.core.config import settings
+from src.auth_service.infrastructure.db.tables import audit_logs_table
 from src.common.application.security import encode_jwt
 
 
@@ -25,6 +28,44 @@ async def test_register_login_token(auth_client: httpx.AsyncClient) -> None:
     assert data["access_token"]
     assert data["refresh_token"]
     assert "nsi:read" in data["permissions"]
+
+
+@pytest.mark.asyncio
+async def test_auth_events_are_audited(
+    auth_client: httpx.AsyncClient,
+    auth_engine: AsyncEngine,
+) -> None:
+    response = await auth_client.post(
+        "/api/v1/register",
+        json={"email": "audit@example.com", "password": "password123"},
+        headers={"X-Request-ID": "request-register"},
+    )
+    assert response.status_code == 201
+    user_id = response.json()["user_id"]
+
+    response = await auth_client.post(
+        "/api/v1/login",
+        json={"email": "audit@example.com", "password": "password123"},
+        headers={"X-Request-ID": "request-login"},
+    )
+    assert response.status_code == 200
+
+    async with auth_engine.connect() as conn:
+        result = await conn.execute(
+            select(
+                audit_logs_table.c.action,
+                audit_logs_table.c.target_id,
+                audit_logs_table.c.actor_user_id,
+                audit_logs_table.c.correlation_id,
+            ).order_by(audit_logs_table.c.created_at)
+        )
+        rows = result.mappings().all()
+
+    assert [row["action"] for row in rows[-2:]] == ["register", "login"]
+    assert rows[-2]["target_id"] == user_id
+    assert rows[-2]["correlation_id"] == "request-register"
+    assert str(rows[-1]["actor_user_id"]) == user_id
+    assert rows[-1]["correlation_id"] == "request-login"
 
 
 @pytest.mark.asyncio

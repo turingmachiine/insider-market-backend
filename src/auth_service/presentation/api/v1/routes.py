@@ -19,6 +19,7 @@ from src.auth_service.presentation.api.v1.schemas import (
     UserStatusUpdateRequest,
 )
 from src.auth_service.presentation.api.v1.utils import to_user_response
+from src.common.application.request_context import RequestContextProvider
 from src.common.application.user_context import UserContext
 from src.common.domain.security import Permission
 from src.common.presentation.decorators import require_permission
@@ -33,10 +34,15 @@ router = APIRouter(prefix="/v1")
 @inject
 async def register(
     request: RegisterRequest,
+    request_context_provider: FromDishka[RequestContextProvider],
     auth_service: FromDishka[AuthService],
 ) -> RegisterResponse:
     try:
-        user_id = await auth_service.register(request.email, request.password)
+        user_id = await auth_service.register(
+            request.email,
+            request.password,
+            correlation_id=request_context_provider.get_context().correlation_id,
+        )
     except AuthError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
     return RegisterResponse(user_id=user_id)
@@ -46,6 +52,7 @@ async def register(
 @inject
 async def login(
     request: LoginRequest,
+    request_context_provider: FromDishka[RequestContextProvider],
     auth_service: FromDishka[AuthService],
     settings: FromDishka[AuthSettings],
 ) -> TokenResponse:
@@ -53,6 +60,7 @@ async def login(
         access_token, refresh_token, user_id, permissions = await auth_service.login(
             request.email,
             request.password,
+            correlation_id=request_context_provider.get_context().correlation_id,
         )
     except AuthError:
         raise HTTPException(
@@ -97,9 +105,13 @@ async def refresh_token(
 @inject
 async def logout(
     request: LogoutRequest,
+    request_context_provider: FromDishka[RequestContextProvider],
     auth_service: FromDishka[AuthService],
 ) -> None:
-    await auth_service.logout(request.refresh_token)
+    await auth_service.logout(
+        request.refresh_token,
+        correlation_id=request_context_provider.get_context().correlation_id,
+    )
 
 
 @router.get("/users")
@@ -161,10 +173,19 @@ async def get_user_permissions(
 async def set_user_status(
     user_id: UUID,
     request: UserStatusUpdateRequest,
+    request_context_provider: FromDishka[RequestContextProvider],
     auth_service: FromDishka[AuthService],
-    _: Annotated[UserContext, Depends(require_permission(Permission.AUTH_USERS_WRITE))],
+    auth_payload: Annotated[
+        UserContext,
+        Depends(require_permission(Permission.AUTH_USERS_WRITE)),
+    ],
 ) -> UserResponse:
-    user = await auth_service.set_user_status(user_id, request.is_active)
+    user = await auth_service.set_user_status(
+        user_id,
+        request.is_active,
+        actor_user_id=auth_payload.user_id,
+        correlation_id=request_context_provider.get_context().correlation_id,
+    )
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -177,10 +198,18 @@ async def set_user_status(
 @inject
 async def revoke_user_tokens(
     user_id: UUID,
+    request_context_provider: FromDishka[RequestContextProvider],
     auth_service: FromDishka[AuthService],
-    _: Annotated[UserContext, Depends(require_permission(Permission.AUTH_USERS_WRITE))],
+    auth_payload: Annotated[
+        UserContext,
+        Depends(require_permission(Permission.AUTH_USERS_WRITE)),
+    ],
 ) -> None:
-    user = await auth_service.revoke_user_tokens(user_id)
+    user = await auth_service.revoke_user_tokens(
+        user_id,
+        actor_user_id=auth_payload.user_id,
+        correlation_id=request_context_provider.get_context().correlation_id,
+    )
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -193,12 +222,18 @@ async def revoke_user_tokens(
 async def assign_role(
     user_id: UUID,
     request: UserRoleGrantRequest,
+    request_context_provider: FromDishka[RequestContextProvider],
     auth_service: FromDishka[AuthService],
-    _: Annotated[UserContext, Depends(require_permission(Permission.AUTH_ROLES_WRITE))],
+    auth_payload: Annotated[
+        UserContext,
+        Depends(require_permission(Permission.AUTH_ROLES_WRITE)),
+    ],
 ) -> UserResponse:
     user = await auth_service.assign_role(
         user_id=user_id,
         role_name=request.role_name,
+        actor_user_id=auth_payload.user_id,
+        correlation_id=request_context_provider.get_context().correlation_id,
     )
     if user is None:
         raise HTTPException(

@@ -4,6 +4,7 @@ from uuid import UUID
 from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from src.common.application.request_context import RequestContextProvider
 from src.common.application.user_context import UserContext
 from src.common.domain.security import Permission
 from src.common.presentation.decorators import require_permission
@@ -94,6 +95,7 @@ async def create_market(
 async def place_bet(
     market_id: UUID,
     bet_data: BetCreate,
+    request_context_provider: FromDishka[RequestContextProvider],
     market_use_cases: FromDishka[MarketUseCases],
     auth_payload: Annotated[
         UserContext, Depends(require_permission(Permission.MARKET_TRADE))
@@ -103,7 +105,11 @@ async def place_bet(
     bet_payload["user_id"] = auth_payload.user_id
     dto = PlaceBetDTO(**bet_payload)
     try:
-        result = await market_use_cases.place_bet(market_id, dto)
+        result = await market_use_cases.place_bet(
+            market_id,
+            dto,
+            correlation_id=request_context_provider.get_context().correlation_id,
+        )
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -176,6 +182,7 @@ async def close_market(
 async def resolve_market(
     market_id: UUID,
     resolve_data: MarketResolve,
+    request_context_provider: FromDishka[RequestContextProvider],
     market_use_cases: FromDishka[MarketUseCases],
     auth_payload: Annotated[
         UserContext, Depends(require_permission(Permission.MARKET_MANAGE))
@@ -185,7 +192,11 @@ async def resolve_market(
     resolve_payload["resolved_by_user_id"] = auth_payload.user_id
     dto = ResolveMarketDTO(**resolve_payload)
     try:
-        result = await market_use_cases.resolve_market(market_id, dto)
+        result = await market_use_cases.resolve_market(
+            market_id,
+            dto,
+            correlation_id=request_context_provider.get_context().correlation_id,
+        )
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

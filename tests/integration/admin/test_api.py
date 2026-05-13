@@ -6,6 +6,7 @@ import httpx
 import pytest
 import pytest_asyncio
 from dishka import Provider, Scope, make_async_container, provide
+from dishka.integrations.fastapi import FastapiProvider
 
 from src.admin_service.application.dto import (
     AdminDashboardDTO,
@@ -19,6 +20,7 @@ from src.admin_service.infrastructure.di.providers import ContainerProvider
 from src.admin_service.main import create_app
 from src.common.application.security import encode_jwt
 from src.common.domain.security import Permission
+from src.common.infrastructure.di import FastAPIRequestContextDIProvider
 
 
 class FakeAdminUseCases:
@@ -40,7 +42,9 @@ class FakeAdminUseCases:
         ]
 
     async def save_filter(  # NOSONAR(S7503)
-        self, dto: SavedFilterCreateDTO
+        self,
+        dto: SavedFilterCreateDTO,
+        correlation_id: str | None = None,
     ) -> SavedFilterDTO:
         return SavedFilterDTO(
             id=uuid4(),
@@ -77,6 +81,8 @@ def _bearer_token() -> str:
 async def admin_client() -> AsyncGenerator[httpx.AsyncClient, None]:
     container = make_async_container(
         ContainerProvider(AdminSettings()),
+        FastapiProvider(),
+        FastAPIRequestContextDIProvider(),
         FakeUseCaseProvider(),
     )
     app = create_app(container=container)

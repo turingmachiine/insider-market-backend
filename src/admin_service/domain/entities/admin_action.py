@@ -26,4 +26,7 @@ class AdminAction:
     summary: str
     actor_user_id: UUID | None = None
     payload: dict | None = None
+    before: dict | None = None
+    after: dict | None = None
+    correlation_id: str | None = None
     created_at: datetime = field(default_factory=utc_now)

@@ -57,6 +57,9 @@ class AdminMapper:
             summary=action.summary,
             actor_user_id=action.actor_user_id,
             payload=action.payload,
+            before=action.before,
+            after=action.after,
+            correlation_id=action.correlation_id,
             created_at=action.created_at,
         )
 

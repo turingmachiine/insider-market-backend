@@ -80,6 +80,9 @@ class AdminActionResponse(BaseModel):
     summary: str
     actor_user_id: UUID | None
     payload: dict | None
+    before: dict | None
+    after: dict | None
+    correlation_id: str | None
     created_at: datetime
 
 

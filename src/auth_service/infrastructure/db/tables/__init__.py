@@ -1,3 +1,4 @@
+from src.auth_service.infrastructure.db.tables.audit_logs_table import audit_logs_table
 from src.auth_service.infrastructure.db.tables.permissions_table import (
     permissions_table,
 )
@@ -12,6 +13,7 @@ from src.auth_service.infrastructure.db.tables.user_roles_table import user_role
 from src.auth_service.infrastructure.db.tables.users_table import users_table
 
 __all__ = [
+    "audit_logs_table",
     "permissions_table",
     "refresh_tokens_table",
     "role_permissions_table",

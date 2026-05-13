@@ -27,6 +27,7 @@ from src.admin_service.presentation.api.v1.schemas import (
     UserStatusUpdateRequest,
     UserSummaryResponse,
 )
+from src.common.application.request_context import RequestContextProvider
 from src.common.application.user_context import UserContext
 from src.common.domain.security import Permission
 from src.common.presentation.decorators import require_permission
@@ -81,6 +82,7 @@ async def get_event_moderation_queue(
 @inject
 async def submit_event_for_moderation(
     event_id: UUID,
+    request_context_provider: FromDishka[RequestContextProvider],
     admin_use_cases: FromDishka[AdminUseCases],
     payload: Annotated[
         UserContext,
@@ -90,6 +92,7 @@ async def submit_event_for_moderation(
     return await admin_use_cases.submit_event_for_moderation(
         event_id,
         actor_user_id=payload.user_id,
+        correlation_id=request_context_provider.get_context().correlation_id,
     )
 
 
@@ -97,6 +100,7 @@ async def submit_event_for_moderation(
 @inject
 async def approve_event(
     event_id: UUID,
+    request_context_provider: FromDishka[RequestContextProvider],
     admin_use_cases: FromDishka[AdminUseCases],
     payload: Annotated[
         UserContext,
@@ -106,6 +110,7 @@ async def approve_event(
     return await admin_use_cases.approve_event(
         event_id,
         actor_user_id=payload.user_id,
+        correlation_id=request_context_provider.get_context().correlation_id,
     )
 
 
@@ -114,6 +119,7 @@ async def approve_event(
 async def reject_event(
     event_id: UUID,
     request: EventModerationCommandRequest,
+    request_context_provider: FromDishka[RequestContextProvider],
     admin_use_cases: FromDishka[AdminUseCases],
     payload: Annotated[
         UserContext,
@@ -124,6 +130,7 @@ async def reject_event(
         event_id,
         notes=request.notes,
         actor_user_id=payload.user_id,
+        correlation_id=request_context_provider.get_context().correlation_id,
     )
 
 
@@ -132,6 +139,7 @@ async def reject_event(
 async def resolve_event(
     event_id: UUID,
     request: EventModerationCommandRequest,
+    request_context_provider: FromDishka[RequestContextProvider],
     admin_use_cases: FromDishka[AdminUseCases],
     payload: Annotated[
         UserContext,
@@ -143,6 +151,7 @@ async def resolve_event(
         event_id,
         dto,
         actor_user_id=payload.user_id,
+        correlation_id=request_context_provider.get_context().correlation_id,
     )
 
 
@@ -151,6 +160,7 @@ async def resolve_event(
 async def cancel_event(
     event_id: UUID,
     request: EventModerationCommandRequest,
+    request_context_provider: FromDishka[RequestContextProvider],
     admin_use_cases: FromDishka[AdminUseCases],
     payload: Annotated[
         UserContext,
@@ -161,6 +171,7 @@ async def cancel_event(
         event_id,
         notes=request.notes,
         actor_user_id=payload.user_id,
+        correlation_id=request_context_provider.get_context().correlation_id,
     )
 
 
@@ -212,6 +223,7 @@ async def get_user_permissions(
 async def set_user_status(
     user_id: UUID,
     request: UserStatusUpdateRequest,
+    request_context_provider: FromDishka[RequestContextProvider],
     admin_use_cases: FromDishka[AdminUseCases],
     payload: Annotated[
         UserContext,
@@ -222,6 +234,7 @@ async def set_user_status(
         user_id,
         UserStatusUpdateDTO(is_active=request.is_active),
         actor_user_id=payload.user_id,
+        correlation_id=request_context_provider.get_context().correlation_id,
     )
     if user is None:
         raise HTTPException(
@@ -236,6 +249,7 @@ async def set_user_status(
 async def assign_role(
     user_id: UUID,
     request: UserRoleGrantRequest,
+    request_context_provider: FromDishka[RequestContextProvider],
     admin_use_cases: FromDishka[AdminUseCases],
     payload: Annotated[
         UserContext,
@@ -246,6 +260,7 @@ async def assign_role(
         user_id,
         UserRoleGrantDTO(role_name=request.role_name),
         actor_user_id=payload.user_id,
+        correlation_id=request_context_provider.get_context().correlation_id,
     )
     if user is None:
         raise HTTPException(
@@ -304,6 +319,7 @@ async def get_saved_filters(
 @inject
 async def save_filter(
     request: SavedFilterCreateRequest,
+    request_context_provider: FromDishka[RequestContextProvider],
     admin_use_cases: FromDishka[AdminUseCases],
     payload: Annotated[
         UserContext,
@@ -316,5 +332,8 @@ async def save_filter(
         scope=request.scope,
         criteria=request.criteria,
     )
-    saved_filter = await admin_use_cases.save_filter(dto)
+    saved_filter = await admin_use_cases.save_filter(
+        dto,
+        correlation_id=request_context_provider.get_context().correlation_id,
+    )
     return SavedFilterResponse(**saved_filter.__dict__)

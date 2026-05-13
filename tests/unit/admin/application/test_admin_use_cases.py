@@ -3,7 +3,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from src.admin_service.application.dto import SavedFilterCreateDTO
+from src.admin_service.application.dto import SavedFilterCreateDTO, UserStatusUpdateDTO
 from src.admin_service.application.mappers import AdminMapper
 from src.admin_service.application.ports import AdminGatewayClient
 from src.admin_service.application.usecases import AdminUseCases
@@ -250,10 +250,38 @@ async def test_save_filter_records_action() -> None:
             name="Moderation queue",
             scope="event",
             criteria={"status": ["pending"]},
-        )
+        ),
+        correlation_id="filter-request",
     )
 
     assert saved_filter.name == "Moderation queue"
     assert len(filter_repository.items) == 1
     assert len(action_repository.items) == 1
     assert action_repository.items[0].action_type == AdminActionType.FILTER_CREATE
+    assert action_repository.items[0].after == {
+        "scope": "event",
+        "criteria": {"status": ["pending"]},
+    }
+    assert action_repository.items[0].correlation_id == "filter-request"
+
+
+@pytest.mark.asyncio
+async def test_user_status_action_records_before_after() -> None:
+    use_cases, action_repository, _ = create_use_cases()
+    actor_user_id = uuid4()
+    user_id = uuid4()
+
+    result = await use_cases.set_user_status(
+        user_id,
+        dto=UserStatusUpdateDTO(is_active=False),
+        actor_user_id=actor_user_id,
+        correlation_id="status-request",
+    )
+
+    assert result is not None
+    assert action_repository.items[0].action_type == AdminActionType.USER_STATUS
+    assert action_repository.items[0].before is not None
+    assert action_repository.items[0].before["is_active"] is True
+    assert action_repository.items[0].after is not None
+    assert action_repository.items[0].after["is_active"] is False
+    assert action_repository.items[0].correlation_id == "status-request"

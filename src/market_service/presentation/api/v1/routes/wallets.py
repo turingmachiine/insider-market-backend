@@ -4,6 +4,7 @@ from uuid import UUID
 from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from src.common.application.request_context import RequestContextProvider
 from src.common.application.user_context import UserContext
 from src.common.domain.security import Permission
 from src.common.presentation.decorators import require_permission
@@ -40,6 +41,7 @@ async def get_wallet(
 @inject
 async def create_wallet(
     wallet_data: WalletCreate,
+    request_context_provider: FromDishka[RequestContextProvider],
     wallet_use_cases: FromDishka[WalletUseCases],
     auth_payload: Annotated[
         UserContext, Depends(require_permission(Permission.MARKET_WRITE))
@@ -49,7 +51,10 @@ async def create_wallet(
     wallet_payload["user_id"] = auth_payload.user_id
     dto = CreateWalletDTO(**wallet_payload)
     try:
-        result = await wallet_use_cases.create_wallet(dto)
+        result = await wallet_use_cases.create_wallet(
+            dto,
+            correlation_id=request_context_provider.get_context().correlation_id,
+        )
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

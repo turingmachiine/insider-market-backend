@@ -8,6 +8,7 @@ import httpx
 import pytest
 import pytest_asyncio
 from dishka import Scope, make_async_container, provide
+from dishka.integrations.fastapi import FastapiProvider
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -19,6 +20,7 @@ from testcontainers.postgres import PostgresContainer
 
 from src.common.application.security import encode_jwt
 from src.common.domain.security import Permission
+from src.common.infrastructure.di import FastAPIRequestContextDIProvider
 from src.market_service.core.config import MarketSettings, settings
 from src.market_service.infrastructure.db import setup_mapping
 from src.market_service.infrastructure.db.metadata import mapper_registry
@@ -92,6 +94,7 @@ async def market_db_engine(
         await conn.execute(text("DROP TYPE IF EXISTS market_side CASCADE"))
         await conn.execute(text("DROP TYPE IF EXISTS market_outcome CASCADE"))
         await conn.execute(text("DROP TYPE IF EXISTS market_status CASCADE"))
+        await conn.execute(text("DROP TYPE IF EXISTS market_audit_action CASCADE"))
         await conn.execute(
             text(
                 "CREATE TYPE market_status AS ENUM "
@@ -102,6 +105,12 @@ async def market_db_engine(
             text("CREATE TYPE market_outcome AS ENUM ('yes', 'no', 'void')")
         )
         await conn.execute(text("CREATE TYPE market_side AS ENUM ('yes', 'no')"))
+        await conn.execute(
+            text(
+                "CREATE TYPE market_audit_action AS ENUM "
+                "('wallet_create', 'bet_place', 'market_resolve')"
+            )
+        )
         await conn.run_sync(mapper_registry.metadata.create_all)
 
     yield engine
@@ -118,6 +127,8 @@ async def market_test_container(market_db_engine: AsyncEngine):
 
     container = make_async_container(
         TestDatabaseProvider(market_db_engine, session_factory, settings),
+        FastapiProvider(),
+        FastAPIRequestContextDIProvider(),
         RepositoryProvider(),
         MapperProvider(),
         DomainServiceProvider(),

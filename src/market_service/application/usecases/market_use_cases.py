@@ -18,14 +18,17 @@ from src.market_service.application.mappers import (
     IPositionMapper,
 )
 from src.market_service.domain.entities import (
+    AuditLog,
     Bet,
     Market,
+    MarketAuditAction,
     MarketOutcome,
     MarketSide,
     MarketStatus,
     Position,
 )
 from src.market_service.domain.interfaces.repositories import (
+    IAuditLogRepository,
     IBetRepository,
     IMarketRepository,
     IPositionRepository,
@@ -40,6 +43,7 @@ class MarketUseCases(HasTransactionManager):
     bet_repository: IBetRepository
     position_repository: IPositionRepository
     wallet_repository: IWalletRepository
+    audit_log_repository: IAuditLogRepository
     market_mapper: IMarketMapper
     bet_mapper: IBetMapper
     position_mapper: IPositionMapper
@@ -113,7 +117,12 @@ class MarketUseCases(HasTransactionManager):
         return self.market_mapper.to_dto(saved_market)
 
     @transactional()
-    async def place_bet(self, market_id: UUID, dto: PlaceBetDTO) -> BetDTO:
+    async def place_bet(
+        self,
+        market_id: UUID,
+        dto: PlaceBetDTO,
+        correlation_id: str | None = None,
+    ) -> BetDTO:
         """Проводит покупку shares как единую транзакцию.
 
         Use case получает quote от AMM, списывает нормализованную сумму с
@@ -130,6 +139,12 @@ class MarketUseCases(HasTransactionManager):
         wallet = await self.wallet_repository.get_by_user_id(dto.user_id)
         if wallet is None:
             raise ValueError(f"Wallet for user {str(dto.user_id)} not found")
+        wallet_before = {"balance": str(wallet.balance)}
+        market_before = {
+            "yes_pool": str(market.yes_pool),
+            "no_pool": str(market.no_pool),
+            "yes_probability": market.yes_probability,
+        }
 
         quote = self.amm_service.quote_buy(
             market=market,
@@ -169,6 +184,34 @@ class MarketUseCases(HasTransactionManager):
         await self.position_repository.save(position)
         await self.market_repository.save(market)
         saved_bet = await self.bet_repository.save(bet)
+        await self.audit_log_repository.save(
+            AuditLog(
+                id=uuid4(),
+                actor_user_id=dto.user_id,
+                action=MarketAuditAction.BET_PLACE,
+                target_type="bet",
+                target_id=str(saved_bet.id),
+                before={
+                    "wallet": wallet_before,
+                    "market": market_before,
+                },
+                after={
+                    "wallet": {"balance": str(wallet.balance)},
+                    "market": {
+                        "yes_pool": str(market.yes_pool),
+                        "no_pool": str(market.no_pool),
+                        "yes_probability": market.yes_probability,
+                    },
+                    "bet": {
+                        "market_id": str(saved_bet.market_id),
+                        "side": saved_bet.side.value,
+                        "amount": str(saved_bet.amount),
+                        "shares": str(saved_bet.shares),
+                    },
+                },
+                correlation_id=correlation_id,
+            )
+        )
         return self.bet_mapper.to_dto(saved_bet)
 
     @transactional()
@@ -185,6 +228,7 @@ class MarketUseCases(HasTransactionManager):
         self,
         market_id: UUID,
         dto: ResolveMarketDTO,
+        correlation_id: str | None = None,
     ) -> MarketDTO | None:
         """Фиксирует outcome рынка и рассчитывает выплаты по всем позициям."""
         market = await self.market_repository.get_by_id(market_id)
@@ -192,12 +236,44 @@ class MarketUseCases(HasTransactionManager):
             return None
 
         positions = await self.position_repository.get_by_market(market_id)
+        before = {
+            "status": market.status.value,
+            "outcome": market.outcome.value if market.outcome else None,
+            "resolved_by_user_id": (
+                str(market.resolved_by_user_id)
+                if market.resolved_by_user_id is not None
+                else None
+            ),
+        }
         market.resolve(
             outcome=dto.outcome,
             resolved_by_user_id=dto.resolved_by_user_id,
         )
         await self._settle_positions(positions, dto.outcome)
         saved_market = await self.market_repository.save(market)
+        await self.audit_log_repository.save(
+            AuditLog(
+                id=uuid4(),
+                actor_user_id=dto.resolved_by_user_id,
+                action=MarketAuditAction.MARKET_RESOLVE,
+                target_type="market",
+                target_id=str(saved_market.id),
+                before=before,
+                after={
+                    "status": saved_market.status.value,
+                    "outcome": (
+                        saved_market.outcome.value if saved_market.outcome else None
+                    ),
+                    "resolved_by_user_id": (
+                        str(saved_market.resolved_by_user_id)
+                        if saved_market.resolved_by_user_id is not None
+                        else None
+                    ),
+                    "settled_positions": len(positions),
+                },
+                correlation_id=correlation_id,
+            )
+        )
         return self.market_mapper.to_dto(saved_market)
 
     async def _settle_positions(

@@ -2,12 +2,14 @@ from dishka import Provider, Scope, provide
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth_service.domain.interfaces.repositories import (
+    IAuditLogRepository,
     IPermissionRepository,
     IRefreshTokenRepository,
     IRoleRepository,
     IUserRepository,
 )
 from src.auth_service.infrastructure.db.repositories import (
+    AuditLogRepository,
     PermissionRepository,
     RefreshTokenRepository,
     RoleRepository,
@@ -23,6 +25,12 @@ class RepositoryProvider(Provider):
     @provide
     def provide_user_repository(self, session: AsyncSession) -> IUserRepository:
         return UserRepository(session)
+
+    @provide
+    def provide_audit_log_repository(
+        self, session: AsyncSession
+    ) -> IAuditLogRepository:
+        return AuditLogRepository(session)
 
     @provide
     def provide_permission_repository(

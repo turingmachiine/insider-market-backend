@@ -9,6 +9,7 @@ from src.market_service.application.mappers import (
 )
 from src.market_service.application.usecases import MarketUseCases, WalletUseCases
 from src.market_service.domain.interfaces.repositories import (
+    IAuditLogRepository,
     IBetRepository,
     IMarketRepository,
     IPositionRepository,
@@ -27,6 +28,7 @@ class UseCaseProvider(Provider):
         bet_repository: IBetRepository,
         position_repository: IPositionRepository,
         wallet_repository: IWalletRepository,
+        audit_log_repository: IAuditLogRepository,
         market_mapper: IMarketMapper,
         bet_mapper: IBetMapper,
         position_mapper: IPositionMapper,
@@ -38,6 +40,7 @@ class UseCaseProvider(Provider):
             bet_repository=bet_repository,
             position_repository=position_repository,
             wallet_repository=wallet_repository,
+            audit_log_repository=audit_log_repository,
             market_mapper=market_mapper,
             bet_mapper=bet_mapper,
             position_mapper=position_mapper,
@@ -49,11 +52,13 @@ class UseCaseProvider(Provider):
     @staticmethod
     def provide_wallet_use_cases(
         wallet_repository: IWalletRepository,
+        audit_log_repository: IAuditLogRepository,
         wallet_mapper: IWalletMapper,
         transaction_manager: TransactionManager,
     ) -> WalletUseCases:
         return WalletUseCases(
             wallet_repository=wallet_repository,
+            audit_log_repository=audit_log_repository,
             wallet_mapper=wallet_mapper,
             transaction_manager=transaction_manager,
         )

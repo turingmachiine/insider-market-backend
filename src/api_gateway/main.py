@@ -10,7 +10,10 @@ from fastapi.staticfiles import StaticFiles
 
 from src.api_gateway.config import GatewaySettings, get_settings
 from src.api_gateway.middleware.logging import JsonAccessLogMiddleware
-from src.api_gateway.middleware.rate_limit import RateLimitMiddleware
+from src.api_gateway.middleware.rate_limit import (
+    RateLimitMiddleware,
+    WebSocketRateLimitMiddleware,
+)
 from src.api_gateway.middleware.security import GatewaySecurityMiddleware
 from src.api_gateway.presentation.swagger_page import SwaggerLandingPage
 from src.api_gateway.routes import router
@@ -84,8 +87,17 @@ class GatewayApplicationFactory:
 
     def _configure_middleware(self, app: FastAPI) -> None:
         app.add_middleware(
+            WebSocketRateLimitMiddleware,
+            limit_per_minute=self._settings.websocket_rate_limit_requests,
+            by_jwt=self._settings.RATE_LIMIT_BY_JWT,
+            jwt_secret=self._settings.JWT_SECRET,
+            jwt_algorithm=self._settings.JWT_ALGORITHM,
+        )
+        app.add_middleware(
             RateLimitMiddleware,
             limit_per_minute=self._settings.rate_limit_requests,
+            public_limit_per_minute=self._settings.public_rate_limit_requests,
+            sensitive_limit_per_minute=self._settings.sensitive_rate_limit_requests,
             by_jwt=self._settings.RATE_LIMIT_BY_JWT,
             jwt_secret=self._settings.JWT_SECRET,
             jwt_algorithm=self._settings.JWT_ALGORITHM,

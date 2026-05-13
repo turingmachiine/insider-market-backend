@@ -261,12 +261,54 @@ async def test_rate_limit_uses_jwt_subject_when_enabled(
         assert (await client.get("/auth/health", headers=user_2)).status_code == 200
 
         assert (
-            int((await redis_client.get("ratelimit:user:user-1:/auth/health")) or 0)
+            int(
+                (await redis_client.get("ratelimit:public:user:user-1:/auth/health"))
+                or 0
+            )
             == 2
         )
         assert (
-            int((await redis_client.get("ratelimit:user:user-2:/auth/health")) or 0)
+            int(
+                (await redis_client.get("ratelimit:public:user:user-2:/auth/health"))
+                or 0
+            )
             == 1
+        )
+    finally:
+        await client.aclose()
+        await upstream_client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_sensitive_auth_route_uses_stricter_rate_limit(
+    gateway_settings: GatewaySettings, redis_container: AsyncRedisContainer
+) -> None:
+    settings = gateway_settings.model_copy(
+        update={"RATE_LIMIT": "100/minute", "SENSITIVE_RATE_LIMIT": "2/minute"}
+    )
+    client, upstream_client, calls, redis_client = await make_gateway_client(
+        settings, redis_container
+    )
+    try:
+        assert (await client.post("/auth/api/v1/login")).status_code == 200
+        assert (await client.post("/auth/api/v1/login")).status_code == 200
+
+        response = await client.post("/auth/api/v1/login")
+
+        assert response.status_code == 429
+        assert response.json() == {"detail": "Too Many Requests"}
+        assert response.headers["retry-after"] == "60"
+        assert calls["auth.test/api/v1/login"] == 2
+        assert (
+            int(
+                (
+                    await redis_client.get(
+                        "ratelimit:sensitive:ip:127.0.0.1:/auth/api/v1/login"
+                    )
+                )
+                or 0
+            )
+            == 3
         )
     finally:
         await client.aclose()

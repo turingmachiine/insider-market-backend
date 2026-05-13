@@ -114,6 +114,14 @@
 - Добавить защиту от перебора паролей и массовых запросов.
 - Сделать отдельные лимиты для public routes и sensitive routes.
 
+Статус:
+
+- `api_gateway` применяет общий per-minute лимит ко всем HTTP routes с ключом по JWT `sub`, а при отсутствии валидного JWT — по client IP.
+- Для public read/preflight routes (`GET`, `HEAD`, `OPTIONS`) добавлен отдельный лимит `PUBLIC_RATE_LIMIT`; если он не задан, используется общий `RATE_LIMIT`.
+- Для sensitive auth endpoints `POST /auth/**/login`, `POST /auth/**/register`, `POST /auth/**/refresh` добавлен отдельный более строгий лимит `SENSITIVE_RATE_LIMIT`.
+- Для websocket connect paths добавлен отдельный лимит `WEBSOCKET_RATE_LIMIT`; при превышении gateway закрывает соединение с code `4408`.
+- Превышение лимита возвращает `429` и `Retry-After`, запрос не проксируется в upstream-сервис.
+
 Критерий готовности:
 
 - Атаки перебора не дают бесконечные попытки и не создают шум в сервисах.

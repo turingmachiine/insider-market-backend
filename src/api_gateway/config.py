@@ -32,6 +32,9 @@ class GatewaySettings(BaseSettings):
     REDIS_URL: str = "redis://redis:6379/0"
 
     RATE_LIMIT: str = "100/minute"
+    PUBLIC_RATE_LIMIT: str | None = None
+    SENSITIVE_RATE_LIMIT: str = "10/minute"
+    WEBSOCKET_RATE_LIMIT: str = "20/minute"
     RATE_LIMIT_BY_JWT: bool = True
     CACHE_TTL_SECONDS: int = 30
     CORS_ORIGINS: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
@@ -50,12 +53,19 @@ class GatewaySettings(BaseSettings):
     TOTAL_TIMEOUT_SECONDS: float = 10.0
     STATS_TTL_SECONDS: int = 300
 
-    @field_validator("RATE_LIMIT")
+    @field_validator(
+        "RATE_LIMIT",
+        "PUBLIC_RATE_LIMIT",
+        "SENSITIVE_RATE_LIMIT",
+        "WEBSOCKET_RATE_LIMIT",
+    )
     @classmethod
-    def validate_rate_limit(cls, value: str) -> str:
+    def validate_rate_limit(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
         limit, _, period = value.partition("/")
         if not limit.isdigit() or int(limit) <= 0:
-            raise ValueError("RATE_LIMIT must be formatted as '<positive int>/minute'")
+            raise ValueError("Rate limit must be formatted as '<positive int>/minute'")
         if period != "minute":
             raise ValueError("Only minute rate limit period is supported")
         return value
@@ -63,6 +73,18 @@ class GatewaySettings(BaseSettings):
     @property
     def rate_limit_requests(self) -> int:
         return int(self.RATE_LIMIT.split("/", 1)[0])
+
+    @property
+    def public_rate_limit_requests(self) -> int:
+        return int((self.PUBLIC_RATE_LIMIT or self.RATE_LIMIT).split("/", 1)[0])
+
+    @property
+    def sensitive_rate_limit_requests(self) -> int:
+        return int(self.SENSITIVE_RATE_LIMIT.split("/", 1)[0])
+
+    @property
+    def websocket_rate_limit_requests(self) -> int:
+        return int(self.WEBSOCKET_RATE_LIMIT.split("/", 1)[0])
 
     @property
     def max_body_size_bytes(self) -> int:

@@ -63,6 +63,8 @@ def gateway_settings() -> GatewaySettings:
         SERVICE_MARKET_URL=AnyHttpUrl(url="http://market.test"),
         REDIS_URL="redis://redis.test:6379/0",
         RATE_LIMIT="100/minute",
+        SENSITIVE_RATE_LIMIT="10/minute",
+        WEBSOCKET_RATE_LIMIT="20/minute",
         RATE_LIMIT_BY_JWT=True,
         CACHE_TTL_SECONDS=30,
         CORS_ORIGINS=["http://localhost:3000"],

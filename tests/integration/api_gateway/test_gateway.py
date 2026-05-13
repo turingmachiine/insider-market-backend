@@ -1,8 +1,31 @@
 import pytest
+from pydantic import ValidationError
 from testcontainers.redis import AsyncRedisContainer
 
 from src.api_gateway.config import GatewaySettings
 from tests.integration.api_gateway.conftest import make_gateway_client, make_token
+
+
+def assert_security_headers(response) -> None:
+    assert response.headers["strict-transport-security"] == (
+        "max-age=31536000; includeSubDomains"
+    )
+    assert response.headers["content-security-policy"] == (
+        "default-src 'self'; "
+        "base-uri 'self'; "
+        "frame-ancestors 'none'; "
+        "object-src 'none'; "
+        "img-src 'self' data:; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "connect-src 'self'"
+    )
+    assert response.headers["x-frame-options"] == "DENY"
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["referrer-policy"] == "no-referrer"
+    assert response.headers["permissions-policy"] == (
+        "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    )
 
 
 @pytest.mark.asyncio
@@ -14,6 +37,7 @@ async def test_routes_request_to_expected_service(gateway_client) -> None:
     )
 
     assert response.status_code == 200
+    assert_security_headers(response)
     assert response.json()["host"] == "nsi.test"
     assert response.json()["path"] == "/api/v1/players"
     assert response.json()["authorization"] == "Bearer token"
@@ -341,6 +365,7 @@ async def test_path_traversal_is_rejected_before_proxy(gateway_client) -> None:
     response = await client.get("/nsi/api/%2E%2E/health")
 
     assert response.status_code == 400
+    assert_security_headers(response)
     assert response.json() == {"detail": "Path traversal is not allowed"}
     assert calls == {}
 
@@ -359,6 +384,32 @@ async def test_cors_preflight_uses_configured_origin(gateway_client) -> None:
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
+    assert response.headers["access-control-allow-methods"] == (
+        "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    )
+    assert_security_headers(response)
+
+
+@pytest.mark.asyncio
+async def test_cors_preflight_rejects_unconfigured_origin(gateway_client) -> None:
+    client, _, _, _ = gateway_client
+
+    response = await client.options(
+        "/auth/login",
+        headers={
+            "Origin": "https://evil.example",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "access-control-allow-origin" not in response.headers
+    assert_security_headers(response)
+
+
+def test_gateway_settings_reject_wildcard_cors_origin() -> None:
+    with pytest.raises(ValidationError):
+        GatewaySettings(CORS_ORIGINS=["*"])
 
 
 @pytest.mark.asyncio

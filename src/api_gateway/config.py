@@ -38,7 +38,37 @@ class GatewaySettings(BaseSettings):
     RATE_LIMIT_BY_JWT: bool = True
     CACHE_TTL_SECONDS: int = 30
     CORS_ORIGINS: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+    CORS_METHODS: list[str] = Field(
+        default_factory=lambda: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    )
+    CORS_HEADERS: list[str] = Field(
+        default_factory=lambda: [
+            "Authorization",
+            "Content-Type",
+            "X-Request-ID",
+            "X-Service-Authorization",
+        ]
+    )
+    CORS_ALLOW_CREDENTIALS: bool = True
     MAX_BODY_SIZE_MB: int = 10
+    HSTS_MAX_AGE_SECONDS: int = 31_536_000
+    HSTS_INCLUDE_SUBDOMAINS: bool = True
+    HSTS_PRELOAD: bool = False
+    CONTENT_SECURITY_POLICY: str = (
+        "default-src 'self'; "
+        "base-uri 'self'; "
+        "frame-ancestors 'none'; "
+        "object-src 'none'; "
+        "img-src 'self' data:; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "connect-src 'self'"
+    )
+    X_FRAME_OPTIONS: str = "DENY"
+    REFERRER_POLICY: str = "no-referrer"
+    PERMISSIONS_POLICY: str = (
+        "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    )
 
     JWT_SECRET: str = "change-me"
     JWT_ALGORITHM: str = "HS256"
@@ -68,6 +98,15 @@ class GatewaySettings(BaseSettings):
             raise ValueError("Rate limit must be formatted as '<positive int>/minute'")
         if period != "minute":
             raise ValueError("Only minute rate limit period is supported")
+        return value
+
+    @field_validator("CORS_ORIGINS")
+    @classmethod
+    def validate_cors_origins(cls, value: list[str]) -> list[str]:
+        if not value:
+            raise ValueError("CORS_ORIGINS must contain at least one explicit origin")
+        if "*" in value:
+            raise ValueError("CORS_ORIGINS must not use wildcard origins")
         return value
 
     @property

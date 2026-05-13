@@ -103,10 +103,6 @@ class GatewayApplicationFactory:
             jwt_algorithm=self._settings.JWT_ALGORITHM,
         )
         app.add_middleware(
-            GatewaySecurityMiddleware,
-            max_body_size_bytes=self._settings.max_body_size_bytes,
-        )
-        app.add_middleware(
             JsonAccessLogMiddleware,
             stats_ttl_seconds=self._settings.STATS_TTL_SECONDS,
             jwt_secret=self._settings.JWT_SECRET,
@@ -114,11 +110,16 @@ class GatewayApplicationFactory:
         )
         app.add_middleware(RequestContextMiddleware)
         app.add_middleware(
+            GatewaySecurityMiddleware,
+            max_body_size_bytes=self._settings.max_body_size_bytes,
+            security_headers=self._build_security_headers(),
+        )
+        app.add_middleware(
             CORSMiddleware,
             allow_origins=self._settings.CORS_ORIGINS,
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
+            allow_credentials=self._settings.CORS_ALLOW_CREDENTIALS,
+            allow_methods=self._settings.CORS_METHODS,
+            allow_headers=self._settings.CORS_HEADERS,
         )
 
     @asynccontextmanager
@@ -165,6 +166,21 @@ class GatewayApplicationFactory:
             service_registry=service_registry,
             header_policy=header_policy,
         )
+
+    def _build_security_headers(self) -> dict[str, str]:
+        hsts_value = f"max-age={self._settings.HSTS_MAX_AGE_SECONDS}"
+        if self._settings.HSTS_INCLUDE_SUBDOMAINS:
+            hsts_value += "; includeSubDomains"
+        if self._settings.HSTS_PRELOAD:
+            hsts_value += "; preload"
+        return {
+            "Strict-Transport-Security": hsts_value,
+            "Content-Security-Policy": self._settings.CONTENT_SECURITY_POLICY,
+            "X-Frame-Options": self._settings.X_FRAME_OPTIONS,
+            "X-Content-Type-Options": "nosniff",
+            "Referrer-Policy": self._settings.REFERRER_POLICY,
+            "Permissions-Policy": self._settings.PERMISSIONS_POLICY,
+        }
 
 
 def create_app(

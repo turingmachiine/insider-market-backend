@@ -151,6 +151,13 @@
 - Ограничить CORS.
 - Проверить CSP, HSTS, X-Frame-Options, Referrer-Policy.
 
+Статус:
+
+- `api_gateway` выставляет browser security headers на все HTTP-ответы, включая proxied responses, CORS preflight и early rejects: `Strict-Transport-Security`, `Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` и `Permissions-Policy`.
+- Значения CSP, HSTS, X-Frame-Options, Referrer-Policy и Permissions-Policy вынесены в настройки gateway.
+- CORS ограничен explicit allowlist origin'ов, методов и headers; wildcard origin запрещен на уровне settings validation.
+- Существующие проверки path traversal и request body size сохранены в gateway security middleware.
+
 Критерий готовности:
 
 - Gateway задает безопасный браузерный контур по умолчанию.

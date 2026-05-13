@@ -47,6 +47,26 @@ class FakeTransactionManager(TransactionManager):
 
 
 class FakeAdminGatewayClient(AdminGatewayClient):
+    async def list_roles(self) -> dict:
+        return {}
+
+    async def create_role(self, name: str, permissions: list[str]) -> dict:
+        return {}
+
+    async def set_role_permissions(
+        self, role_name: str, permissions: list[str]
+    ) -> dict:
+        return {}
+
+    async def list_permissions(self) -> dict:
+        return {}
+
+    async def create_permission(self, name: str) -> dict:
+        return {}
+
+    async def revoke_role(self, user_id: UUID, role_name: str) -> dict:
+        return {}
+
     async def get_health(self, service: str) -> dict:
         return {"status": "healthy", "version": "1.0.0", "service": service}
 

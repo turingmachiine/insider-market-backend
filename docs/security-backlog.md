@@ -170,6 +170,14 @@
 - Сформировать seed/migration для базовых ролей и permissions.
 - Убрать runtime dependency от кодовой карты permissions, оставив ее только как seed/reference.
 
+Статус:
+
+- Для `auth_service` добавлена миграция `005_seed_access_control`, которая seed'ит базовые roles, permissions и связи `role_permissions`.
+- Startup bootstrap больше не создает и не расширяет roles/permissions из `ROLE_PERMISSIONS`; runtime ACL берется из БД, а bootstrap только назначает default `user` role существующим пользователям без ролей.
+- `auth_service` открыл управляемые из БД сценарии: list/create permissions, list/create roles, replace role permissions, assign/revoke user role. Изменение role permissions и user roles отзывает refresh-сессии затронутых пользователей.
+- `admin_service` проксирует сценарии role/permission governance через свой application layer и пишет admin audit actions.
+- `ROLE_PERMISSIONS` остается кодовой reference-картой и test/seed helper source, но больше не является runtime source of truth для auth permissions.
+
 Критерий готовности:
 
 - Роли и permissions можно сопровождать без правок кода.

@@ -1,6 +1,9 @@
+import re
 from datetime import UTC, datetime, timedelta
+from typing import TypedDict
 from uuid import UUID, uuid4
 
+from src.auth_service.application.constants import ACCESS_CONTROL_NAME_PATTERN
 from src.auth_service.application.password_policy import (
     PasswordPolicyError,
     validate_password_policy,
@@ -19,16 +22,18 @@ from src.auth_service.domain.entities import (
     AuditLog,
     PasswordResetToken,
     RefreshToken,
-    User,
 )
+from src.auth_service.domain.entities import Role as AuthRole
+from src.auth_service.domain.entities import User
 from src.auth_service.domain.interfaces.repositories import (
     IAuditLogRepository,
     IPasswordResetTokenRepository,
+    IPermissionRepository,
     IRefreshTokenRepository,
     IRoleRepository,
     IUserRepository,
 )
-from src.common.domain.security import ROLE_PERMISSIONS, Role
+from src.common.domain.security import Role
 
 
 class AuthError(ValueError):
@@ -38,11 +43,17 @@ class AuthError(ValueError):
 INVALID_CREDENTIALS_MESSAGE = "Invalid credentials"
 
 
+class RolePayload(TypedDict):
+    name: str
+    permissions: list[str]
+
+
 class AuthService:
     def __init__(
         self,
         user_repository: IUserRepository,
         role_repository: IRoleRepository,
+        permission_repository: IPermissionRepository,
         refresh_token_repository: IRefreshTokenRepository,
         password_reset_token_repository: IPasswordResetTokenRepository,
         audit_log_repository: IAuditLogRepository,
@@ -50,10 +61,12 @@ class AuthService:
     ) -> None:
         self.user_repository = user_repository
         self.role_repository = role_repository
+        self.permission_repository = permission_repository
         self.refresh_token_repository = refresh_token_repository
         self.password_reset_token_repository = password_reset_token_repository
         self.audit_log_repository = audit_log_repository
         self.settings = settings
+        self._access_control_name_pattern = re.compile(ACCESS_CONTROL_NAME_PATTERN)
 
     async def register(
         self,
@@ -284,17 +297,104 @@ class AuthService:
         )
 
     async def bootstrap_access_control(self) -> None:
-        for role, permissions in ROLE_PERMISSIONS.items():
-            await self.role_repository.ensure_with_permissions(role, permissions)
-
         users = await self.user_repository.get_all(limit=10_000, offset=0)
+        user_role = await self.role_repository.get_by_name(Role.USER.value)
+        if user_role is None:
+            raise AuthError("Default user role is missing")
         for user in users:
             if not user.roles:
-                await self.role_repository.ensure_with_permissions(
-                    Role.USER,
-                    ROLE_PERMISSIONS[Role.USER],
-                    user=user,
-                )
+                user.roles.append(user_role)
+                await self.user_repository.save(user)
+
+    async def list_permissions(self) -> list[str]:
+        permissions = await self.permission_repository.list_all()
+        return [permission.name for permission in permissions]
+
+    async def create_permission(
+        self,
+        name: str,
+        actor_user_id: UUID | None = None,
+        correlation_id: str | None = None,
+    ) -> str:
+        permission_name = self._normalize_access_control_name(name, "Permission")
+        existing = await self.permission_repository.get_by_name(permission_name)
+        if existing is not None:
+            raise AuthError(f"Permission {permission_name} already exists")
+        permission = await self.permission_repository.create(permission_name)
+        await self._record_audit(
+            action=AuditAction.PERMISSION_CREATE,
+            actor_user_id=actor_user_id,
+            target_type="permission",
+            target_id=permission.name,
+            after={"name": permission.name},
+            correlation_id=correlation_id,
+        )
+        return permission.name
+
+    async def list_roles(self) -> list[RolePayload]:
+        roles = await self.role_repository.list_all()
+        return [
+            {
+                "name": role.name,
+                "permissions": sorted(
+                    permission.name for permission in role.permissions
+                ),
+            }
+            for role in roles
+        ]
+
+    async def create_role(
+        self,
+        name: str,
+        permissions: list[str] | None = None,
+        actor_user_id: UUID | None = None,
+        correlation_id: str | None = None,
+    ) -> RolePayload:
+        role_name = self._normalize_access_control_name(name, "Role")
+        permission_names = self._normalize_permission_names(permissions or [])
+        existing = await self.role_repository.get_by_name(role_name)
+        if existing is not None:
+            raise AuthError(f"Role {role_name} already exists")
+        role = await self.role_repository.create(role_name)
+        if permission_names:
+            role = await self.role_repository.set_permissions(role, permission_names)
+        result = self._role_payload(role)
+        await self._record_audit(
+            action=AuditAction.ROLE_CREATE,
+            actor_user_id=actor_user_id,
+            target_type="role",
+            target_id=role.name,
+            after=dict(result),
+            correlation_id=correlation_id,
+        )
+        return result
+
+    async def set_role_permissions(
+        self,
+        role_name: str,
+        permissions: list[str],
+        actor_user_id: UUID | None = None,
+        correlation_id: str | None = None,
+    ) -> RolePayload:
+        normalized_role_name = self._normalize_access_control_name(role_name, "Role")
+        permission_names = self._normalize_permission_names(permissions)
+        role = await self.role_repository.get_by_name(normalized_role_name)
+        if role is None:
+            raise AuthError(f"Role {normalized_role_name} not found")
+        before = self._role_payload(role)
+        role = await self.role_repository.set_permissions(role, permission_names)
+        await self.refresh_token_repository.revoke_all_for_roles([role.name])
+        after = self._role_payload(role)
+        await self._record_audit(
+            action=AuditAction.ROLE_PERMISSIONS_UPDATE,
+            actor_user_id=actor_user_id,
+            target_type="role",
+            target_id=role.name,
+            before=dict(before),
+            after=dict(after),
+            correlation_id=correlation_id,
+        )
+        return after
 
     async def list_users(self, limit: int = 100, offset: int = 0) -> list[User]:
         return await self.user_repository.get_all(limit=limit, offset=offset)
@@ -342,15 +442,44 @@ class AuthService:
         if user is None:
             return None
         before = {"roles": sorted(role.name for role in user.roles)}
-        role = await self.role_repository.get_by_name(Role(role_name).value)
+        normalized_role_name = self._normalize_access_control_name(
+            str(role_name), "Role"
+        )
+        role = await self.role_repository.get_by_name(normalized_role_name)
         if role is None:
-            raise AuthError(f"Role {Role(role_name).value} is missing")
+            raise AuthError(f"Role {normalized_role_name} is missing")
         if role not in user.roles:
             user.roles.append(role)
         saved_user = await self.user_repository.save(user)
         await self.refresh_token_repository.revoke_all_for_user(user.id)
         await self._record_audit(
             action=AuditAction.ROLE_ASSIGNMENT,
+            actor_user_id=actor_user_id,
+            target_type="user",
+            target_id=str(saved_user.id),
+            before=before,
+            after={"roles": sorted(role.name for role in saved_user.roles)},
+            correlation_id=correlation_id,
+        )
+        return saved_user
+
+    async def revoke_role(
+        self,
+        user_id: UUID,
+        role_name: str,
+        actor_user_id: UUID | None = None,
+        correlation_id: str | None = None,
+    ) -> User | None:
+        user = await self.user_repository.get_by_id(user_id)
+        if user is None:
+            return None
+        normalized_role_name = self._normalize_access_control_name(role_name, "Role")
+        before = {"roles": sorted(role.name for role in user.roles)}
+        user.roles = [role for role in user.roles if role.name != normalized_role_name]
+        saved_user = await self.user_repository.save(user)
+        await self.refresh_token_repository.revoke_all_for_user(user.id)
+        await self._record_audit(
+            action=AuditAction.ROLE_REVOCATION,
             actor_user_id=actor_user_id,
             target_type="user",
             target_id=str(saved_user.id),
@@ -406,6 +535,27 @@ class AuthService:
             validate_password_policy(password)
         except PasswordPolicyError as exc:
             raise AuthError(str(exc)) from exc
+
+    def _normalize_access_control_name(self, name: str, label: str) -> str:
+        normalized = name.strip().lower()
+        if not self._access_control_name_pattern.fullmatch(normalized):
+            raise AuthError(f"{label} name is invalid")
+        return normalized
+
+    def _normalize_permission_names(self, permissions: list[str]) -> list[str]:
+        return sorted(
+            {
+                self._normalize_access_control_name(permission, "Permission")
+                for permission in permissions
+            }
+        )
+
+    @staticmethod
+    def _role_payload(role: AuthRole) -> RolePayload:
+        return {
+            "name": role.name,
+            "permissions": sorted(permission.name for permission in role.permissions),
+        }
 
     async def _record_audit(
         self,

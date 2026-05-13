@@ -36,6 +36,21 @@ class RoleRepository(IRoleRepository):
         result = await self.session.execute(query)
         return result.scalars().one_or_none()
 
+    async def list_all(self) -> list[Role]:
+        query = (
+            select(self.model)
+            .order_by(roles_table.c.name.asc())
+            .options(selectinload(Role.permissions))
+        )
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+
+    async def create(self, name: str) -> Role:
+        role = Role(name=name, permissions=[])
+        self.session.add(role)
+        await self.session.flush()
+        return role
+
     async def ensure_with_permissions(
         self,
         role_name: AccessRole | str,
@@ -65,4 +80,20 @@ class RoleRepository(IRoleRepository):
 
         if user is not None and role not in user.roles:
             user.roles.append(role)
+        return role
+
+    async def set_permissions(
+        self,
+        role: Role,
+        permissions: Iterable[str],
+    ) -> Role:
+        next_permissions = []
+        for permission_name in permissions:
+            permission = await self.permission_repository.get_by_name(permission_name)
+            if permission is None:
+                permission = await self.permission_repository.create(permission_name)
+            next_permissions.append(permission)
+        role.permissions = next_permissions
+        self.session.add(role)
+        await self.session.flush()
         return role

@@ -18,3 +18,7 @@ class IRefreshTokenRepository(ABC):
     @abstractmethod
     async def revoke_all_for_user(self, user_id: UUID) -> None:
         pass
+
+    @abstractmethod
+    async def revoke_all_for_roles(self, role_names: list[str]) -> None:
+        pass

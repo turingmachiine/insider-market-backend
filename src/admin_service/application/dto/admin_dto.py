@@ -5,7 +5,6 @@ from datetime import datetime
 from uuid import UUID
 
 from src.admin_service.domain.entities import AdminActionType
-from src.common.domain.security import Role
 
 
 @dataclass(frozen=True)
@@ -55,7 +54,18 @@ class UserStatusUpdateDTO:
 
 @dataclass(frozen=True)
 class UserRoleGrantDTO:
-    role_name: Role
+    role_name: str
+
+
+@dataclass(frozen=True)
+class RoleCreateDTO:
+    name: str
+    permissions: list[str]
+
+
+@dataclass(frozen=True)
+class RolePermissionsUpdateDTO:
+    permissions: list[str]
 
 
 @dataclass(frozen=True)

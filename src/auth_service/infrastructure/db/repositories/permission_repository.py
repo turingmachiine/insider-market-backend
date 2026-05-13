@@ -18,6 +18,11 @@ class PermissionRepository(IPermissionRepository):
         result = await self.session.execute(query)
         return result.scalars().one_or_none()
 
+    async def list_all(self) -> list[Permission]:
+        query = select(self.model).order_by(permissions_table.c.name.asc())
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+
     async def create(self, name: str) -> Permission:
         permission = Permission(name=name)
         self.session.add(permission)

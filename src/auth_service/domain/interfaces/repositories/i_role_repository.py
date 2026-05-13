@@ -14,10 +14,26 @@ class IRoleRepository(ABC):
         pass
 
     @abstractmethod
+    async def list_all(self) -> list[Role]:
+        pass
+
+    @abstractmethod
+    async def create(self, name: str) -> Role:
+        pass
+
+    @abstractmethod
     async def ensure_with_permissions(
         self,
         role_name: AccessRole | str,
         permissions: Iterable[Permission | str],
         user: User | None = None,
+    ) -> Role:
+        pass
+
+    @abstractmethod
+    async def set_permissions(
+        self,
+        role: Role,
+        permissions: Iterable[str],
     ) -> Role:
         pass

@@ -22,6 +22,7 @@ from src.auth_service.domain.entities import (
 from src.auth_service.domain.interfaces.repositories import (
     IAuditLogRepository,
     IPasswordResetTokenRepository,
+    IPermissionRepository,
     IRefreshTokenRepository,
     IRoleRepository,
     IUserRepository,
@@ -67,6 +68,14 @@ class FakeRoleRepository(IRoleRepository):
     async def get_by_name(self, name: str) -> Role | None:
         return self.roles.get(name)
 
+    async def list_all(self) -> list[Role]:
+        return sorted(self.roles.values(), key=lambda role: role.name)
+
+    async def create(self, name: str) -> Role:
+        role = Role(name=name, permissions=[])
+        self.roles[name] = role
+        return role
+
     async def ensure_with_permissions(
         self,
         role_name: AccessRole | str,
@@ -74,6 +83,30 @@ class FakeRoleRepository(IRoleRepository):
         user: User | None = None,
     ) -> Role:
         raise AssertionError("bootstrap-only path should not be used in this test")
+
+    async def set_permissions(
+        self,
+        role: Role,
+        permissions: Iterable[str],
+    ) -> Role:
+        role.permissions = [Permission(name=permission) for permission in permissions]
+        return role
+
+
+class FakePermissionRepository(IPermissionRepository):
+    def __init__(self, permissions: dict[str, Permission] | None = None) -> None:
+        self.permissions = permissions or {}
+
+    async def get_by_name(self, name: str) -> Permission | None:
+        return self.permissions.get(name)
+
+    async def list_all(self) -> list[Permission]:
+        return sorted(self.permissions.values(), key=lambda permission: permission.name)
+
+    async def create(self, name: str) -> Permission:
+        permission = Permission(name=name)
+        self.permissions[name] = permission
+        return permission
 
 
 class FakeRefreshTokenRepository(IRefreshTokenRepository):
@@ -92,6 +125,12 @@ class FakeRefreshTokenRepository(IRefreshTokenRepository):
         now = datetime.now(UTC)
         for refresh_token in self.tokens_by_hash.values():
             if refresh_token.user_id == user_id and refresh_token.revoked_at is None:
+                refresh_token.revoke(now)
+
+    async def revoke_all_for_roles(self, role_names: list[str]) -> None:
+        now = datetime.now(UTC)
+        for refresh_token in self.tokens_by_hash.values():
+            if refresh_token.revoked_at is None:
                 refresh_token.revoke(now)
 
 
@@ -170,6 +209,7 @@ async def test_login_uses_permissions_from_database_relations() -> None:
     service = AuthService(
         user_repo,
         role_repo,
+        FakePermissionRepository(),
         refresh_token_repo,
         password_reset_token_repo,
         audit_log_repo,
@@ -219,6 +259,7 @@ async def test_refresh_rotates_refresh_token() -> None:
     service = AuthService(
         user_repo,
         role_repo,
+        FakePermissionRepository(),
         refresh_token_repo,
         password_reset_token_repo,
         audit_log_repo,
@@ -263,6 +304,7 @@ async def test_logout_revokes_refresh_token() -> None:
     service = AuthService(
         user_repo,
         role_repo,
+        FakePermissionRepository(),
         refresh_token_repo,
         password_reset_token_repo,
         audit_log_repo,
@@ -289,6 +331,7 @@ async def test_register_rejects_weak_password() -> None:
     service = AuthService(
         FakeUserRepository(),
         FakeRoleRepository({"user": user_role}),
+        FakePermissionRepository(),
         FakeRefreshTokenRepository(),
         FakePasswordResetTokenRepository(),
         FakeAuditLogRepository(),
@@ -306,6 +349,7 @@ async def test_failed_logins_lock_user_temporarily() -> None:
     service = AuthService(
         user_repo,
         FakeRoleRepository({"user": user_role}),
+        FakePermissionRepository(),
         FakeRefreshTokenRepository(),
         FakePasswordResetTokenRepository(),
         FakeAuditLogRepository(),
@@ -339,6 +383,7 @@ async def test_password_reset_changes_password_and_revokes_tokens() -> None:
     service = AuthService(
         FakeUserRepository(),
         FakeRoleRepository({"user": user_role}),
+        FakePermissionRepository(),
         refresh_token_repo,
         password_reset_token_repo,
         audit_log_repo,

@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from src.admin_service.application.dto import (
     EventModerationCommandDTO,
+    RoleCreateDTO,
+    RolePermissionsUpdateDTO,
     SavedFilterCreateDTO,
     UserRoleGrantDTO,
     UserStatusUpdateDTO,
@@ -18,7 +20,10 @@ from src.admin_service.presentation.api.v1.schemas import (
     EventModerationCommandRequest,
     EventModerationQueueResponse,
     HealthStatusResponse,
+    PermissionCreateRequest,
     ProfileSummaryResponse,
+    RoleCreateRequest,
+    RolePermissionsUpdateRequest,
     SavedFilterCreateRequest,
     SavedFilterListResponse,
     SavedFilterResponse,
@@ -218,6 +223,80 @@ async def get_user_permissions(
     return await admin_use_cases.get_user_permissions(user_id)
 
 
+@router.get("/roles")
+@inject
+async def list_roles(
+    admin_use_cases: FromDishka[AdminUseCases],
+    _: Annotated[UserContext, Depends(require_permission(Permission.ADMIN_READ))],
+) -> dict[str, object]:
+    return await admin_use_cases.list_roles()
+
+
+@router.post("/roles", status_code=status.HTTP_201_CREATED)
+@inject
+async def create_role(
+    request: RoleCreateRequest,
+    request_context_provider: FromDishka[RequestContextProvider],
+    admin_use_cases: FromDishka[AdminUseCases],
+    payload: Annotated[
+        UserContext,
+        Depends(require_permission(Permission.ADMIN_WRITE)),
+    ],
+) -> dict[str, object]:
+    return await admin_use_cases.create_role(
+        RoleCreateDTO(name=request.name, permissions=request.permissions),
+        actor_user_id=payload.user_id,
+        correlation_id=request_context_provider.get_context().correlation_id,
+    )
+
+
+@router.put("/roles/{role_name}/permissions")
+@inject
+async def set_role_permissions(
+    role_name: str,
+    request: RolePermissionsUpdateRequest,
+    request_context_provider: FromDishka[RequestContextProvider],
+    admin_use_cases: FromDishka[AdminUseCases],
+    payload: Annotated[
+        UserContext,
+        Depends(require_permission(Permission.ADMIN_WRITE)),
+    ],
+) -> dict[str, object]:
+    return await admin_use_cases.set_role_permissions(
+        role_name,
+        RolePermissionsUpdateDTO(permissions=request.permissions),
+        actor_user_id=payload.user_id,
+        correlation_id=request_context_provider.get_context().correlation_id,
+    )
+
+
+@router.get("/permissions")
+@inject
+async def list_permissions(
+    admin_use_cases: FromDishka[AdminUseCases],
+    _: Annotated[UserContext, Depends(require_permission(Permission.ADMIN_READ))],
+) -> dict[str, object]:
+    return await admin_use_cases.list_permissions()
+
+
+@router.post("/permissions", status_code=status.HTTP_201_CREATED)
+@inject
+async def create_permission(
+    request: PermissionCreateRequest,
+    request_context_provider: FromDishka[RequestContextProvider],
+    admin_use_cases: FromDishka[AdminUseCases],
+    payload: Annotated[
+        UserContext,
+        Depends(require_permission(Permission.ADMIN_WRITE)),
+    ],
+) -> dict[str, object]:
+    return await admin_use_cases.create_permission(
+        request.name,
+        actor_user_id=payload.user_id,
+        correlation_id=request_context_provider.get_context().correlation_id,
+    )
+
+
 @router.patch("/users/{user_id}/status")
 @inject
 async def set_user_status(
@@ -259,6 +338,32 @@ async def assign_role(
     user = await admin_use_cases.assign_role(
         user_id,
         UserRoleGrantDTO(role_name=request.role_name),
+        actor_user_id=payload.user_id,
+        correlation_id=request_context_provider.get_context().correlation_id,
+    )
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User {str(user_id)} not found",
+        )
+    return UserSummaryResponse(**user.__dict__)
+
+
+@router.delete("/users/{user_id}/roles/{role_name}")
+@inject
+async def revoke_role(
+    user_id: UUID,
+    role_name: str,
+    request_context_provider: FromDishka[RequestContextProvider],
+    admin_use_cases: FromDishka[AdminUseCases],
+    payload: Annotated[
+        UserContext,
+        Depends(require_permission(Permission.ADMIN_WRITE)),
+    ],
+) -> UserSummaryResponse:
+    user = await admin_use_cases.revoke_role(
+        user_id,
+        role_name,
         actor_user_id=payload.user_id,
         correlation_id=request_context_provider.get_context().correlation_id,
     )

@@ -37,11 +37,43 @@ class AdminGatewayClient(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    async def list_roles(self) -> dict:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def create_role(self, name: str, permissions: list[str]) -> dict:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def set_role_permissions(
+        self,
+        role_name: str,
+        permissions: list[str],
+    ) -> dict:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def list_permissions(self) -> dict:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def create_permission(self, name: str) -> dict:
+        raise NotImplementedError
+
+    @abstractmethod
     async def set_user_status(self, user_id: UUID, is_active: bool) -> dict:
         raise NotImplementedError
 
     @abstractmethod
     async def assign_role(
+        self,
+        user_id: UUID,
+        role_name: str,
+    ) -> dict:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def revoke_role(
         self,
         user_id: UUID,
         role_name: str,

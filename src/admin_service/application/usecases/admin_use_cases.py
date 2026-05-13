@@ -7,6 +7,8 @@ from src.admin_service.application.dto import (
     EventModerationQueueDTO,
     HealthStatusDTO,
     ProfileSummaryDTO,
+    RoleCreateDTO,
+    RolePermissionsUpdateDTO,
     SavedFilterCreateDTO,
     SavedFilterDTO,
     SavedFilterListDTO,
@@ -247,6 +249,78 @@ class AdminUseCases(HasTransactionManager):
     async def get_user_permissions(self, user_id: UUID) -> dict:
         return await self.gateway_client.get_user_permissions(user_id)
 
+    async def list_roles(self) -> dict:
+        return await self.gateway_client.list_roles()
+
+    @transactional()
+    async def create_role(
+        self,
+        dto: RoleCreateDTO,
+        actor_user_id: UUID | None = None,
+        correlation_id: str | None = None,
+    ) -> dict:
+        result = await self.gateway_client.create_role(dto.name, dto.permissions)
+        await self._record_action(
+            AdminActionType.USER_ROLE,
+            "role",
+            str(result.get("name", dto.name)),
+            f"Created role {dto.name}",
+            result,
+            actor_user_id=actor_user_id,
+            after=result,
+            correlation_id=correlation_id,
+        )
+        return result
+
+    @transactional()
+    async def set_role_permissions(
+        self,
+        role_name: str,
+        dto: RolePermissionsUpdateDTO,
+        actor_user_id: UUID | None = None,
+        correlation_id: str | None = None,
+    ) -> dict:
+        before = await self.gateway_client.list_roles()
+        result = await self.gateway_client.set_role_permissions(
+            role_name,
+            dto.permissions,
+        )
+        await self._record_action(
+            AdminActionType.USER_ROLE,
+            "role",
+            str(result.get("name", role_name)),
+            f"Updated role permissions for {role_name}",
+            result,
+            actor_user_id=actor_user_id,
+            before=before,
+            after=result,
+            correlation_id=correlation_id,
+        )
+        return result
+
+    async def list_permissions(self) -> dict:
+        return await self.gateway_client.list_permissions()
+
+    @transactional()
+    async def create_permission(
+        self,
+        name: str,
+        actor_user_id: UUID | None = None,
+        correlation_id: str | None = None,
+    ) -> dict:
+        result = await self.gateway_client.create_permission(name)
+        await self._record_action(
+            AdminActionType.USER_ROLE,
+            "permission",
+            str(result.get("name", name)),
+            f"Created permission {name}",
+            result,
+            actor_user_id=actor_user_id,
+            after=result,
+            correlation_id=correlation_id,
+        )
+        return result
+
     @transactional()
     async def set_user_status(
         self,
@@ -283,7 +357,7 @@ class AdminUseCases(HasTransactionManager):
         before = await self.gateway_client.get_user(user_id)
         result = await self.gateway_client.assign_role(
             user_id,
-            dto.role_name.value,
+            dto.role_name,
         )
         if not result:
             return None
@@ -292,6 +366,31 @@ class AdminUseCases(HasTransactionManager):
             "user",
             str(user_id),
             f"Granted role {dto.role_name}",
+            result,
+            actor_user_id=actor_user_id,
+            before=before,
+            after=result,
+            correlation_id=correlation_id,
+        )
+        return self.mapper.user_to_dto(result)
+
+    @transactional()
+    async def revoke_role(
+        self,
+        user_id: UUID,
+        role_name: str,
+        actor_user_id: UUID | None = None,
+        correlation_id: str | None = None,
+    ) -> UserSummaryDTO | None:
+        before = await self.gateway_client.get_user(user_id)
+        result = await self.gateway_client.revoke_role(user_id, role_name)
+        if not result:
+            return None
+        await self._record_action(
+            AdminActionType.USER_ROLE,
+            "user",
+            str(user_id),
+            f"Revoked role {role_name}",
             result,
             actor_user_id=actor_user_id,
             before=before,

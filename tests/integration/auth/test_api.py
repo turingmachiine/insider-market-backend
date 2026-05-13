@@ -11,6 +11,7 @@ from src.auth_service.infrastructure.db.tables import (
     password_reset_tokens_table,
 )
 from src.common.application.security import encode_jwt
+from src.common.domain.security import Permission
 
 
 @pytest.mark.asyncio
@@ -240,3 +241,78 @@ async def test_permission_required_not_role(auth_client: httpx.AsyncClient) -> N
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_custom_role_and_permissions_are_managed_from_database(
+    auth_client: httpx.AsyncClient,
+) -> None:
+    admin_token = encode_jwt(
+        {
+            "sub": "00000000-0000-0000-0000-000000000001",
+            "permissions": [
+                Permission.AUTH_PERMISSIONS_READ.value,
+                Permission.AUTH_ROLES_WRITE.value,
+            ],
+            "exp": int((datetime.now(UTC) + timedelta(hours=1)).timestamp()),
+        },
+        settings.JWT_SECRET,
+        settings.JWT_ALGORITHM,
+    )
+    headers = {"Authorization": f"Bearer {admin_token}"}
+
+    response = await auth_client.post(
+        "/api/v1/register",
+        json={"email": "custom-role@example.com", "password": "Password123!"},
+    )
+    assert response.status_code == 201
+    user_id = response.json()["user_id"]
+
+    response = await auth_client.post(
+        "/api/v1/permissions",
+        json={"name": "catalog:approve"},
+        headers=headers,
+    )
+    assert response.status_code == 201
+    assert response.json() == {"name": "catalog:approve"}
+
+    response = await auth_client.post(
+        "/api/v1/roles",
+        json={"name": "catalog-manager", "permissions": ["catalog:approve"]},
+        headers=headers,
+    )
+    assert response.status_code == 201
+    assert response.json() == {
+        "name": "catalog-manager",
+        "permissions": ["catalog:approve"],
+    }
+
+    response = await auth_client.post(
+        f"/api/v1/users/{user_id}/roles",
+        json={"role_name": "catalog-manager"},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert "catalog-manager" in response.json()["roles"]
+
+    response = await auth_client.post(
+        "/api/v1/login",
+        json={"email": "custom-role@example.com", "password": "Password123!"},
+    )
+    assert response.status_code == 200
+    assert "catalog:approve" in response.json()["permissions"]
+
+    response = await auth_client.put(
+        "/api/v1/roles/catalog-manager/permissions",
+        json={"permissions": ["catalog:approve", "catalog:publish"]},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert response.json()["permissions"] == ["catalog:approve", "catalog:publish"]
+
+    response = await auth_client.delete(
+        f"/api/v1/users/{user_id}/roles/catalog-manager",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert "catalog-manager" not in response.json()["roles"]

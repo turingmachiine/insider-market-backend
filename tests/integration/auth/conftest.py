@@ -11,8 +11,14 @@ from testcontainers.postgres import PostgresContainer
 from src.auth_service.application.service import AuthService
 from src.auth_service.core.config import settings
 from src.auth_service.infrastructure.db.metadata import Base
+from src.auth_service.infrastructure.db.tables import (
+    permissions_table,
+    role_permissions_table,
+    roles_table,
+)
 from src.auth_service.infrastructure.di import create_container
 from src.auth_service.main import create_app
+from src.common.domain.security import ROLE_PERMISSIONS
 
 
 class AuthTestSettings:
@@ -71,6 +77,7 @@ async def auth_engine(
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
+        await seed_access_control(conn)
 
     yield engine
 
@@ -93,3 +100,36 @@ async def auth_client(auth_engine: AsyncEngine):
         yield client
 
     await container.close()
+
+
+async def seed_access_control(conn) -> None:
+    role_ids = {}
+    permission_ids = {}
+    for role in sorted(ROLE_PERMISSIONS, key=lambda item: item.value):
+        result = await conn.execute(
+            roles_table.insert().values(name=role.value).returning(roles_table.c.id)
+        )
+        role_ids[role.value] = result.scalar_one()
+
+    for permission_item in sorted(
+        {item for values in ROLE_PERMISSIONS.values() for item in values},
+        key=lambda item: item.value,
+    ):
+        result = await conn.execute(
+            permissions_table.insert()
+            .values(name=permission_item.value)
+            .returning(permissions_table.c.id)
+        )
+        permission_ids[permission_item.value] = result.scalar_one()
+
+    await conn.execute(
+        role_permissions_table.insert(),
+        [
+            {
+                "role_id": role_ids[role.value],
+                "permission_id": permission_ids[permission.value],
+            }
+            for role, permissions in ROLE_PERMISSIONS.items()
+            for permission in permissions
+        ],
+    )

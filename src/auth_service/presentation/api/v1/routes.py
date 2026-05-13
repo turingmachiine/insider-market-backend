@@ -12,9 +12,14 @@ from src.auth_service.presentation.api.v1.schemas import (
     PasswordChangeRequest,
     PasswordResetConfirmRequest,
     PasswordResetRequest,
+    PermissionCreateRequest,
+    PermissionResponse,
     RefreshTokenRequest,
     RegisterRequest,
     RegisterResponse,
+    RoleCreateRequest,
+    RolePermissionsUpdateRequest,
+    RoleResponse,
     TokenResponse,
     UserListResponse,
     UserResponse,
@@ -234,6 +239,109 @@ async def get_user_permissions(
     return {"user_id": str(user_id), "permissions": permissions}
 
 
+@router.get("/permissions")
+@inject
+async def list_permissions(
+    auth_service: FromDishka[AuthService],
+    _: Annotated[
+        UserContext,
+        Depends(require_permission(Permission.AUTH_PERMISSIONS_READ)),
+    ],
+) -> dict[str, list[str]]:
+    return {"items": await auth_service.list_permissions()}
+
+
+@router.post("/permissions", status_code=status.HTTP_201_CREATED)
+@inject
+async def create_permission(
+    request: PermissionCreateRequest,
+    request_context_provider: FromDishka[RequestContextProvider],
+    auth_service: FromDishka[AuthService],
+    auth_payload: Annotated[
+        UserContext,
+        Depends(require_permission(Permission.AUTH_ROLES_WRITE)),
+    ],
+) -> PermissionResponse:
+    try:
+        permission_name = await auth_service.create_permission(
+            request.name,
+            actor_user_id=auth_payload.user_id,
+            correlation_id=request_context_provider.get_context().correlation_id,
+        )
+    except AuthError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    return PermissionResponse(name=permission_name)
+
+
+@router.get("/roles")
+@inject
+async def list_roles(
+    auth_service: FromDishka[AuthService],
+    _: Annotated[
+        UserContext,
+        Depends(require_permission(Permission.AUTH_PERMISSIONS_READ)),
+    ],
+) -> dict[str, list[RoleResponse]]:
+    roles = await auth_service.list_roles()
+    return {"items": [RoleResponse(**role) for role in roles]}
+
+
+@router.post("/roles", status_code=status.HTTP_201_CREATED)
+@inject
+async def create_role(
+    request: RoleCreateRequest,
+    request_context_provider: FromDishka[RequestContextProvider],
+    auth_service: FromDishka[AuthService],
+    auth_payload: Annotated[
+        UserContext,
+        Depends(require_permission(Permission.AUTH_ROLES_WRITE)),
+    ],
+) -> RoleResponse:
+    try:
+        role = await auth_service.create_role(
+            request.name,
+            permissions=request.permissions,
+            actor_user_id=auth_payload.user_id,
+            correlation_id=request_context_provider.get_context().correlation_id,
+        )
+    except AuthError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    return RoleResponse(**role)
+
+
+@router.put("/roles/{role_name}/permissions")
+@inject
+async def set_role_permissions(
+    role_name: str,
+    request: RolePermissionsUpdateRequest,
+    request_context_provider: FromDishka[RequestContextProvider],
+    auth_service: FromDishka[AuthService],
+    auth_payload: Annotated[
+        UserContext,
+        Depends(require_permission(Permission.AUTH_ROLES_WRITE)),
+    ],
+) -> RoleResponse:
+    try:
+        role = await auth_service.set_role_permissions(
+            role_name,
+            request.permissions,
+            actor_user_id=auth_payload.user_id,
+            correlation_id=request_context_provider.get_context().correlation_id,
+        )
+    except AuthError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    return RoleResponse(**role)
+
+
 @router.patch("/users/{user_id}/status")
 @inject
 async def set_user_status(
@@ -298,6 +406,32 @@ async def assign_role(
     user = await auth_service.assign_role(
         user_id=user_id,
         role_name=request.role_name,
+        actor_user_id=auth_payload.user_id,
+        correlation_id=request_context_provider.get_context().correlation_id,
+    )
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User {str(user_id)} not found",
+        )
+    return to_user_response(user)
+
+
+@router.delete("/users/{user_id}/roles/{role_name}")
+@inject
+async def revoke_role(
+    user_id: UUID,
+    role_name: str,
+    request_context_provider: FromDishka[RequestContextProvider],
+    auth_service: FromDishka[AuthService],
+    auth_payload: Annotated[
+        UserContext,
+        Depends(require_permission(Permission.AUTH_ROLES_WRITE)),
+    ],
+) -> UserResponse:
+    user = await auth_service.revoke_role(
+        user_id=user_id,
+        role_name=role_name,
         actor_user_id=auth_payload.user_id,
         correlation_id=request_context_provider.get_context().correlation_id,
     )

@@ -80,10 +80,61 @@ class HttpAdminGatewayClient(AdminGatewayClient):
         response.raise_for_status()
         return cast(dict[str, Any], response.json())
 
+    async def list_roles(self) -> dict:
+        response = await self._http_client.get(f"{self._base('auth')}/api/v1/roles")
+        response.raise_for_status()
+        return cast(dict[str, Any], response.json())
+
+    async def create_role(self, name: str, permissions: list[str]) -> dict:
+        response = await self._http_client.post(
+            f"{self._base('auth')}/api/v1/roles",
+            json={"name": name, "permissions": permissions},
+        )
+        response.raise_for_status()
+        return cast(dict[str, Any], response.json())
+
+    async def set_role_permissions(
+        self,
+        role_name: str,
+        permissions: list[str],
+    ) -> dict:
+        response = await self._http_client.put(
+            f"{self._base('auth')}/api/v1/roles/{role_name}/permissions",
+            json={"permissions": permissions},
+        )
+        response.raise_for_status()
+        return cast(dict[str, Any], response.json())
+
+    async def list_permissions(self) -> dict:
+        response = await self._http_client.get(
+            f"{self._base('auth')}/api/v1/permissions"
+        )
+        response.raise_for_status()
+        return cast(dict[str, Any], response.json())
+
+    async def create_permission(self, name: str) -> dict:
+        response = await self._http_client.post(
+            f"{self._base('auth')}/api/v1/permissions",
+            json={"name": name},
+        )
+        response.raise_for_status()
+        return cast(dict[str, Any], response.json())
+
     async def set_user_status(self, user_id: UUID, is_active: bool) -> dict:
         response = await self._http_client.patch(
             f"{self._base('auth')}/api/v1/users/{user_id}/status",
             json={"is_active": is_active},
+        )
+        response.raise_for_status()
+        return cast(dict[str, Any], response.json())
+
+    async def revoke_role(
+        self,
+        user_id: UUID,
+        role_name: str,
+    ) -> dict:
+        response = await self._http_client.delete(
+            f"{self._base('auth')}/api/v1/users/{user_id}/roles/{role_name}",
         )
         response.raise_for_status()
         return cast(dict[str, Any], response.json())

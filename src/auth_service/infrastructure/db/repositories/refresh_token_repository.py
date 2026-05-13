@@ -6,7 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth_service.domain.entities import RefreshToken
 from src.auth_service.domain.interfaces.repositories import IRefreshTokenRepository
-from src.auth_service.infrastructure.db.tables import refresh_tokens_table
+from src.auth_service.infrastructure.db.tables import (
+    refresh_tokens_table,
+    roles_table,
+    user_roles_table,
+)
 
 
 class RefreshTokenRepository(IRefreshTokenRepository):
@@ -33,6 +37,28 @@ class RefreshTokenRepository(IRefreshTokenRepository):
         query = (
             update(refresh_tokens_table)
             .where(refresh_tokens_table.c.user_id == user_id)
+            .where(refresh_tokens_table.c.revoked_at.is_(None))
+            .values(revoked_at=revoked_at)
+        )
+        await self.session.execute(query)
+
+    async def revoke_all_for_roles(self, role_names: list[str]) -> None:
+        if not role_names:
+            return
+        revoked_at = datetime.now(UTC)
+        user_ids_query = (
+            select(user_roles_table.c.user_id)
+            .select_from(
+                user_roles_table.join(
+                    roles_table,
+                    user_roles_table.c.role_id == roles_table.c.id,
+                )
+            )
+            .where(roles_table.c.name.in_(role_names))
+        )
+        query = (
+            update(refresh_tokens_table)
+            .where(refresh_tokens_table.c.user_id.in_(user_ids_query))
             .where(refresh_tokens_table.c.revoked_at.is_(None))
             .values(revoked_at=revoked_at)
         )

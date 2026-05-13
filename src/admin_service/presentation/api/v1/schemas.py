@@ -4,7 +4,6 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from src.admin_service.domain.entities import AdminActionType
-from src.common.domain.security import Role
 
 
 class HealthStatusResponse(BaseModel):
@@ -31,7 +30,20 @@ class UserStatusUpdateRequest(BaseModel):
 
 
 class UserRoleGrantRequest(BaseModel):
-    role_name: Role
+    role_name: str = Field(min_length=2, max_length=100)
+
+
+class RoleCreateRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=100)
+    permissions: list[str] = Field(default_factory=list)
+
+
+class RolePermissionsUpdateRequest(BaseModel):
+    permissions: list[str]
+
+
+class PermissionCreateRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=150)
 
 
 class SavedFilterCreateRequest(BaseModel):

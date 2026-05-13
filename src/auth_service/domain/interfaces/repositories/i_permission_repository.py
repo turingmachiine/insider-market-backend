@@ -11,5 +11,9 @@ class IPermissionRepository(ABC):
         pass
 
     @abstractmethod
+    async def list_all(self) -> list[Permission]:
+        pass
+
+    @abstractmethod
     async def create(self, name: str) -> Permission:
         pass

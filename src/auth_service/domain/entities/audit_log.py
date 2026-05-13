@@ -15,6 +15,10 @@ class AuditAction(StrEnum):
     PASSWORD_RESET = "password_reset"
     USER_STATUS_UPDATE = "user_status_update"
     ROLE_ASSIGNMENT = "role_assignment"
+    ROLE_REVOCATION = "role_revocation"
+    ROLE_CREATE = "role_create"
+    ROLE_PERMISSIONS_UPDATE = "role_permissions_update"
+    PERMISSION_CREATE = "permission_create"
     TOKENS_REVOKE = "tokens_revoke"
 
 

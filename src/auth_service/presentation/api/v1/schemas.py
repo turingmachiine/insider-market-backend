@@ -3,8 +3,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from src.common.domain.security import Role
-
 
 class RegisterRequest(BaseModel):
     email: str
@@ -52,7 +50,29 @@ class PasswordChangeRequest(BaseModel):
 
 
 class UserRoleGrantRequest(BaseModel):
-    role_name: Role
+    role_name: str = Field(min_length=2, max_length=100)
+
+
+class RoleCreateRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=100)
+    permissions: list[str] = Field(default_factory=list)
+
+
+class RolePermissionsUpdateRequest(BaseModel):
+    permissions: list[str]
+
+
+class RoleResponse(BaseModel):
+    name: str
+    permissions: list[str]
+
+
+class PermissionCreateRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=150)
+
+
+class PermissionResponse(BaseModel):
+    name: str
 
 
 class UserStatusUpdateRequest(BaseModel):

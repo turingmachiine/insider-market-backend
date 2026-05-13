@@ -9,6 +9,9 @@ from src.auth_service.core.config import AuthSettings
 from src.auth_service.presentation.api.v1.schemas import (
     LoginRequest,
     LogoutRequest,
+    PasswordChangeRequest,
+    PasswordResetConfirmRequest,
+    PasswordResetRequest,
     RefreshTokenRequest,
     RegisterRequest,
     RegisterResponse,
@@ -44,7 +47,12 @@ async def register(
             correlation_id=request_context_provider.get_context().correlation_id,
         )
     except AuthError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+        status_code = (
+            status.HTTP_409_CONFLICT
+            if str(exc) == "User already exists"
+            else status.HTTP_400_BAD_REQUEST
+        )
+        raise HTTPException(status_code=status_code, detail=str(exc))
     return RegisterResponse(user_id=user_id)
 
 
@@ -112,6 +120,64 @@ async def logout(
         request.refresh_token,
         correlation_id=request_context_provider.get_context().correlation_id,
     )
+
+
+@router.post("/password/reset/request", status_code=status.HTTP_204_NO_CONTENT)
+@inject
+async def request_password_reset(
+    request: PasswordResetRequest,
+    request_context_provider: FromDishka[RequestContextProvider],
+    auth_service: FromDishka[AuthService],
+) -> None:
+    await auth_service.request_password_reset(
+        request.email,
+        correlation_id=request_context_provider.get_context().correlation_id,
+    )
+
+
+@router.post("/password/reset", status_code=status.HTTP_204_NO_CONTENT)
+@inject
+async def reset_password(
+    request: PasswordResetConfirmRequest,
+    request_context_provider: FromDishka[RequestContextProvider],
+    auth_service: FromDishka[AuthService],
+) -> None:
+    try:
+        await auth_service.reset_password(
+            request.reset_token,
+            request.new_password,
+            correlation_id=request_context_provider.get_context().correlation_id,
+        )
+    except AuthError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+
+@router.post("/password/change", status_code=status.HTTP_204_NO_CONTENT)
+@inject
+async def change_password(
+    request: PasswordChangeRequest,
+    request_context_provider: FromDishka[RequestContextProvider],
+    auth_service: FromDishka[AuthService],
+    auth_payload: Annotated[
+        UserContext,
+        Depends(require_permission(Permission.AUTH_PERMISSIONS_READ)),
+    ],
+) -> None:
+    try:
+        await auth_service.change_password(
+            auth_payload.user_id,
+            request.current_password,
+            request.new_password,
+            correlation_id=request_context_provider.get_context().correlation_id,
+        )
+    except AuthError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+        )
 
 
 @router.get("/users")

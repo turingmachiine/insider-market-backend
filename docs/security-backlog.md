@@ -118,7 +118,7 @@
 
 - `api_gateway` применяет общий per-minute лимит ко всем HTTP routes с ключом по JWT `sub`, а при отсутствии валидного JWT — по client IP.
 - Для public read/preflight routes (`GET`, `HEAD`, `OPTIONS`) добавлен отдельный лимит `PUBLIC_RATE_LIMIT`; если он не задан, используется общий `RATE_LIMIT`.
-- Для sensitive auth endpoints `POST /auth/**/login`, `POST /auth/**/register`, `POST /auth/**/refresh` добавлен отдельный более строгий лимит `SENSITIVE_RATE_LIMIT`.
+- Для sensitive auth endpoints `POST /auth/**/login`, `POST /auth/**/register`, `POST /auth/**/refresh`, `POST /auth/**/password/reset/request` и `POST /auth/**/password/reset` добавлен отдельный более строгий лимит `SENSITIVE_RATE_LIMIT`.
 - Для websocket connect paths добавлен отдельный лимит `WEBSOCKET_RATE_LIMIT`; при превышении gateway закрывает соединение с code `4408`.
 - Превышение лимита возвращает `429` и `Retry-After`, запрос не проксируется в upstream-сервис.
 
@@ -132,6 +132,14 @@
 - Добавить password policy.
 - Добавить reset password flow.
 - Продумать lockout / cooldown на неудачные попытки.
+
+Статус:
+
+- `auth_service` использует `pbkdf2_sha256` с явно заданными `600_000` rounds; старые hashes при успешном login помечаются через `needs_update` и пересчитываются.
+- Добавлена application-level password policy: длина 12-128 символов, минимум три класса символов из lowercase/uppercase/digit/symbol, без пробелов по краям.
+- Добавлен reset password flow: одноразовые reset tokens хранятся в БД только в виде SHA-256 hash, имеют TTL `PASSWORD_RESET_TOKEN_TTL`, invalidируются после использования и отзывают все refresh-сессии пользователя.
+- Добавлена смена пароля авторизованным пользователем с проверкой текущего пароля и отзывом refresh-сессий/reset tokens.
+- Добавлен cooldown на неудачные login: `MAX_FAILED_LOGIN_ATTEMPTS` и `LOGIN_LOCKOUT_SECONDS`; успешный login или смена пароля сбрасывает счетчик.
 
 Критерий готовности:
 

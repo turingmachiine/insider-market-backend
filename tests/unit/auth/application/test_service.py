@@ -8,11 +8,12 @@ from src.auth_service.application.security import (
     decode_access_token,
     hash_refresh_token,
 )
-from src.auth_service.application.service import AuthService
+from src.auth_service.application.service import AuthError, AuthService
 from src.auth_service.core.config import AuthSettings
 from src.auth_service.domain.entities import (
     AuditAction,
     AuditLog,
+    PasswordResetToken,
     Permission,
     RefreshToken,
     Role,
@@ -20,6 +21,7 @@ from src.auth_service.domain.entities import (
 )
 from src.auth_service.domain.interfaces.repositories import (
     IAuditLogRepository,
+    IPasswordResetTokenRepository,
     IRefreshTokenRepository,
     IRoleRepository,
     IUserRepository,
@@ -93,6 +95,27 @@ class FakeRefreshTokenRepository(IRefreshTokenRepository):
                 refresh_token.revoke(now)
 
 
+class FakePasswordResetTokenRepository(IPasswordResetTokenRepository):
+    def __init__(self) -> None:
+        self.tokens_by_hash: dict[str, PasswordResetToken] = {}
+
+    async def get_by_token_hash(self, token_hash: str) -> PasswordResetToken | None:
+        return self.tokens_by_hash.get(token_hash)
+
+    async def save(
+        self, password_reset_token: PasswordResetToken
+    ) -> PasswordResetToken:
+        password_reset_token.id = uuid4()
+        self.tokens_by_hash[password_reset_token.token_hash] = password_reset_token
+        return password_reset_token
+
+    async def revoke_all_for_user(self, user_id: object) -> None:
+        now = datetime.now(UTC)
+        for token in self.tokens_by_hash.values():
+            if token.user_id == user_id and token.used_at is None:
+                token.mark_used(now)
+
+
 class FakeAuditLogRepository(IAuditLogRepository):
     def __init__(self) -> None:
         self.logs: list[AuditLog] = []
@@ -136,6 +159,7 @@ async def test_login_uses_permissions_from_database_relations() -> None:
     user_repo = FakeUserRepository()
     role_repo = FakeRoleRepository({"user": user_role})
     refresh_token_repo = FakeRefreshTokenRepository()
+    password_reset_token_repo = FakePasswordResetTokenRepository()
     audit_log_repo = FakeAuditLogRepository()
     settings = AuthSettings(
         JWT_SECRET="secret",
@@ -147,14 +171,19 @@ async def test_login_uses_permissions_from_database_relations() -> None:
         user_repo,
         role_repo,
         refresh_token_repo,
+        password_reset_token_repo,
         audit_log_repo,
         settings,
     )
 
-    await service.register("alice@example.com", "password", correlation_id="request-1")
+    await service.register(
+        "alice@example.com",
+        "Password123!",
+        correlation_id="request-1",
+    )
     token, refresh_token, user_id, permissions = await service.login(
         "alice@example.com",
-        "password",
+        "Password123!",
         correlation_id="request-2",
     )
     claims = decode_access_token(token, settings)
@@ -179,6 +208,7 @@ async def test_refresh_rotates_refresh_token() -> None:
     user_repo = FakeUserRepository()
     role_repo = FakeRoleRepository({"user": user_role})
     refresh_token_repo = FakeRefreshTokenRepository()
+    password_reset_token_repo = FakePasswordResetTokenRepository()
     audit_log_repo = FakeAuditLogRepository()
     settings = AuthSettings(
         JWT_SECRET="secret",
@@ -190,12 +220,16 @@ async def test_refresh_rotates_refresh_token() -> None:
         user_repo,
         role_repo,
         refresh_token_repo,
+        password_reset_token_repo,
         audit_log_repo,
         settings,
     )
 
-    await service.register("alice@example.com", "password")
-    _, old_refresh_token, _, _ = await service.login("alice@example.com", "password")
+    await service.register("alice@example.com", "Password123!")
+    _, old_refresh_token, _, _ = await service.login(
+        "alice@example.com",
+        "Password123!",
+    )
     access_token, new_refresh_token, user_id, permissions = await service.refresh(
         old_refresh_token,
     )
@@ -218,6 +252,7 @@ async def test_logout_revokes_refresh_token() -> None:
     user_repo = FakeUserRepository()
     role_repo = FakeRoleRepository({"user": user_role})
     refresh_token_repo = FakeRefreshTokenRepository()
+    password_reset_token_repo = FakePasswordResetTokenRepository()
     audit_log_repo = FakeAuditLogRepository()
     settings = AuthSettings(
         JWT_SECRET="secret",
@@ -229,12 +264,13 @@ async def test_logout_revokes_refresh_token() -> None:
         user_repo,
         role_repo,
         refresh_token_repo,
+        password_reset_token_repo,
         audit_log_repo,
         settings,
     )
 
-    await service.register("alice@example.com", "password")
-    _, refresh_token, _, _ = await service.login("alice@example.com", "password")
+    await service.register("alice@example.com", "Password123!")
+    _, refresh_token, _, _ = await service.login("alice@example.com", "Password123!")
     await service.logout(refresh_token, correlation_id="request-3")
 
     stored_token = await refresh_token_repo.get_by_token_hash(
@@ -245,3 +281,91 @@ async def test_logout_revokes_refresh_token() -> None:
     assert audit_log_repo.logs[-1].action == AuditAction.LOGOUT
     assert audit_log_repo.logs[-1].target_id == str(stored_token.id)
     assert audit_log_repo.logs[-1].correlation_id == "request-3"
+
+
+@pytest.mark.asyncio
+async def test_register_rejects_weak_password() -> None:
+    user_role = Role(name="user", permissions=[Permission(name="catalog:read")])
+    service = AuthService(
+        FakeUserRepository(),
+        FakeRoleRepository({"user": user_role}),
+        FakeRefreshTokenRepository(),
+        FakePasswordResetTokenRepository(),
+        FakeAuditLogRepository(),
+        AuthSettings(JWT_SECRET="secret"),
+    )
+
+    with pytest.raises(AuthError, match="at least 12"):
+        await service.register("alice@example.com", "password")
+
+
+@pytest.mark.asyncio
+async def test_failed_logins_lock_user_temporarily() -> None:
+    user_role = Role(name="user", permissions=[Permission(name="catalog:read")])
+    user_repo = FakeUserRepository()
+    service = AuthService(
+        user_repo,
+        FakeRoleRepository({"user": user_role}),
+        FakeRefreshTokenRepository(),
+        FakePasswordResetTokenRepository(),
+        FakeAuditLogRepository(),
+        AuthSettings(
+            JWT_SECRET="secret",
+            MAX_FAILED_LOGIN_ATTEMPTS=2,
+            LOGIN_LOCKOUT_SECONDS=60,
+        ),
+    )
+
+    await service.register("alice@example.com", "Password123!")
+    with pytest.raises(AuthError):
+        await service.login("alice@example.com", "WrongPassword123!")
+    with pytest.raises(AuthError):
+        await service.login("alice@example.com", "WrongPassword123!")
+
+    user = await user_repo.get_by_email("alice@example.com")
+    assert user is not None
+    assert user.failed_login_attempts == 2
+    assert user.locked_until is not None
+    with pytest.raises(AuthError):
+        await service.login("alice@example.com", "Password123!")
+
+
+@pytest.mark.asyncio
+async def test_password_reset_changes_password_and_revokes_tokens() -> None:
+    user_role = Role(name="user", permissions=[Permission(name="catalog:read")])
+    refresh_token_repo = FakeRefreshTokenRepository()
+    password_reset_token_repo = FakePasswordResetTokenRepository()
+    audit_log_repo = FakeAuditLogRepository()
+    service = AuthService(
+        FakeUserRepository(),
+        FakeRoleRepository({"user": user_role}),
+        refresh_token_repo,
+        password_reset_token_repo,
+        audit_log_repo,
+        AuthSettings(JWT_SECRET="secret"),
+    )
+
+    await service.register("alice@example.com", "Password123!")
+    _, refresh_token, user_id, _ = await service.login(
+        "alice@example.com",
+        "Password123!",
+    )
+    reset_token = await service.request_password_reset("alice@example.com")
+    assert reset_token is not None
+
+    changed_user_id = await service.reset_password(reset_token, "NewPassword123!")
+    old_stored_token = await refresh_token_repo.get_by_token_hash(
+        hash_refresh_token(refresh_token)
+    )
+
+    assert changed_user_id == user_id
+    assert old_stored_token is not None
+    assert old_stored_token.revoked_at is not None
+    with pytest.raises(AuthError):
+        await service.login("alice@example.com", "Password123!")
+    _, new_refresh_token, _, _ = await service.login(
+        "alice@example.com",
+        "NewPassword123!",
+    )
+    assert new_refresh_token
+    assert audit_log_repo.logs[-1].action == AuditAction.LOGIN

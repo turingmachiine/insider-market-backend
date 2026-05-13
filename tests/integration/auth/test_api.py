@@ -6,7 +6,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from src.auth_service.core.config import settings
-from src.auth_service.infrastructure.db.tables import audit_logs_table
+from src.auth_service.infrastructure.db.tables import (
+    audit_logs_table,
+    password_reset_tokens_table,
+)
 from src.common.application.security import encode_jwt
 
 
@@ -14,13 +17,13 @@ from src.common.application.security import encode_jwt
 async def test_register_login_token(auth_client: httpx.AsyncClient) -> None:
     response = await auth_client.post(
         "/api/v1/register",
-        json={"email": "user@example.com", "password": "password123"},
+        json={"email": "user@example.com", "password": "Password123!"},
     )
     assert response.status_code == 201
 
     response = await auth_client.post(
         "/api/v1/login",
-        json={"email": "user@example.com", "password": "password123"},
+        json={"email": "user@example.com", "password": "Password123!"},
     )
     assert response.status_code == 200
     data = response.json()
@@ -31,13 +34,22 @@ async def test_register_login_token(auth_client: httpx.AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_register_rejects_weak_password(auth_client: httpx.AsyncClient) -> None:
+    response = await auth_client.post(
+        "/api/v1/register",
+        json={"email": "weak@example.com", "password": "password123"},
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.asyncio
 async def test_auth_events_are_audited(
     auth_client: httpx.AsyncClient,
     auth_engine: AsyncEngine,
 ) -> None:
     response = await auth_client.post(
         "/api/v1/register",
-        json={"email": "audit@example.com", "password": "password123"},
+        json={"email": "audit@example.com", "password": "Password123!"},
         headers={"X-Request-ID": "request-register"},
     )
     assert response.status_code == 201
@@ -45,7 +57,7 @@ async def test_auth_events_are_audited(
 
     response = await auth_client.post(
         "/api/v1/login",
-        json={"email": "audit@example.com", "password": "password123"},
+        json={"email": "audit@example.com", "password": "Password123!"},
         headers={"X-Request-ID": "request-login"},
     )
     assert response.status_code == 200
@@ -69,14 +81,75 @@ async def test_auth_events_are_audited(
 
 
 @pytest.mark.asyncio
-async def test_refresh_rotates_token(auth_client: httpx.AsyncClient) -> None:
+async def test_password_reset_request_creates_single_use_token(
+    auth_client: httpx.AsyncClient,
+    auth_engine: AsyncEngine,
+) -> None:
     await auth_client.post(
         "/api/v1/register",
-        json={"email": "refresh@example.com", "password": "password123"},
+        json={"email": "reset-request@example.com", "password": "Password123!"},
+    )
+
+    response = await auth_client.post(
+        "/api/v1/password/reset/request",
+        json={"email": "reset-request@example.com"},
+    )
+    assert response.status_code == 204
+    assert not response.content
+
+    async with auth_engine.connect() as conn:
+        result = await conn.execute(select(password_reset_tokens_table.c.token_hash))
+        rows = result.mappings().all()
+    assert len(rows) == 1
+    assert rows[0]["token_hash"]
+
+
+@pytest.mark.asyncio
+async def test_change_password_revokes_refresh_token(
+    auth_client: httpx.AsyncClient,
+) -> None:
+    await auth_client.post(
+        "/api/v1/register",
+        json={"email": "change@example.com", "password": "Password123!"},
     )
     response = await auth_client.post(
         "/api/v1/login",
-        json={"email": "refresh@example.com", "password": "password123"},
+        json={"email": "change@example.com", "password": "Password123!"},
+    )
+    data = response.json()
+
+    response = await auth_client.post(
+        "/api/v1/password/change",
+        json={
+            "current_password": "Password123!",
+            "new_password": "ChangedPassword123!",
+        },
+        headers={"Authorization": f"Bearer {data['access_token']}"},
+    )
+    assert response.status_code == 204
+
+    response = await auth_client.post(
+        "/api/v1/refresh",
+        json={"refresh_token": data["refresh_token"]},
+    )
+    assert response.status_code == 401
+
+    response = await auth_client.post(
+        "/api/v1/login",
+        json={"email": "change@example.com", "password": "ChangedPassword123!"},
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_refresh_rotates_token(auth_client: httpx.AsyncClient) -> None:
+    await auth_client.post(
+        "/api/v1/register",
+        json={"email": "refresh@example.com", "password": "Password123!"},
+    )
+    response = await auth_client.post(
+        "/api/v1/login",
+        json={"email": "refresh@example.com", "password": "Password123!"},
     )
     refresh_token = response.json()["refresh_token"]
 
@@ -100,11 +173,11 @@ async def test_refresh_rotates_token(auth_client: httpx.AsyncClient) -> None:
 async def test_logout_revokes_refresh_token(auth_client: httpx.AsyncClient) -> None:
     await auth_client.post(
         "/api/v1/register",
-        json={"email": "logout@example.com", "password": "password123"},
+        json={"email": "logout@example.com", "password": "Password123!"},
     )
     response = await auth_client.post(
         "/api/v1/login",
-        json={"email": "logout@example.com", "password": "password123"},
+        json={"email": "logout@example.com", "password": "Password123!"},
     )
     refresh_token = response.json()["refresh_token"]
 

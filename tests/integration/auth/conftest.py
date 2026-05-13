@@ -25,6 +25,9 @@ class AuthTestSettings:
         self.original_jwt_secret = settings.JWT_SECRET
         self.original_jwt_ttl = settings.JWT_TTL
         self.original_refresh_token_ttl = settings.REFRESH_TOKEN_TTL
+        self.original_password_reset_token_ttl = settings.PASSWORD_RESET_TOKEN_TTL
+        self.original_max_failed_login_attempts = settings.MAX_FAILED_LOGIN_ATTEMPTS
+        self.original_login_lockout_seconds = settings.LOGIN_LOCKOUT_SECONDS
 
     def apply(self) -> None:
         settings.DATABASE_URL_AUTH = cast(Any, self.database_url)
@@ -32,6 +35,9 @@ class AuthTestSettings:
         settings.JWT_SECRET = "test-secret"
         settings.JWT_TTL = 3600
         settings.REFRESH_TOKEN_TTL = 3600
+        settings.PASSWORD_RESET_TOKEN_TTL = 3600
+        settings.MAX_FAILED_LOGIN_ATTEMPTS = 5
+        settings.LOGIN_LOCKOUT_SECONDS = 900
 
     def restore(self) -> None:
         settings.DATABASE_URL_AUTH = self.original_database_url
@@ -39,6 +45,9 @@ class AuthTestSettings:
         settings.JWT_SECRET = self.original_jwt_secret
         settings.JWT_TTL = self.original_jwt_ttl
         settings.REFRESH_TOKEN_TTL = self.original_refresh_token_ttl
+        settings.PASSWORD_RESET_TOKEN_TTL = self.original_password_reset_token_ttl
+        settings.MAX_FAILED_LOGIN_ATTEMPTS = self.original_max_failed_login_attempts
+        settings.LOGIN_LOCKOUT_SECONDS = self.original_login_lockout_seconds
 
 
 @pytest.fixture

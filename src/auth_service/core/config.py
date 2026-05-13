@@ -1,6 +1,12 @@
 from pydantic import PostgresDsn, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from src.auth_service.application.constants import (
+    DEFAULT_LOGIN_LOCKOUT_SECONDS,
+    DEFAULT_MAX_FAILED_LOGIN_ATTEMPTS,
+    DEFAULT_PASSWORD_RESET_TOKEN_TTL,
+)
+
 
 class AuthSettings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -28,6 +34,9 @@ class AuthSettings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_TTL: int = 3600
     REFRESH_TOKEN_TTL: int = 2_592_000
+    PASSWORD_RESET_TOKEN_TTL: int = DEFAULT_PASSWORD_RESET_TOKEN_TTL
+    MAX_FAILED_LOGIN_ATTEMPTS: int = DEFAULT_MAX_FAILED_LOGIN_ATTEMPTS
+    LOGIN_LOCKOUT_SECONDS: int = DEFAULT_LOGIN_LOCKOUT_SECONDS
 
     REDIS_URL: str | None = None
     PERMISSIONS_CACHE_TTL: int = 300

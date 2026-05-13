@@ -8,3 +8,10 @@ AUTH_SENSITIVE_ENDPOINTS = frozenset(
         "refresh",
     }
 )
+
+AUTH_SENSITIVE_PATH_SUFFIXES = frozenset(
+    {
+        "/password/reset",
+        "/password/reset/request",
+    }
+)

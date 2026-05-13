@@ -4,6 +4,7 @@ from src.auth_service.application.service import AuthService
 from src.auth_service.core.config import AuthSettings
 from src.auth_service.domain.interfaces.repositories import (
     IAuditLogRepository,
+    IPasswordResetTokenRepository,
     IRefreshTokenRepository,
     IRoleRepository,
     IUserRepository,
@@ -21,6 +22,7 @@ class ServiceProvider(Provider):
         user_repository: IUserRepository,
         role_repository: IRoleRepository,
         refresh_token_repository: IRefreshTokenRepository,
+        password_reset_token_repository: IPasswordResetTokenRepository,
         audit_log_repository: IAuditLogRepository,
         settings: AuthSettings,
     ) -> AuthService:
@@ -28,6 +30,7 @@ class ServiceProvider(Provider):
             user_repository,
             role_repository,
             refresh_token_repository,
+            password_reset_token_repository,
             audit_log_repository,
             settings,
         )

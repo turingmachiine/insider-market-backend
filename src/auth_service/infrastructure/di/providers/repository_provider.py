@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth_service.domain.interfaces.repositories import (
     IAuditLogRepository,
+    IPasswordResetTokenRepository,
     IPermissionRepository,
     IRefreshTokenRepository,
     IRoleRepository,
@@ -10,6 +11,7 @@ from src.auth_service.domain.interfaces.repositories import (
 )
 from src.auth_service.infrastructure.db.repositories import (
     AuditLogRepository,
+    PasswordResetTokenRepository,
     PermissionRepository,
     RefreshTokenRepository,
     RoleRepository,
@@ -45,6 +47,13 @@ class RepositoryProvider(Provider):
         session: AsyncSession,
     ) -> IRefreshTokenRepository:
         return RefreshTokenRepository(session)
+
+    @provide
+    def provide_password_reset_token_repository(
+        self,
+        session: AsyncSession,
+    ) -> IPasswordResetTokenRepository:
+        return PasswordResetTokenRepository(session)
 
     @provide
     def provide_role_repository(

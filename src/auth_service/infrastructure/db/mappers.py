@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 
 from src.auth_service.domain.entities import (
     AuditLog,
+    PasswordResetToken,
     Permission,
     RefreshToken,
     Role,
@@ -12,6 +13,7 @@ from src.auth_service.domain.entities import (
 from src.auth_service.infrastructure.db.metadata import mapper_registry
 from src.auth_service.infrastructure.db.tables import (
     audit_logs_table,
+    password_reset_tokens_table,
     permissions_table,
     refresh_tokens_table,
     role_permissions_table,
@@ -75,6 +77,7 @@ def setup_mapping() -> None:
         },
     )
     mapper_registry.map_imperatively(RefreshToken, refresh_tokens_table)
+    mapper_registry.map_imperatively(PasswordResetToken, password_reset_tokens_table)
     mapper_registry.map_imperatively(AuditLog, audit_logs_table)
 
 

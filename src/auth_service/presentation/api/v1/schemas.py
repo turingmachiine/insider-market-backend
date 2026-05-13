@@ -37,6 +37,20 @@ class LogoutRequest(BaseModel):
     refresh_token: str
 
 
+class PasswordResetRequest(BaseModel):
+    email: str
+
+
+class PasswordResetConfirmRequest(BaseModel):
+    reset_token: str
+    new_password: str = Field(min_length=12, max_length=128)
+
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=12, max_length=128)
+
+
 class UserRoleGrantRequest(BaseModel):
     role_name: Role
 

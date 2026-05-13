@@ -5,6 +5,7 @@ from starlette.types import ASGIApp
 
 from src.api_gateway.constants import (
     AUTH_SENSITIVE_ENDPOINTS,
+    AUTH_SENSITIVE_PATH_SUFFIXES,
     RATE_LIMIT_WINDOW_SECONDS,
 )
 from src.api_gateway.services.identity import JwtIdentityExtractor
@@ -76,5 +77,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     def _is_sensitive_auth_route(method: str, path: str) -> bool:
         if method.upper() != "POST" or not path.startswith("/auth/"):
             return False
-        endpoint = path.rstrip("/").rsplit("/", 1)[-1]
-        return endpoint in AUTH_SENSITIVE_ENDPOINTS
+        normalized_path = path.rstrip("/")
+        endpoint = normalized_path.rsplit("/", 1)[-1]
+        return endpoint in AUTH_SENSITIVE_ENDPOINTS or any(
+            normalized_path.endswith(path_suffix)
+            for path_suffix in AUTH_SENSITIVE_PATH_SUFFIXES
+        )

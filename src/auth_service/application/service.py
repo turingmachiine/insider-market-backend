@@ -1,17 +1,29 @@
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
+from src.auth_service.application.password_policy import (
+    PasswordPolicyError,
+    validate_password_policy,
+)
 from src.auth_service.application.security import (
     create_access_token,
     create_refresh_token,
     hash_password,
     hash_refresh_token,
+    password_hash_needs_update,
     verify_password,
 )
 from src.auth_service.core.config import AuthSettings
-from src.auth_service.domain.entities import AuditAction, AuditLog, RefreshToken, User
+from src.auth_service.domain.entities import (
+    AuditAction,
+    AuditLog,
+    PasswordResetToken,
+    RefreshToken,
+    User,
+)
 from src.auth_service.domain.interfaces.repositories import (
     IAuditLogRepository,
+    IPasswordResetTokenRepository,
     IRefreshTokenRepository,
     IRoleRepository,
     IUserRepository,
@@ -23,18 +35,23 @@ class AuthError(ValueError):
     pass
 
 
+INVALID_CREDENTIALS_MESSAGE = "Invalid credentials"
+
+
 class AuthService:
     def __init__(
         self,
         user_repository: IUserRepository,
         role_repository: IRoleRepository,
         refresh_token_repository: IRefreshTokenRepository,
+        password_reset_token_repository: IPasswordResetTokenRepository,
         audit_log_repository: IAuditLogRepository,
         settings: AuthSettings,
     ) -> None:
         self.user_repository = user_repository
         self.role_repository = role_repository
         self.refresh_token_repository = refresh_token_repository
+        self.password_reset_token_repository = password_reset_token_repository
         self.audit_log_repository = audit_log_repository
         self.settings = settings
 
@@ -46,6 +63,7 @@ class AuthService:
     ) -> UUID:
         if await self.user_repository.get_by_email(email):
             raise AuthError("User already exists")
+        self._validate_password(password)
         user = await self.user_repository.create(email, hash_password(password))
         user_role = await self.role_repository.get_by_name(Role.USER.value)
         if user_role is None:
@@ -73,12 +91,23 @@ class AuthService:
         correlation_id: str | None = None,
     ) -> tuple[str, str, UUID, list[str]]:
         user = await self.user_repository.get_by_email(email)
-        if (
-            user is None
-            or not user.is_active
-            or not verify_password(password, user.password_hash)
-        ):
-            raise AuthError("Invalid credentials")
+        now = datetime.now(UTC)
+        if user is None or not user.is_active:
+            raise AuthError()
+        if user.is_login_locked(now):
+            raise AuthError(INVALID_CREDENTIALS_MESSAGE)
+        if not verify_password(password, user.password_hash):
+            user.record_failed_login(
+                self.settings.MAX_FAILED_LOGIN_ATTEMPTS,
+                now + timedelta(seconds=self.settings.LOGIN_LOCKOUT_SECONDS),
+            )
+            await self.user_repository.save(user)
+            raise AuthError(INVALID_CREDENTIALS_MESSAGE)
+        password_needs_update = password_hash_needs_update(user.password_hash)
+        user.reset_failed_logins()
+        if password_needs_update:
+            user.set_password_hash(hash_password(password), now)
+        await self.user_repository.save(user)
         access_token, refresh_token, permissions = await self._issue_token_pair(user)
         await self._record_audit(
             action=AuditAction.LOGIN,
@@ -92,6 +121,97 @@ class AuthService:
             correlation_id=correlation_id,
         )
         return access_token, refresh_token, user.id, permissions
+
+    async def request_password_reset(
+        self,
+        email: str,
+        correlation_id: str | None = None,
+    ) -> str | None:
+        user = await self.user_repository.get_by_email(email)
+        if user is None or not user.is_active:
+            return None
+
+        await self.password_reset_token_repository.revoke_all_for_user(user.id)
+        raw_token = create_refresh_token()
+        token = PasswordResetToken(
+            user_id=user.id,
+            token_hash=hash_refresh_token(raw_token),
+            expires_at=datetime.now(UTC)
+            + timedelta(seconds=self.settings.PASSWORD_RESET_TOKEN_TTL),
+        )
+        await self.password_reset_token_repository.save(token)
+        await self._record_audit(
+            action=AuditAction.PASSWORD_RESET_REQUEST,
+            target_type="user",
+            target_id=str(user.id),
+            after={"email": user.email},
+            correlation_id=correlation_id,
+        )
+        return raw_token
+
+    async def reset_password(
+        self,
+        reset_token: str,
+        new_password: str,
+        correlation_id: str | None = None,
+    ) -> UUID:
+        self._validate_password(new_password)
+        token_hash = hash_refresh_token(reset_token)
+        stored_token = await self.password_reset_token_repository.get_by_token_hash(
+            token_hash
+        )
+        now = datetime.now(UTC)
+        if stored_token is None or not stored_token.is_usable(now):
+            raise AuthError("Invalid password reset token")
+
+        user = await self.user_repository.get_by_id(stored_token.user_id)
+        if user is None or not user.is_active:
+            raise AuthError("Invalid password reset token")
+
+        user.set_password_hash(hash_password(new_password), now)
+        stored_token.mark_used(now)
+        await self.user_repository.save(user)
+        await self.password_reset_token_repository.save(stored_token)
+        await self.refresh_token_repository.revoke_all_for_user(user.id)
+        await self._record_audit(
+            action=AuditAction.PASSWORD_RESET,
+            target_type="user",
+            target_id=str(user.id),
+            after={"tokens_revoked": True},
+            correlation_id=correlation_id,
+        )
+        return user.id
+
+    async def change_password(
+        self,
+        user_id: UUID,
+        current_password: str,
+        new_password: str,
+        correlation_id: str | None = None,
+    ) -> None:
+        self._validate_password(new_password)
+        user = await self.user_repository.get_by_id(user_id)
+        if (
+            user is None
+            or not user.is_active
+            or not verify_password(current_password, user.password_hash)
+        ):
+            raise AuthError(INVALID_CREDENTIALS_MESSAGE)
+        if verify_password(new_password, user.password_hash):
+            raise AuthError("New password must differ from current password")
+
+        user.set_password_hash(hash_password(new_password), datetime.now(UTC))
+        await self.user_repository.save(user)
+        await self.refresh_token_repository.revoke_all_for_user(user.id)
+        await self.password_reset_token_repository.revoke_all_for_user(user.id)
+        await self._record_audit(
+            action=AuditAction.PASSWORD_CHANGE,
+            actor_user_id=user.id,
+            target_type="user",
+            target_id=str(user.id),
+            after={"tokens_revoked": True},
+            correlation_id=correlation_id,
+        )
 
     async def refresh(
         self,
@@ -280,6 +400,12 @@ class AuthService:
             ),
         )
         return access_token, refresh_token, permissions
+
+    def _validate_password(self, password: str) -> None:
+        try:
+            validate_password_policy(password)
+        except PasswordPolicyError as exc:
+            raise AuthError(str(exc)) from exc
 
     async def _record_audit(
         self,

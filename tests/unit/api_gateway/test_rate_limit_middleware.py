@@ -1,9 +1,12 @@
 from types import SimpleNamespace
 
 import pytest
-from starlette.types import Message
+from starlette.types import Message, Receive, Scope, Send
 
-from src.api_gateway.middleware.rate_limit import WebSocketRateLimitMiddleware
+from src.api_gateway.middleware.rate_limit import (
+    RateLimitMiddleware,
+    WebSocketRateLimitMiddleware,
+)
 
 
 class FakeRedis:
@@ -65,3 +68,28 @@ async def test_websocket_rate_limit_closes_before_downstream_app() -> None:
         ]
         == 2
     )
+
+
+def test_password_reset_routes_use_sensitive_rate_limit_policy() -> None:
+    async def downstream_app(scope: Scope, receive: Receive, send: Send) -> None:
+        """метод-заплатка для инициализации App"""
+        pass
+
+    middleware = RateLimitMiddleware(
+        app=downstream_app,
+        limit_per_minute=100,
+        public_limit_per_minute=50,
+        sensitive_limit_per_minute=2,
+        by_jwt=False,
+    )
+
+    request_policy = middleware._policy_for(
+        "POST",
+        "/auth/api/v1/password/reset/request",
+    )
+    reset_policy = middleware._policy_for("POST", "/auth/api/v1/password/reset")
+
+    assert request_policy.name == "sensitive"
+    assert request_policy.limit_per_minute == 2
+    assert reset_policy.name == "sensitive"
+    assert reset_policy.limit_per_minute == 2

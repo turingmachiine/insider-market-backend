@@ -223,20 +223,25 @@ def upgrade() -> None:
         .on_conflict_do_nothing(index_elements=["name"])
     )
 
-    role_rows = dict(
-        bind.execute(
+    # Исправление: преобразуем результат в словарь вручную
+    role_rows = {
+        row.name: row.id
+        for row in bind.execute(
             sa.select(roles_table.c.name, roles_table.c.id).where(
                 roles_table.c.name.in_(ROLE_PERMISSIONS)
             )
         )
-    )
-    permission_rows = dict(
-        bind.execute(
+    }
+
+    permission_rows = {
+        row.name: row.id
+        for row in bind.execute(
             sa.select(permissions_table.c.name, permissions_table.c.id).where(
                 permissions_table.c.name.in_(permissions)
             )
         )
-    )
+    }
+
     bind.execute(
         insert(role_permissions_table)
         .values(

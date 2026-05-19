@@ -1,3 +1,4 @@
+from src.auth_service.infrastructure.di.providers.client_provider import ClientProvider
 from src.auth_service.infrastructure.di.providers.container_provider import (
     ContainerProvider,
 )
@@ -12,6 +13,7 @@ from src.auth_service.infrastructure.di.providers.service_provider import (
 )
 
 __all__ = [
+    "ClientProvider",
     "ContainerProvider",
     "DatabaseProvider",
     "RepositoryProvider",

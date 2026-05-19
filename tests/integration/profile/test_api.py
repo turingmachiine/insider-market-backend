@@ -7,6 +7,7 @@ from src.common.application.security import create_service_token
 from src.common.domain.security import Permission
 from src.common.domain.service_auth import (
     PROFILE_BALANCE_WRITE_SCOPE,
+    PROFILE_CREATE_SCOPE,
     PROFILE_SERVICE_AUDIENCE,
     SERVICE_AUTHORIZATION_HEADER,
 )
@@ -130,6 +131,39 @@ async def test_internal_balance_operation_requires_service_auth(
     )
     assert service_response.status_code == 201
     assert service_response.json()["amount"] == pytest.approx(25.0)
+
+
+async def test_internal_profile_create_uses_service_auth(
+    profile_client: httpx.AsyncClient,
+) -> None:
+    user_id = uuid4()
+    payload = {
+        "user_id": str(user_id),
+        "display_name": "Provisioned",
+        "initial_balance": "1000.00",
+    }
+
+    user_token_response = await profile_client.post(
+        "/api/v1/internal/profiles",
+        json=payload,
+    )
+    assert user_token_response.status_code == 401
+
+    service_token = create_service_token(
+        PROFILE_SERVICE_AUDIENCE,
+        settings,
+        [PROFILE_CREATE_SCOPE],
+    )
+    service_response = await profile_client.post(
+        "/api/v1/internal/profiles",
+        headers={SERVICE_AUTHORIZATION_HEADER: f"Bearer {service_token}"},
+        json=payload,
+    )
+
+    assert service_response.status_code == 201
+    data = service_response.json()
+    assert data["user_id"] == str(user_id)
+    assert data["balance"] == pytest.approx(1000.0)
 
 
 @pytest.mark.asyncio

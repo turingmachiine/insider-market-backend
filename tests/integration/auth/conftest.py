@@ -34,6 +34,7 @@ class AuthTestSettings:
         self.original_password_reset_token_ttl = settings.PASSWORD_RESET_TOKEN_TTL
         self.original_max_failed_login_attempts = settings.MAX_FAILED_LOGIN_ATTEMPTS
         self.original_login_lockout_seconds = settings.LOGIN_LOCKOUT_SECONDS
+        self.original_user_provisioning_enabled = settings.USER_PROVISIONING_ENABLED
 
     def apply(self) -> None:
         settings.DATABASE_URL_AUTH = cast(Any, self.database_url)
@@ -44,6 +45,7 @@ class AuthTestSettings:
         settings.PASSWORD_RESET_TOKEN_TTL = 3600
         settings.MAX_FAILED_LOGIN_ATTEMPTS = 5
         settings.LOGIN_LOCKOUT_SECONDS = 900
+        settings.USER_PROVISIONING_ENABLED = False
 
     def restore(self) -> None:
         settings.DATABASE_URL_AUTH = self.original_database_url
@@ -54,6 +56,7 @@ class AuthTestSettings:
         settings.PASSWORD_RESET_TOKEN_TTL = self.original_password_reset_token_ttl
         settings.MAX_FAILED_LOGIN_ATTEMPTS = self.original_max_failed_login_attempts
         settings.LOGIN_LOCKOUT_SECONDS = self.original_login_lockout_seconds
+        settings.USER_PROVISIONING_ENABLED = self.original_user_provisioning_enabled
 
 
 @pytest.fixture

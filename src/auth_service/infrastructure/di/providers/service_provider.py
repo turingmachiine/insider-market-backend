@@ -1,5 +1,6 @@
 from dishka import Provider, Scope, provide
 
+from src.auth_service.application.ports import UserProvisioningPort
 from src.auth_service.application.service import AuthService
 from src.auth_service.core.config import AuthSettings
 from src.auth_service.domain.interfaces.repositories import (
@@ -27,6 +28,7 @@ class ServiceProvider(Provider):
         password_reset_token_repository: IPasswordResetTokenRepository,
         audit_log_repository: IAuditLogRepository,
         settings: AuthSettings,
+        user_provisioning_port: UserProvisioningPort,
     ) -> AuthService:
         return AuthService(
             user_repository,
@@ -36,4 +38,5 @@ class ServiceProvider(Provider):
             password_reset_token_repository,
             audit_log_repository,
             settings,
+            user_provisioning_port,
         )

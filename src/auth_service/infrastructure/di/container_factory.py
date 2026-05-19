@@ -3,6 +3,7 @@ from dishka.integrations.fastapi import FastapiProvider
 
 from src.auth_service.core.config import AuthSettings
 from src.auth_service.infrastructure.di.providers import (
+    ClientProvider,
     ContainerProvider,
     DatabaseProvider,
     RepositoryProvider,
@@ -18,6 +19,7 @@ def create_container(settings: AuthSettings) -> AsyncContainer:
         DatabaseProvider(),
         FastapiProvider(),
         FastAPIRequestContextDIProvider(),
+        ClientProvider(),
         RepositoryProvider(),
         ServiceProvider(),
     )

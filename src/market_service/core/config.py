@@ -27,6 +27,10 @@ class MarketSettings(BaseSettings):
     REDIS_URL: str | None = None
     JWT_SECRET: str = "change-me"
     JWT_ALGORITHM: str = "HS256"
+    SERVICE_NAME: str = "market_service"
+    SERVICE_JWT_SECRET: str = "change-me-service"
+    SERVICE_JWT_ALGORITHM: str = "HS256"
+    SERVICE_JWT_TTL: int = 300
 
     LOG_LEVEL: str = "INFO"
     JSON_LOGS: bool = True

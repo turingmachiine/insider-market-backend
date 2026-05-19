@@ -8,6 +8,7 @@ from src.auth_service.application.password_policy import (
     PasswordPolicyError,
     validate_password_policy,
 )
+from src.auth_service.application.ports import UserProvisioningPort
 from src.auth_service.application.security import (
     create_access_token,
     create_refresh_token,
@@ -58,6 +59,7 @@ class AuthService:
         password_reset_token_repository: IPasswordResetTokenRepository,
         audit_log_repository: IAuditLogRepository,
         settings: AuthSettings,
+        user_provisioning_port: UserProvisioningPort | None = None,
     ) -> None:
         self.user_repository = user_repository
         self.role_repository = role_repository
@@ -66,6 +68,7 @@ class AuthService:
         self.password_reset_token_repository = password_reset_token_repository
         self.audit_log_repository = audit_log_repository
         self.settings = settings
+        self.user_provisioning_port = user_provisioning_port
         self._access_control_name_pattern = re.compile(ACCESS_CONTROL_NAME_PATTERN)
 
     async def register(
@@ -95,6 +98,12 @@ class AuthService:
             },
             correlation_id=correlation_id,
         )
+        if self.user_provisioning_port is not None:
+            await self.user_provisioning_port.provision_user(
+                user_id=user.id,
+                email=user.email,
+                correlation_id=correlation_id,
+            )
         return user.id
 
     async def login(

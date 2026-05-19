@@ -3,7 +3,14 @@ from uuid import UUID, uuid4
 import httpx
 import pytest
 
+from src.common.application.security import create_service_token
 from src.common.domain.security import Permission
+from src.common.domain.service_auth import (
+    MARKET_SERVICE_AUDIENCE,
+    SERVICE_AUTHORIZATION_HEADER,
+    WALLET_CREATE_SCOPE,
+)
+from src.market_service.core.config import settings
 
 
 @pytest.mark.asyncio
@@ -114,6 +121,36 @@ async def test_create_wallet_ignores_spoofed_user_id(
 
     assert response.status_code == 201
     assert response.json()["user_id"] == str(authenticated_user_id)
+
+
+@pytest.mark.asyncio
+async def test_internal_wallet_create_uses_service_auth(
+    market_client: httpx.AsyncClient,
+) -> None:
+    user_id = uuid4()
+    payload = {"user_id": str(user_id), "initial_balance": "1000.00"}
+
+    user_token_response = await market_client.post(
+        "/api/v1/internal/wallets",
+        json=payload,
+    )
+    assert user_token_response.status_code == 401
+
+    service_token = create_service_token(
+        MARKET_SERVICE_AUDIENCE,
+        settings,
+        [WALLET_CREATE_SCOPE],
+    )
+    service_response = await market_client.post(
+        "/api/v1/internal/wallets",
+        headers={SERVICE_AUTHORIZATION_HEADER: f"Bearer {service_token}"},
+        json=payload,
+    )
+
+    assert service_response.status_code == 201
+    data = service_response.json()
+    assert data["user_id"] == str(user_id)
+    assert data["balance"] == pytest.approx(1000.0)
 
 
 @pytest.mark.asyncio

@@ -1,4 +1,4 @@
-from pydantic import PostgresDsn, ValidationInfo, field_validator
+from pydantic import AnyHttpUrl, PostgresDsn, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.auth_service.application.constants import (
@@ -40,6 +40,14 @@ class AuthSettings(BaseSettings):
 
     REDIS_URL: str | None = None
     PERMISSIONS_CACHE_TTL: int = 300
+    PROFILE_SERVICE_URL: AnyHttpUrl = AnyHttpUrl(url="http://profile_service:8007")
+    MARKET_SERVICE_URL: AnyHttpUrl = AnyHttpUrl(url="http://market_service:8005")
+    USER_PROVISIONING_ENABLED: bool = True
+    PROVISIONING_REQUEST_TIMEOUT_SECONDS: float = 5.0
+    SERVICE_NAME: str = "auth_service"
+    SERVICE_JWT_SECRET: str = "change-me-service"
+    SERVICE_JWT_ALGORITHM: str = "HS256"
+    SERVICE_JWT_TTL: int = 300
 
     LOG_LEVEL: str = "INFO"
     JSON_LOGS: bool = True

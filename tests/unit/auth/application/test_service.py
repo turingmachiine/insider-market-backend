@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
+from src.auth_service.application.ports import UserProvisioningPort
 from src.auth_service.application.security import (
     decode_access_token,
     hash_refresh_token,
@@ -191,6 +192,19 @@ class FakeAuditLogRepository(IAuditLogRepository):
         )
 
 
+class FakeUserProvisioningPort(UserProvisioningPort):
+    def __init__(self) -> None:
+        self.calls: list[tuple[UUID, str, str | None]] = []
+
+    async def provision_user(
+        self,
+        user_id: UUID,
+        email: str,
+        correlation_id: str | None = None,
+    ) -> None:
+        self.calls.append((user_id, email, correlation_id))
+
+
 @pytest.mark.asyncio
 async def test_login_uses_permissions_from_database_relations() -> None:
     custom_permission = Permission(name="catalog:read")
@@ -240,6 +254,33 @@ async def test_login_uses_permissions_from_database_relations() -> None:
     assert audit_log_repo.logs[0].correlation_id == "request-1"
     assert audit_log_repo.logs[1].actor_user_id == user_id
     assert audit_log_repo.logs[1].correlation_id == "request-2"
+
+
+@pytest.mark.asyncio
+async def test_register_provisions_user_profile_and_wallet() -> None:
+    user_role = Role(name="user", permissions=[Permission(name="catalog:read")])
+    user_repo = FakeUserRepository()
+    provisioning_port = FakeUserProvisioningPort()
+    service = AuthService(
+        user_repo,
+        FakeRoleRepository({"user": user_role}),
+        FakePermissionRepository(),
+        FakeRefreshTokenRepository(),
+        FakePasswordResetTokenRepository(),
+        FakeAuditLogRepository(),
+        AuthSettings(JWT_SECRET="secret"),
+        provisioning_port,
+    )
+
+    user_id = await service.register(
+        "alice@example.com",
+        "Password123!",
+        correlation_id="request-1",
+    )
+
+    assert provisioning_port.calls == [
+        (user_id, "alice@example.com", "request-1"),
+    ]
 
 
 @pytest.mark.asyncio

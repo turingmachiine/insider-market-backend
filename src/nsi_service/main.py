@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse
 
 from src.common.infrastructure.integration import JwtUserProvider
 from src.common.logging import RequestContextMiddleware, shutdown_logging
+from src.common.presentation import register_exception_handlers
 from src.common.presentation.middleware import (
     build_jwt_auth_middleware,
     collect_protected_routes,
@@ -69,6 +70,7 @@ def create_app(container: AsyncContainer | None = None) -> FastAPI:
             {"url": "", "description": "Локально"},
         ],
     )
+    register_exception_handlers(app)
 
     protected_routes: list = []
     app.middleware("http")(

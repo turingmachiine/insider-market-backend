@@ -1,33 +1,50 @@
 from uuid import uuid4
 
 import structlog
-from fastapi import Request
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.responses import Response
-from starlette.types import ASGIApp
+from starlette.datastructures import MutableHeaders
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
-class RequestContextMiddleware(BaseHTTPMiddleware):
+class RequestContextMiddleware:
     def __init__(self, app: ASGIApp, request_id_header: str = "X-Request-ID") -> None:
-        super().__init__(app)
+        self.app = app
         self._request_id_header = request_id_header
 
-    async def dispatch(
+    async def __call__(
         self,
-        request: Request,
-        call_next: RequestResponseEndpoint,
-    ) -> Response:
-        request_id = request.headers.get(self._request_id_header) or str(uuid4())
-        user_id = request.headers.get("X-User-ID")
+        scope: Scope,
+        receive: Receive,
+        send: Send,
+    ) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        request_headers = MutableHeaders(scope=scope)
+        request_id = request_headers.get(self._request_id_header) or str(uuid4())
+        user_id = request_headers.get("X-User-ID")
         structlog.contextvars.clear_contextvars()
         structlog.contextvars.bind_contextvars(
             request_id=request_id,
             user_id=user_id,
         )
-        request.state.request_id = request_id
+        scope.setdefault("state", {})
+        scope["state"]["request_id"] = request_id
+
+        async def send_with_request_id(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                response_headers = MutableHeaders(scope=message)
+                response_headers[self._request_id_header] = request_id
+            await send(message)
+
         try:
-            response = await call_next(request)
-            response.headers[self._request_id_header] = request_id
-            return response
+            await self.app(scope, receive, send_with_request_id)
+        except BaseException:
+            structlog.get_logger(__name__).exception(
+                "Unhandled request exception",
+                method=scope.get("method"),
+                path=scope.get("path"),
+            )
+            raise
         finally:
             structlog.contextvars.clear_contextvars()

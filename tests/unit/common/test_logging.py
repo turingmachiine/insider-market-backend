@@ -3,8 +3,11 @@ import logging
 import warnings
 
 import structlog
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
 from src.common.logging import setup_logging, shutdown_logging
+from src.common.logging.middleware import RequestContextMiddleware
 
 
 def test_structlog_writes_formatted_stdout(capsys) -> None:
@@ -119,3 +122,36 @@ def test_broker_handler_receives_same_json_payload(monkeypatch, capsys) -> None:
     assert payload["event"] == "broker_event"
     assert payload["request_id"] is None
     assert payload["user_id"] is None
+
+
+def test_request_context_middleware_logs_unhandled_exception(monkeypatch) -> None:
+    calls: list[tuple[str, dict]] = []
+
+    class FakeLogger:
+        def exception(self, event: str, **kwargs) -> None:
+            calls.append((event, kwargs))
+
+    monkeypatch.setattr(
+        structlog,
+        "get_logger",
+        lambda *_args, **_kwargs: FakeLogger(),
+    )
+
+    app = FastAPI()
+    app.add_middleware(RequestContextMiddleware)
+
+    @app.get("/boom")
+    async def boom() -> None:
+        raise RuntimeError("boom")
+
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/boom")
+
+    assert response.status_code == 500
+    assert calls == [
+        (
+            "Unhandled request exception",
+            {"method": "GET", "path": "/boom"},
+        )
+    ]

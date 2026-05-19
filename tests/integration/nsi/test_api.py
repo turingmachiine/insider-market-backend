@@ -396,6 +396,21 @@ class TestTeamAPI:
         assert len(data["items"]) >= 1
 
     @pytest.mark.asyncio
+    async def test_get_user_teams_returns_empty_list_without_data(
+        self,
+        api_client: httpx.AsyncClient,
+    ) -> None:
+        response = await api_client.get("/api/v1/teams")
+
+        assert response.status_code == 200
+        assert response.json() == {
+            "items": [],
+            "total": 0,
+            "limit": 50,
+            "offset": 0,
+        }
+
+    @pytest.mark.asyncio
     async def test_team_ignores_spoofed_user_id_header(
         self,
         api_client: httpx.AsyncClient,

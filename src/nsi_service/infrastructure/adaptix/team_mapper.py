@@ -10,15 +10,30 @@ class TeamMapperImpl(ITeamMapper):
 
     def to_dto(self, entity: Team) -> TeamDTO:
         """Конвертировать Team в TeamDTO"""
-        player_count = sum(len(players) for players in entity.squad.values())
+        squad = self._normalize_squad(entity.squad)
+        player_count = sum(len(players) for players in squad.values())
         return TeamDTO(
             id=entity.id,
             name=entity.name,
             user_id=entity.user_id,
             description=entity.description,
-            squad=entity.squad,
+            squad=squad,
             player_count=player_count,
         )
+
+    @staticmethod
+    def _normalize_squad(squad: dict | None) -> dict:
+        if not isinstance(squad, dict):
+            return {}
+        normalized: dict[str, list[str]] = {}
+        for position, players in squad.items():
+            if players is None:
+                normalized[str(position)] = []
+            elif isinstance(players, list):
+                normalized[str(position)] = [str(player_id) for player_id in players]
+            else:
+                normalized[str(position)] = [str(players)]
+        return normalized
 
     def to_entity(self, dto: TeamDTO) -> Team:
         """Конвертировать TeamDTO в Team"""

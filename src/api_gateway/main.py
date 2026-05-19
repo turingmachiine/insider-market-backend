@@ -14,7 +14,10 @@ from src.api_gateway.middleware.rate_limit import (
     RateLimitMiddleware,
     WebSocketRateLimitMiddleware,
 )
-from src.api_gateway.middleware.security import GatewaySecurityMiddleware
+from src.api_gateway.middleware.security import (
+    GatewaySecurityMiddleware,
+    SecurityHeadersMiddleware,
+)
 from src.api_gateway.presentation.swagger_page import SwaggerLandingPage
 from src.api_gateway.routes import router
 from src.api_gateway.services.cache import GatewayCache
@@ -114,12 +117,17 @@ class GatewayApplicationFactory:
             max_body_size_bytes=self._settings.max_body_size_bytes,
             security_headers=self._build_security_headers(),
         )
-        app.add_middleware(
+        app.add_middleware(  # NOSONAR(S8414)
             CORSMiddleware,
             allow_origins=self._settings.CORS_ORIGINS,
             allow_credentials=self._settings.CORS_ALLOW_CREDENTIALS,
             allow_methods=self._settings.CORS_METHODS,
             allow_headers=self._settings.CORS_HEADERS,
+            expose_headers=self._settings.CORS_EXPOSE_HEADERS,
+        )
+        app.add_middleware(
+            SecurityHeadersMiddleware,
+            security_headers=self._build_security_headers(),
         )
 
     @asynccontextmanager

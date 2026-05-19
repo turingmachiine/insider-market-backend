@@ -37,7 +37,12 @@ class GatewaySettings(BaseSettings):
     WEBSOCKET_RATE_LIMIT: str = "20/minute"
     RATE_LIMIT_BY_JWT: bool = True
     CACHE_TTL_SECONDS: int = 30
-    CORS_ORIGINS: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+    CORS_ORIGINS: list[str] = Field(
+        default_factory=lambda: [
+            "http://localhost:3000",
+            "http://localhost:5173",
+        ]
+    )
     CORS_METHODS: list[str] = Field(
         default_factory=lambda: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
     )
@@ -48,6 +53,9 @@ class GatewaySettings(BaseSettings):
             "X-Request-ID",
             "X-Service-Authorization",
         ]
+    )
+    CORS_EXPOSE_HEADERS: list[str] = Field(
+        default_factory=lambda: ["X-Request-ID", "Retry-After"]
     )
     CORS_ALLOW_CREDENTIALS: bool = True
     MAX_BODY_SIZE_MB: int = 10

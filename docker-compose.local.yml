@@ -1,6 +1,10 @@
 # Docker Compose для локальной разработки
 # Используется для разработки с hot-reload и отладки
 
+x-default-env-file: &default-env-file
+  env_file:
+    - .env
+
 services:
   # NSI PostgreSQL Database
   postgres_nsi:
@@ -232,6 +236,7 @@ services:
 
   # NSI Database Migrations
   migrations_nsi:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -259,6 +264,7 @@ services:
 
   # Auth Database Migrations
   migrations_auth:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -280,6 +286,7 @@ services:
 
   # Admin Database Migrations
   migrations_admin:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -301,6 +308,7 @@ services:
 
   # Rumor Database Migrations
   migrations_rumor:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -322,6 +330,7 @@ services:
 
   # Event Database Migrations
   migrations_event:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -343,6 +352,7 @@ services:
 
   # Market Database Migrations
   migrations_market:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -364,6 +374,7 @@ services:
 
   # Profile Database Migrations
   migrations_profile:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -385,6 +396,7 @@ services:
 
   # Rating Database Migrations
   migrations_rating:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -406,6 +418,7 @@ services:
 
   # NSI Service
   nsi_service:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -461,6 +474,7 @@ services:
 
   # Auth Service
   auth_service:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -506,6 +520,7 @@ services:
 
   # Admin Service
   admin_service:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -571,6 +586,7 @@ services:
 
   # Rumor Service
   rumor_service:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -616,6 +632,7 @@ services:
 
   # Event Service
   event_service:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -659,6 +676,7 @@ services:
 
   # Market Service
   market_service:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -702,6 +720,7 @@ services:
 
   # Notification Service
   notification_service:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -741,6 +760,7 @@ services:
 
   # Profile Service
   profile_service:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -786,6 +806,7 @@ services:
 
   # Rating Service
   rating_service:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -836,6 +857,7 @@ services:
 
   # API Gateway
   api_gateway:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -853,9 +875,15 @@ services:
       SERVICE_ADMIN_URL: ${SERVICE_ADMIN_URL:-http://admin_service:8009}
       REDIS_URL: ${GATEWAY_REDIS_URL:-redis://redis:6379/0}
       RATE_LIMIT: ${RATE_LIMIT:-100/minute}
+      PUBLIC_RATE_LIMIT: ${PUBLIC_RATE_LIMIT:-100/minute}
+      SENSITIVE_RATE_LIMIT: ${SENSITIVE_RATE_LIMIT:-10/minute}
+      WEBSOCKET_RATE_LIMIT: ${WEBSOCKET_RATE_LIMIT:-20/minute}
       RATE_LIMIT_BY_JWT: ${RATE_LIMIT_BY_JWT:-true}
       CACHE_TTL_SECONDS: ${CACHE_TTL_SECONDS:-30}
-      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000"]}
+      CORS_ORIGINS: '${CORS_ORIGINS:-["http://localhost:3000","http://localhost:5173"]}'
+      CORS_METHODS: '${CORS_METHODS:-["GET","POST","PUT","PATCH","DELETE","OPTIONS"]}'
+      CORS_HEADERS: '${CORS_HEADERS:-["Authorization","Content-Type","X-Request-ID","X-Service-Authorization"]}'
+      CORS_EXPOSE_HEADERS: '${CORS_EXPOSE_HEADERS:-["X-Request-ID","Retry-After"]}'
       MAX_BODY_SIZE_MB: ${MAX_BODY_SIZE_MB:-10}
       DEBUG: "true"
       LOG_LEVEL: "${LOG_LEVEL:-DEBUG}"
@@ -900,6 +928,7 @@ services:
 
   # ETL worker and scheduler are opt-in for local development.
   etl_worker:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -933,6 +962,7 @@ services:
     restart: unless-stopped
 
   etl_scheduler:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -964,6 +994,7 @@ services:
     restart: unless-stopped
 
   rating_worker:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -996,6 +1027,7 @@ services:
     restart: unless-stopped
 
   rating_scheduler:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile

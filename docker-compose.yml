@@ -1,3 +1,7 @@
+x-default-env-file: &default-env-file
+  env_file:
+    - .env
+
 services:
   postgres_nsi:
     image: postgres:16-alpine
@@ -227,6 +231,7 @@ services:
     restart: unless-stopped
 
   migrations_nsi:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -243,6 +248,7 @@ services:
       sh -c "alembic -c migrations/nsi_service/alembic.ini upgrade head"
 
   migrations_auth:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -259,6 +265,7 @@ services:
       sh -c "alembic -c migrations/auth_service/alembic.ini upgrade head"
 
   migrations_admin:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -275,6 +282,7 @@ services:
       sh -c "alembic -c migrations/admin_service/alembic.ini upgrade head"
 
   migrations_rumor:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -291,6 +299,7 @@ services:
       sh -c "alembic -c migrations/rumor_service/alembic.ini upgrade head"
 
   migrations_event:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -307,6 +316,7 @@ services:
       sh -c "alembic -c migrations/event_service/alembic.ini upgrade head"
 
   migrations_market:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -323,6 +333,7 @@ services:
       sh -c "alembic -c migrations/market_service/alembic.ini upgrade head"
 
   migrations_profile:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -339,6 +350,7 @@ services:
       sh -c "alembic -c migrations/profile_service/alembic.ini upgrade head"
 
   migrations_rating:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -355,6 +367,7 @@ services:
       sh -c "alembic -c migrations/rating_service/alembic.ini upgrade head"
 
   nsi_service:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -395,6 +408,7 @@ services:
       start_period: 10s
     restart: unless-stopped
   auth_service:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -433,6 +447,7 @@ services:
     restart: unless-stopped
 
   admin_service:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -491,6 +506,7 @@ services:
     restart: unless-stopped
 
   rumor_service:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -529,6 +545,7 @@ services:
     restart: unless-stopped
 
   event_service:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -565,6 +582,7 @@ services:
     restart: unless-stopped
 
   market_service:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -601,6 +619,7 @@ services:
     restart: unless-stopped
 
   notification_service:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -633,6 +652,7 @@ services:
     restart: unless-stopped
 
   profile_service:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -671,6 +691,7 @@ services:
     restart: unless-stopped
 
   rating_service:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -714,6 +735,7 @@ services:
     restart: unless-stopped
 
   api_gateway:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -731,9 +753,15 @@ services:
       SERVICE_ADMIN_URL: ${SERVICE_ADMIN_URL:-http://admin_service:8009}
       REDIS_URL: ${GATEWAY_REDIS_URL:-redis://redis:6379/0}
       RATE_LIMIT: ${RATE_LIMIT:-100/minute}
+      PUBLIC_RATE_LIMIT: ${PUBLIC_RATE_LIMIT:-100/minute}
+      SENSITIVE_RATE_LIMIT: ${SENSITIVE_RATE_LIMIT:-10/minute}
+      WEBSOCKET_RATE_LIMIT: ${WEBSOCKET_RATE_LIMIT:-20/minute}
       RATE_LIMIT_BY_JWT: ${RATE_LIMIT_BY_JWT:-true}
       CACHE_TTL_SECONDS: ${CACHE_TTL_SECONDS:-30}
-      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000"]}
+      CORS_ORIGINS: '${CORS_ORIGINS:-["http://localhost:3000","http://localhost:5173"]}'
+      CORS_METHODS: '${CORS_METHODS:-["GET","POST","PUT","PATCH","DELETE","OPTIONS"]}'
+      CORS_HEADERS: '${CORS_HEADERS:-["Authorization","Content-Type","X-Request-ID","X-Service-Authorization"]}'
+      CORS_EXPOSE_HEADERS: '${CORS_EXPOSE_HEADERS:-["X-Request-ID","Retry-After"]}'
       MAX_BODY_SIZE_MB: ${MAX_BODY_SIZE_MB:-10}
       DEBUG: "false"
       LOG_LEVEL: "${LOG_LEVEL:-INFO}"
@@ -777,6 +805,7 @@ services:
     restart: unless-stopped
 
   etl_worker:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -805,6 +834,7 @@ services:
     restart: unless-stopped
 
   etl_scheduler:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -831,6 +861,7 @@ services:
     restart: unless-stopped
 
   rating_worker:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile
@@ -858,6 +889,7 @@ services:
     restart: unless-stopped
 
   rating_scheduler:
+    <<: *default-env-file
     build:
       context: .
       dockerfile: Dockerfile

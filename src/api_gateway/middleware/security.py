@@ -60,3 +60,23 @@ class GatewaySecurityMiddleware(BaseHTTPMiddleware):
         for name, value in self._security_headers.items():
             response.headers.setdefault(name, value)
         return response
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    def __init__(
+        self,
+        app: ASGIApp,
+        security_headers: dict[str, str],
+    ) -> None:
+        super().__init__(app)
+        self._security_headers = security_headers
+
+    async def dispatch(
+        self,
+        request: Request,
+        call_next: RequestResponseEndpoint,
+    ) -> Response:
+        response = await call_next(request)
+        for name, value in self._security_headers.items():
+            response.headers.setdefault(name, value)
+        return response

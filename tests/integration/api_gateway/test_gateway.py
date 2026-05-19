@@ -377,15 +377,38 @@ async def test_cors_preflight_uses_configured_origin(gateway_client) -> None:
     response = await client.options(
         "/auth/login",
         headers={
-            "Origin": "http://localhost:3000",
+            "Origin": "http://localhost:5173",
             "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": (
+                "Authorization, Content-Type, X-Request-ID"
+            ),
         },
     )
 
     assert response.status_code == 200
-    assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
     assert response.headers["access-control-allow-methods"] == (
         "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    )
+    assert "Authorization" in response.headers["access-control-allow-headers"]
+    assert "Content-Type" in response.headers["access-control-allow-headers"]
+    assert "X-Request-ID" in response.headers["access-control-allow-headers"]
+    assert_security_headers(response)
+
+
+@pytest.mark.asyncio
+async def test_cors_simple_response_exposes_frontend_headers(gateway_client) -> None:
+    client, _, _, _ = gateway_client
+
+    response = await client.get(
+        "/health",
+        headers={"Origin": "http://localhost:5173"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+    assert response.headers["access-control-expose-headers"] == (
+        "X-Request-ID, Retry-After"
     )
     assert_security_headers(response)
 

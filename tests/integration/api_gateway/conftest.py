@@ -67,7 +67,7 @@ def gateway_settings() -> GatewaySettings:
         WEBSOCKET_RATE_LIMIT="20/minute",
         RATE_LIMIT_BY_JWT=True,
         CACHE_TTL_SECONDS=30,
-        CORS_ORIGINS=["http://localhost:3000"],
+        CORS_ORIGINS=["http://localhost:3000", "http://localhost:5173"],
     )
 
 

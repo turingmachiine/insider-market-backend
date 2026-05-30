@@ -1,274 +1,578 @@
-# План изменений frontend для флоу "Инсайдер Маркет"
+# План реализации frontend для "Инсайдер Маркет"
 
-Документ описывает продуктовые и UI-изменения frontend для навигации и сценариев, похожих на Polymarket. Текущий backend находится в этом репозитории, поэтому пункты frontend нужно синхронизировать с контрактами из [backend-плана](./backend-polymarket-flow-plan.md).
+Документ обновлен после реализации backend-изменений в ветке
+`feature/polymarket-changes`. Его можно использовать как рабочий план для FE.
 
-## Цели
+## Backend Base URL
 
-- Переименовать приложение в "Инсайдер Маркет".
-- Сделать первый экран публичной витриной событий.
-- Перестроить навигацию вокруг разделов "События", "Список лидеров", "Последние новости".
-- Разделить публичные сценарии просмотра и авторизованные действия.
-- Сделать карточки событий, вероятности и покупку исходов центральным пользовательским флоу.
+Frontend должен ходить через `api_gateway`.
+
+Проксированные сервисы доступны по gateway-prefix:
+
+- `event_service`: `/event/api/v1/...`
+- `market_service`: `/market/api/v1/...`
+- `rating_service`: `/rating/api/v1/...`
+- `rumor_service`: `/rumor/api/v1/...`
+- `profile_service`: `/profile/api/v1/...`
+- `auth_service`: `/auth/api/v1/...`
+
+Новый BFF endpoint главной витрины находится прямо в gateway:
+
+- `GET /feed/home`
+
+## Реализованные backend-контракты
+
+### Главная витрина
+
+`GET /feed/home`
+
+Query:
+
+- `limit`: number, `1..100`, default `20`
+- `category`: optional event category
+
+Response:
+
+```ts
+type HomeFeedResponse = {
+  brand: "Инсайдер Маркет";
+  filters: {
+    events: EventCategory[];
+    leaderboard: LeaderboardPeriod[];
+  };
+  main_event: EventCard | null;
+  events: EventCard[];
+  limit: number;
+  category: EventCategory | null;
+};
+```
+
+`main_event` выбирается backend по максимальному `bets_count` среди активных
+событий в ответе.
+
+### События
+
+`GET /event/api/v1/events`
+
+Query:
+
+- `limit`: number, default `100`, max `500`
+- `offset`: number, default `0`
+- `status`: optional `draft | pending_moderation | active | rejected | resolved | cancelled`
+- `category`: optional `transfers | matches | dismissals | titles | other`
+- `sort`: optional `created_at | deadline_at | popularity`
+- `source_rumor_id`: optional UUID
+
+Response:
+
+```ts
+type EventListResponse = {
+  items: EventResponse[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+type EventResponse = {
+  id: string;
+  title: string;
+  description: string;
+  category: EventCategory;
+  status: EventStatus;
+  source_rumor_id: string | null;
+  candidate_payload: Record<string, unknown>;
+  deadline_at: string | null;
+  resolution_rules: string | null;
+  outcome: "yes" | "no" | "void" | null;
+  resolution_notes: string | null;
+  created_by_user_id: string | null;
+  resolved_by_user_id: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+```
+
+`GET /event/api/v1/events/{event_id}` возвращает `EventResponse`.
+
+`POST /event/api/v1/events/proposals` требует авторизации и permission
+`EVENT_WRITE`. Использовать для формы "Предложить событие" из слуха.
+
+Request:
+
+```ts
+type EventProposalCreate = {
+  title: string;
+  description: string;
+  category: EventCategory;
+  source_rumor_id: string;
+  candidate_payload?: Record<string, unknown>;
+  deadline_at?: string | null;
+  resolution_rules?: string | null;
+  submit_for_moderation?: boolean; // default true
+};
+```
+
+### Markets и ставки
+
+`GET /market/api/v1/markets`
+
+Query:
+
+- `limit`, `offset`
+- `status`: optional `draft | active | paused | closed | resolved | cancelled`
+- `event_id`: optional UUID
+
+Response item:
+
+```ts
+type MarketResponse = {
+  id: string;
+  event_id: string;
+  title: string;
+  description: string;
+  initial_probability: number;
+  liquidity_parameter: number;
+  yes_pool: number;
+  no_pool: number;
+  yes_probability: number;
+  no_probability: number;
+  yes_odds: number;
+  no_odds: number;
+  bets_count: number;
+  status: MarketStatus;
+  close_at: string | null;
+  outcome: "yes" | "no" | "void" | null;
+  created_by_user_id: string | null;
+  resolved_by_user_id: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+```
+
+`POST /market/api/v1/markets/{market_id}/bets` требует авторизации и permission
+`MARKET_TRADE`.
+
+Request:
+
+```ts
+type BetCreate = {
+  side: "yes" | "no";
+  amount: string | number;
+};
+```
+
+Важно: `user_id` больше не передается с клиента. Backend берет пользователя из
+JWT.
+
+### Лидерборд
+
+`GET /rating/api/v1/ratings/leaderboard`
+
+Query:
+
+- `limit`, `offset`
+- `period`: `week | month | all_time`
+
+Response:
+
+```ts
+type LeaderboardResponse = {
+  items: LeaderboardEntry[];
+  total: number;
+  limit: number;
+  offset: number;
+  period: LeaderboardPeriod;
+};
+
+type LeaderboardEntry = {
+  rank: number;
+  profile: RatingProfile;
+  achievements: RatingAchievement[];
+  is_profile_public: boolean | null;
+};
+```
+
+Backend уже принимает `period`, но текущая реализация пока возвращает
+all-time рейтинг для всех периодов. FE должен сделать UI переключателя периода
+с текущим контрактом, без клиентской пересборки статистики.
+
+`is_profile_public` пока может быть `null`, потому что rating_service не
+обогащает ответ данными profile_service. Для перехода в профиль использовать
+дополнительную проверку `GET /profile/api/v1/profiles/public/{user_id}`.
+
+### Публичные слухи
+
+`GET /rumor/api/v1/rumors/public`
+
+Query:
+
+- `limit`, `offset`
+- `event_id`: optional UUID
+
+Response:
+
+```ts
+type PublicRumorListResponse = {
+  items: PublicRumor[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+type PublicRumor = {
+  rumor: RumorResponse;
+  source: Record<string, unknown> | null;
+};
+```
+
+`GET /rumor/api/v1/rumors/{rumor_id}` возвращает `RumorResponse`.
+
+### Профили
+
+`GET /profile/api/v1/profiles/public/{user_id}`
+
+Response `200`: публичный профиль.
+
+Response `404`: профиля нет или он приватный. FE должен трактовать это как
+"профиль недоступен", а не как ошибку приложения.
+
+`PATCH /profile/api/v1/profiles/{user_id}` требует авторизации владельца.
+В форме профиля можно редактировать:
+
+- `display_name`
+- `bio`
+- `avatar_url`
+- `favorite_club`
+- `is_public`
+
+## Клиентские enum
+
+```ts
+type EventCategory =
+  | "transfers"
+  | "matches"
+  | "dismissals"
+  | "titles"
+  | "other";
+
+type EventSort = "created_at" | "deadline_at" | "popularity";
+
+type LeaderboardPeriod = "week" | "month" | "all_time";
+
+type MarketSide = "yes" | "no";
+```
+
+UI labels:
+
+- `transfers`: "Трансферы"
+- `matches`: "Игры"
+- `dismissals`: "Отставки"
+- `titles`: "Названия"
+- `other`: "Другое"
+- `week`: "За неделю"
+- `month`: "За месяц"
+- `all_time`: "За все время"
 
 ## Общая навигация
 
 ### Шапка
 
 - Логотип/название: "Инсайдер Маркет".
-- Первый ряд меню:
-  - "События";
-  - "Список лидеров";
-  - "Последние новости".
+- Первый ряд:
+  - "События" -> `/events`
+  - "Список лидеров" -> `/leaderboard`
+  - "Последние новости" -> `/news`
 - Правая часть:
-  - для анонимного пользователя: кнопка "Войти/Зарегистрироваться";
-  - для авторизованного пользователя: "Профиль".
+  - анонимный пользователь: "Войти/Зарегистрироваться";
+  - авторизованный пользователь: "Профиль".
 
-### Второй ряд фильтров
+### Второй ряд
 
-- Для "События":
-  - "Трансферы";
-  - "Игры";
-  - "Отставки и названия";
-  - "Другое".
-- Для "Список лидеров":
-  - "За неделю";
-  - "За месяц";
-  - "За все время".
-- Для "Последние новости":
-  - второй ряд не отображается.
+- Для `/events`: category tabs.
+- Для `/leaderboard`: period tabs.
+- Для `/news`: второй ряд не отображается.
 
-### Состояния доступа
+Состояние вкладок должно синхронизироваться с query string:
 
-- Публичные экраны должны открываться без токена.
-- Кнопки авторизованных действий должны быть видимы только для зарегистрированных пользователей или переводить анонимного пользователя в login/register.
-- После успешного login пользователь должен возвращаться к исходному действию, если оно было начато из модального окна ставки, чата или формы предложения события.
+- `/events?category=transfers&sort=popularity`
+- `/leaderboard?period=week`
 
-## Главный экран
+## Главный экран `/`
 
-### Главный блок
+Источник данных: `GET /feed/home`.
 
-- Показать главное событие как dashboard-карточку:
-  - название;
-  - описание;
-  - дата разрешения;
-  - количество ставок;
-  - вероятности исходов;
-  - визуальный блок вероятности наступления события;
-  - возможность прокрутки/переключения главных событий, если backend вернет несколько кандидатов.
-- Вероятности показывать как основной визуальный сигнал: шкала, кольцо или компактный график изменения вероятности, если API предоставит историю.
-- Для зарегистрированных пользователей показать CTA покупки исхода.
+Показать:
 
-### Список событий
+- `main_event` как главный dashboard;
+- список `events` под ним;
+- вероятности `yes_probability`/`no_probability`;
+- `bets_count`;
+- дату разрешения `deadline_at`;
+- кнопку ставки, если у карточки есть `market_id` и пользователь авторизован.
 
-- Ниже главного события вывести список карточек:
-  - название;
-  - описание;
-  - дата разрешения;
-  - текущие вероятности, если есть market-сводка;
-  - переход в детали события.
-- Карточки должны быть сканируемыми и плотными, без маркетингового hero-экрана.
+Если `main_event = null`, показывать пустое состояние и CTA перейти в
+`/events`.
 
-### Пустые и ошибочные состояния
+После успешной ставки инвалидировать:
 
-- Если нет главного события, показать обычный список событий.
-- Если market-данные недоступны, карточка события все равно должна открываться, но без вероятностного блока.
+- `GET /feed/home`
+- `GET /market/api/v1/markets?event_id=...`
+- `GET /event/api/v1/events...`
 
-## Экран "События"
+## Экран "События" `/events`
 
-### Список
+Источник событий: `GET /event/api/v1/events`.
 
-- Поддержать два вида:
-  - список;
-  - карточки.
-- Добавить сортировки:
-  - "По дате создания";
-  - "По дате разрешения";
-  - "По популярности".
-- Фильтр категорий синхронизировать со вторым рядом навигации.
+Для каждой карточки дополнительно получить market:
 
-### Карточка события
+- `GET /market/api/v1/markets?event_id={event.id}&limit=1`
 
-- Поля:
-  - название;
-  - описание;
-  - дата разрешения;
-  - вероятности исходов;
-  - количество ставок;
-  - кнопка "Сделать ставку" для зарегистрированных пользователей.
-- Для анонимного пользователя вместо покупки открывать auth flow.
+Для первого релиза допустим N+1 запрос на market по карточкам. Если список
+станет тяжелым, использовать только `/feed/home` для главной витрины или
+добавить отдельный BFF endpoint.
 
-### Модальное окно ставки
+Controls:
 
-- Открывается по кнопке "Сделать ставку".
-- Содержит:
-  - выбранный исход;
-  - переключатель исходов;
-  - сумму;
-  - текущую вероятность;
-  - расчет ожидаемых shares/стоимости, если backend даст preview;
-  - подтверждение покупки.
-- Обрабатывать состояния:
-  - недостаточно средств;
-  - market закрыт;
-  - событие уже разрешено;
-  - ошибка сети;
-  - успешная покупка с обновлением карточки.
+- view mode: list/card;
+- category tabs;
+- sort select:
+  - `created_at`: "По дате создания";
+  - `deadline_at`: "По дате разрешения";
+  - `popularity`: "По популярности".
 
-## Экран деталей события
+Карточка:
 
-- Основные блоки:
-  - заголовок события;
-  - описание;
-  - дата разрешения;
-  - текущие вероятности и market-сводка;
-  - исходный слух;
-  - источник слуха;
-  - последние новости по событию из RSS/публичной ленты;
-  - чат для зарегистрированных пользователей;
-  - форма отправки новости по событию для зарегистрированных пользователей.
-- Для анонимных пользователей:
-  - чат и форма новости не отображаются или заменяются на CTA авторизации;
-  - просмотр деталей, слуха и новостей остается публичным.
-- После отправки новости показать статус "на модерации", если новость не становится публичной сразу.
+- `title`
+- `description`
+- `deadline_at`
+- `category`
+- market probability block, если market найден;
+- `bets_count`;
+- "Сделать ставку", если market active и пользователь авторизован.
 
-## Экран "Список лидеров"
+Анонимный пользователь при клике на ставку открывает auth flow.
 
-### Основной вид
+## Модальное окно ставки
 
-- Показать статистику ставок игроков с фильтром периода:
-  - неделя;
-  - месяц;
-  - все время.
-- Для каждой строки:
-  - место;
-  - ник/display name;
-  - рейтинг;
-  - ROI;
-  - точность;
-  - число прогнозов;
-  - серия;
-  - achievements.
+Endpoint: `POST /market/api/v1/markets/{market_id}/bets`.
 
-### Инфографика и визуальные акценты
+Поля:
 
-- Первое место выделить коронкой.
-- Первые три места выделить цветом:
-  - золото;
-  - серебро;
-  - бронза.
-- Для achievements использовать компактные современные пиктограммы:
-  - корона для лидера;
-  - пламя для серии;
-  - мишень для точности;
-  - тренд вверх для ROI;
-  - щит/бейдж для статуса.
-- Если используется icon library, предпочтительно брать иконки из нее, а не рисовать вручную.
+- переключатель `yes/no`;
+- amount;
+- текущая вероятность выбранной стороны;
+- кнопка подтверждения.
 
-### Переход в профиль
+Backend preview endpoint пока не реализован. Для первого релиза не показывать
+точный расчет shares до покупки; после покупки использовать `BetResponse` и
+обновить market/card queries.
 
-- Если у пользователя активна опция "Публичный выбор"/публичный профиль, ник становится ссылкой.
-- Если профиль приватный, строка остается без перехода.
-- Не раскрывать приватные данные профиля через UI fallback.
+Обработать ошибки:
 
-## Экран "Последние новости"
+- `401/403`: открыть login или показать недостаточно прав;
+- `400`: показать backend `detail`, например market inactive или wallet issue;
+- network error: retry UI.
 
-### Список
+## Экран деталей события `/events/:eventId`
 
-- Показывать только сырые слухи, которые модератор сделал публичными.
-- Поля:
-  - источник слуха;
-  - текст слуха;
-  - заголовок, если есть;
-  - дата публикации/добавления;
-  - теги.
-- Каждая запись ведет в детали слуха.
+Источник:
 
-### Детали слуха
+- `GET /event/api/v1/events/{eventId}`
+- `GET /market/api/v1/markets?event_id={eventId}&limit=1`
+- `GET /rumor/api/v1/rumors/public?event_id={eventId}`
+- если `source_rumor_id` есть: `GET /rumor/api/v1/rumors/{source_rumor_id}`
 
-- Показать:
-  - текст слуха;
-  - источник;
-  - метаданные публикации;
-  - связанные события, если есть.
-- Для авторизованных пользователей добавить кнопку "Предложить событие".
+Показать:
 
-### Форма "Предложить событие"
+- заголовок, описание, категорию, дату разрешения;
+- probability dashboard по market;
+- исходный слух, если `source_rumor_id` есть;
+- публичные новости/слухи по событию;
+- кнопку ставки для авторизованного пользователя.
 
-- Поля:
-  - название события;
-  - описание;
-  - категория;
-  - дата разрешения;
-  - правила разрешения;
-  - исходная вероятность, если сразу создается market draft.
-- Результат:
-  - создается неактивное событие;
-  - пользователь видит статус отправки на модерацию.
+Не реализовано на backend и не должно блокировать первый FE-релиз:
 
-## Профиль
+- чат события;
+- форма отправки новости по событию;
+- история изменения вероятности.
 
-- В профиле показать:
-  - личную информацию;
-  - статистику игрока;
-  - achievements;
-  - баланс и доступный баланс для владельца;
-  - последние активности;
-  - настройку публичности профиля.
-- Форма личной информации:
-  - display name;
-  - bio;
-  - avatar url/upload, если поддерживается;
-  - любимый клуб;
-  - переключатель публичности профиля.
-- Для чужого публичного профиля показать только публичные данные и статистику, без баланса и приватной активности.
+Для этих блоков оставить feature flag или скрыть.
 
-## Состояния и клиентские модели
+## Экран "Список лидеров" `/leaderboard`
 
-- Ввести единые модели:
-  - `EventCard`;
-  - `EventDetails`;
-  - `MarketSummary`;
-  - `LeaderboardEntry`;
-  - `PublicRumor`;
-  - `PublicProfile`.
-- Разделить anonymous/authenticated capabilities:
-  - `canPlaceBet`;
-  - `canOpenChat`;
-  - `canSubmitNews`;
-  - `canProposeEvent`;
-  - `canOpenProfile`.
-- После ставки, предложения события и отправки новости инвалидировать соответствующие queries/cache.
+Источник: `GET /rating/api/v1/ratings/leaderboard?period=...`.
 
-## Роутинг
+Показать:
 
-- `/` — главный экран.
-- `/events` — список событий.
-- `/events/:eventId` — детали события.
-- `/leaderboard` — список лидеров.
-- `/news` — последние новости.
-- `/news/:rumorId` — детали слуха.
-- `/profile` — профиль текущего пользователя.
-- `/users/:userId` — публичный профиль пользователя.
-- `/auth` или модальный auth flow — вход/регистрация.
+- `rank`;
+- рейтинг;
+- ROI;
+- accuracy;
+- total predictions;
+- current/best streak;
+- achievements.
+
+Визуальные правила:
+
+- `rank=1`: коронка;
+- `rank=1..3`: золото, серебро, бронза;
+- achievements показывать компактными бейджами.
+
+Переход в публичный профиль:
+
+1. При клике на пользователя запросить
+   `GET /profile/api/v1/profiles/public/{user_id}`.
+2. Если `200`, перейти на `/users/{user_id}` и использовать полученные данные
+   или закешировать query.
+3. Если `404`, показать "Профиль закрыт".
+
+## Экран "Последние новости" `/news`
+
+Источник: `GET /rumor/api/v1/rumors/public`.
+
+Показать:
+
+- source name/type/url, если есть;
+- `rumor.title`;
+- `rumor.text`;
+- `rumor.tags`;
+- `rumor.published_at ?? rumor.created_at`;
+- переход в `/news/:rumorId`.
+
+## Детали слуха `/news/:rumorId`
+
+Источник:
+
+- `GET /rumor/api/v1/rumors/{rumorId}`
+- при необходимости source уже можно взять из списка; отдельный source endpoint
+  есть в rumor_service.
+
+Для авторизованных пользователей показать "Предложить событие".
+
+Форма отправляет:
+
+- `POST /event/api/v1/events/proposals`
+
+Request заполнять так:
+
+- `source_rumor_id = rumor.id`
+- `title`
+- `description`
+- `category`
+- `deadline_at`
+- `resolution_rules`
+- `submit_for_moderation = true`
+
+После успеха показать статус "Отправлено на модерацию" и ссылку на созданное
+событие, если FE решит вести пользователя в детали draft/pending события.
+
+## Профиль `/profile`
+
+Для владельца использовать существующие protected endpoints:
+
+- `GET /profile/api/v1/profiles/{user_id}`
+- `PATCH /profile/api/v1/profiles/{user_id}`
+- `GET /profile/api/v1/profiles/{user_id}/activity`
+- `GET /profile/api/v1/profiles/{user_id}/achievements`
+- `GET /rating/api/v1/ratings/profiles/{user_id}`
+
+Форма личной информации:
+
+- display name;
+- bio;
+- avatar url;
+- favorite club;
+- toggle `is_public`.
+
+## Публичный профиль `/users/:userId`
+
+Источник:
+
+- `GET /profile/api/v1/profiles/public/{userId}`
+- `GET /rating/api/v1/ratings/profiles/{userId}` может требовать auth по
+  текущей security model; для первого релиза использовать только public profile,
+  если rating profile недоступен.
+
+Не показывать:
+
+- баланс;
+- balance transactions;
+- приватную activity.
+
+## Auth и capabilities
+
+FE должен вычислять capabilities из auth-состояния и данных карточки:
+
+```ts
+type Capabilities = {
+  canPlaceBet: boolean; // auth && market_id != null && market.status === "active"
+  canProposeEvent: boolean; // auth
+  canEditOwnProfile: boolean; // auth && profile.user_id === currentUser.id
+  canOpenPublicProfile: boolean; // проверяется через public profile endpoint
+};
+```
+
+После login возвращать пользователя к исходному действию:
+
+- ставка;
+- предложение события;
+- переход в профиль.
+
+## Рекомендуемые FE queries
+
+- `homeFeed({ category, limit })`
+- `events({ category, sort, status, limit, offset })`
+- `eventDetails(eventId)`
+- `marketByEvent(eventId)`
+- `placeBet(marketId, { side, amount })`
+- `leaderboard({ period, limit, offset })`
+- `publicRumors({ limit, offset, eventId })`
+- `rumorDetails(rumorId)`
+- `proposeEventFromRumor(rumorId, payload)`
+- `ownProfile(userId)`
+- `updateOwnProfile(userId, payload)`
+- `publicProfile(userId)`
 
 ## Приоритеты реализации
 
-1. Переименование и новая шапка с разделами.
-2. Главный экран с главным событием и списком карточек.
-3. Экран событий с фильтрами, сортировками и модальным окном ставки.
-4. Детали события с market-блоком, исходным слухом и новостями.
-5. Публичный leaderboard с периодами, призовыми местами и achievements.
-6. Последние новости и детали слуха.
-7. Предложение события из слуха.
-8. Профиль, публичность профиля и публичный профиль.
-9. Чат события и realtime-состояния.
+1. API client, DTO types, auth token handling.
+2. Новая шапка и routing.
+3. Главный экран на `/feed/home`.
+4. `/events` со списком, фильтрами, сортировкой и market enrichment.
+5. Модальное окно ставки.
+6. `/events/:eventId` без чата и отправки новости.
+7. `/leaderboard` с period tabs и profile availability check.
+8. `/news` и `/news/:rumorId`.
+9. Форма предложения события из слуха.
+10. `/profile` с переключателем публичности.
+11. `/users/:userId` public profile.
 
-## Проверки перед релизом
+## Known Backend Gaps
 
-- Публичные экраны открываются без авторизации.
-- Анонимный пользователь не может совершать mutating actions.
-- После login пользователь возвращается к начатому действию.
-- Вероятности и количество ставок обновляются после покупки.
-- Лидерборд корректно переключает неделю, месяц и все время.
-- Приватный профиль недоступен из leaderboard и прямого URL.
-- Мобильная шапка не ломает второй ряд фильтров.
+- `leaderboard.period` принимается, но пока не меняет расчет.
+- `LeaderboardEntry.is_profile_public` пока может быть `null`.
+- Нет preview/quote endpoint для ставки.
+- Нет event chat.
+- Нет пользовательской отправки новости по событию.
+- Нет probability history.
+- Детали события не возвращают одним ответом source rumor + source + market;
+  FE собирает эти данные несколькими запросами.
+
+## Проверки перед релизом FE
+
+- Публичные страницы открываются без JWT:
+  - `/`
+  - `/events`
+  - `/events/:eventId`
+  - `/leaderboard`
+  - `/news`
+  - `/news/:rumorId`
+- Mutating actions без JWT переводят в auth flow.
+- Ставка не отправляет `user_id`.
+- После ставки обновляются вероятность и `bets_count`.
+- Приватный профиль возвращает `404` и не раскрывает данные.
+- Период leaderboard сохраняется в URL.
+- Category/sort events сохраняются в URL.
+- На мобильной ширине второй ряд фильтров не перекрывает контент.

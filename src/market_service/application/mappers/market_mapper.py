@@ -27,6 +27,7 @@ class MarketMapper(IMarketMapper):
             no_probability=entity.no_probability,
             yes_odds=entity.yes_odds,
             no_odds=entity.no_odds,
+            bets_count=0,
             status=entity.status,
             close_at=entity.close_at,
             outcome=entity.outcome,

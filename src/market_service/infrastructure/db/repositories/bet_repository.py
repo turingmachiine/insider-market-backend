@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.market_service.domain.entities import Bet
@@ -28,6 +28,15 @@ class BetRepository(IBetRepository):
         )
         result = await self.session.execute(query)
         return list(result.scalars().all())
+
+    async def count_by_market(self, market_id: UUID) -> int:
+        query = (
+            select(func.count())
+            .select_from(bets_table)
+            .where(bets_table.c.market_id == market_id)
+        )
+        result = await self.session.execute(query)
+        return int(result.scalar_one())
 
     async def save(self, bet: Bet) -> Bet:
         self.session.add(bet)

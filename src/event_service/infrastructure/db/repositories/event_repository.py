@@ -2,8 +2,14 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.elements import ColumnElement
 
-from src.event_service.domain.entities import Event, EventStatus
+from src.event_service.domain.entities import (
+    Event,
+    EventCategory,
+    EventSort,
+    EventStatus,
+)
 from src.event_service.domain.interfaces.repositories import IEventRepository
 from src.event_service.infrastructure.db.tables import events_table
 
@@ -24,15 +30,17 @@ class EventRepository(IEventRepository):
         offset: int = 0,
         status: EventStatus | None = None,
         source_rumor_id: UUID | None = None,
+        category: EventCategory | None = None,
+        sort: EventSort = EventSort.CREATED_AT,
     ) -> list[Event]:
         query = select(self.model)
         if status is not None:
             query = query.where(events_table.c.status == status)
         if source_rumor_id is not None:
             query = query.where(events_table.c.source_rumor_id == source_rumor_id)
-        query = (
-            query.order_by(events_table.c.created_at.desc()).offset(offset).limit(limit)
-        )
+        if category is not None:
+            query = query.where(events_table.c.category == category)
+        query = query.order_by(self._sort_expression(sort)).offset(offset).limit(limit)
         result = await self.session.execute(query)
         return list(result.scalars().all())
 
@@ -40,3 +48,13 @@ class EventRepository(IEventRepository):
         self.session.add(event)
         await self.session.flush()
         return event
+
+    @staticmethod
+    def _sort_expression(sort: EventSort) -> ColumnElement:
+        match sort:
+            case EventSort.DEADLINE_AT:
+                return events_table.c.deadline_at.asc().nullslast()
+            case EventSort.POPULARITY:
+                return events_table.c.created_at.desc()
+            case EventSort.CREATED_AT:
+                return events_table.c.created_at.desc()

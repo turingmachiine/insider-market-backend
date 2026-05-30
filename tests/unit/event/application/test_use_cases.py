@@ -11,7 +11,13 @@ from src.event_service.application.dto import (
 )
 from src.event_service.application.mappers import EventMapper
 from src.event_service.application.usecases import EventUseCases
-from src.event_service.domain.entities import Event, EventOutcome, EventStatus
+from src.event_service.domain.entities import (
+    Event,
+    EventCategory,
+    EventOutcome,
+    EventSort,
+    EventStatus,
+)
 from src.event_service.domain.interfaces.repositories import IEventRepository
 
 
@@ -66,12 +72,20 @@ class FakeEventRepository(IEventRepository):
         offset: int = 0,
         status: EventStatus | None = None,
         source_rumor_id: UUID | None = None,
+        category: EventCategory | None = None,
+        sort: EventSort = EventSort.CREATED_AT,
     ) -> list[Event]:
         items = list(self.items.values())
         if status is not None:
             items = [item for item in items if item.status == status]
         if source_rumor_id is not None:
             items = [item for item in items if item.source_rumor_id == source_rumor_id]
+        if category is not None:
+            items = [item for item in items if item.category == category]
+        if sort == EventSort.DEADLINE_AT:
+            items.sort(key=lambda item: item.deadline_at or item.created_at)
+        else:
+            items.sort(key=lambda item: item.created_at, reverse=True)
         return items[offset : offset + limit]
 
     async def save(self, event: Event) -> Event:
@@ -145,6 +159,32 @@ async def test_moderation_queue_returns_pending_events(
     result = await use_cases.get_moderation_queue()
 
     assert [item.id for item in result] == [pending.id]
+
+
+@pytest.mark.asyncio
+async def test_get_events_filters_by_category(
+    event_repository: FakeEventRepository,
+    transaction_manager: FakeTransactionManager,
+) -> None:
+    transfer = Event(
+        id=uuid4(),
+        title="Forward transfer",
+        description="Forward can move.",
+        category=EventCategory.TRANSFERS,
+    )
+    match = Event(
+        id=uuid4(),
+        title="Final result",
+        description="Team can win the final.",
+        category=EventCategory.MATCHES,
+    )
+    await event_repository.save(transfer)
+    await event_repository.save(match)
+    use_cases = create_use_cases(event_repository, transaction_manager)
+
+    result = await use_cases.get_events(category=EventCategory.TRANSFERS)
+
+    assert [item.id for item in result] == [transfer.id]
 
 
 @pytest.mark.asyncio

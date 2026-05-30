@@ -11,7 +11,7 @@ class RumorSettings(BaseSettings):
     )
 
     PROXY_NAME: str = "rumor"
-    APP_NAME: str = "Football Research Rumor Service"
+    APP_NAME: str = "Инсайдер Маркет Rumor Service"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
     HOST: str = "0.0.0.0"

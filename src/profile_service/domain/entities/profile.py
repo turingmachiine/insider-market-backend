@@ -13,6 +13,7 @@ class Profile:
     bio: str | None = None
     avatar_url: str | None = None
     favorite_club: str | None = None
+    is_public: bool = False
     created_at: datetime = field(default_factory=utc_now)
     updated_at: datetime = field(default_factory=utc_now)
 
@@ -27,6 +28,7 @@ class Profile:
         bio: str | None = None,
         avatar_url: str | None = None,
         favorite_club: str | None = None,
+        is_public: bool | None = None,
     ) -> None:
         if display_name is not None:
             display_name = display_name.strip()
@@ -39,4 +41,6 @@ class Profile:
             self.avatar_url = avatar_url
         if favorite_club is not None:
             self.favorite_club = favorite_club
+        if is_public is not None:
+            self.is_public = is_public
         self.updated_at = utc_now()

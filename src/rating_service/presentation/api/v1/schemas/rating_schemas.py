@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from enum import StrEnum
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer
@@ -10,6 +11,12 @@ from src.rating_service.domain.entities import (
     RewardTransactionStatus,
     UserStatus,
 )
+
+
+class LeaderboardPeriod(StrEnum):
+    WEEK = "week"
+    MONTH = "month"
+    ALL_TIME = "all_time"
 
 
 class RatingEventCreate(BaseModel):
@@ -123,6 +130,21 @@ class UserAchievementResponse(BaseModel):
 
 class UserAchievementListResponse(BaseModel):
     items: list[UserAchievementResponse]
+
+
+class LeaderboardEntryResponse(BaseModel):
+    rank: int
+    profile: RatingProfileResponse
+    achievements: list[UserAchievementResponse]
+    is_profile_public: bool | None = None
+
+
+class LeaderboardResponse(BaseModel):
+    items: list[LeaderboardEntryResponse]
+    total: int
+    limit: int
+    offset: int
+    period: LeaderboardPeriod
 
 
 class RewardTransactionResponse(BaseModel):

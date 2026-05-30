@@ -1,5 +1,7 @@
+from typing import Annotated, Any, cast
+
 import httpx
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Query, Request
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 
@@ -50,6 +52,12 @@ class GatewayRouter:
             self.swagger_json,
             methods=["GET"],
             include_in_schema=False,
+        )
+        self.router.add_api_route(
+            "/feed/home",
+            self.home_feed,
+            methods=["GET"],
+            tags=["Public Feed"],
         )
         self._register_proxy_routes(
             service=ServiceName.NSI,
@@ -143,6 +151,91 @@ class GatewayRouter:
         except ValueError:
             return JSONResponse({"detail": "Unknown service"}, status_code=404)
         return await self._proxy(request, service_name, "openapi.json")
+
+    async def home_feed(
+        self,
+        request: Request,
+        limit: Annotated[int, Query(ge=1, le=100)] = 20,
+        category: str | None = None,
+    ) -> JSONResponse:
+        try:
+            events_payload = await self._upstream_json(
+                request,
+                ServiceName.EVENT,
+                "api/v1/events",
+                {
+                    "limit": limit,
+                    "status": "active",
+                    **({"category": category} if category else {}),
+                },
+            )
+            events = events_payload.get("items", [])
+            cards = [await self._event_card(request, event) for event in events]
+            main_event = max(
+                cards,
+                key=lambda card: card.get("bets_count") or 0,
+                default=None,
+            )
+            return JSONResponse(
+                {
+                    "brand": "Инсайдер Маркет",
+                    "filters": {
+                        "events": [
+                            "transfers",
+                            "matches",
+                            "dismissals",
+                            "titles",
+                            "other",
+                        ],
+                        "leaderboard": ["week", "month", "all_time"],
+                    },
+                    "main_event": main_event,
+                    "events": cards,
+                    "limit": limit,
+                    "category": category,
+                }
+            )
+        except (RuntimeError, httpx.HTTPError):
+            return JSONResponse(
+                {"detail": "Failed to load public feed"},
+                status_code=502,
+            )
+
+    async def _event_card(self, request: Request, event: dict) -> dict:
+        markets_payload = await self._upstream_json(
+            request,
+            ServiceName.MARKET,
+            "api/v1/markets",
+            {"event_id": event["id"], "limit": 1},
+        )
+        market = next(iter(markets_payload.get("items", [])), None)
+        return {
+            "event_id": event["id"],
+            "title": event["title"],
+            "description": event["description"],
+            "category": event.get("category"),
+            "status": event["status"],
+            "deadline_at": event.get("deadline_at"),
+            "market_id": market["id"] if market else None,
+            "yes_probability": market.get("yes_probability") if market else None,
+            "no_probability": market.get("no_probability") if market else None,
+            "bets_count": market.get("bets_count") if market else 0,
+        }
+
+    @staticmethod
+    async def _upstream_json(
+        request: Request,
+        service: ServiceName,
+        target_path: str,
+        params: dict[str, Any],
+    ) -> dict[str, Any]:
+        http_client: httpx.AsyncClient | None = request.app.state.http_client
+        if http_client is None:
+            raise RuntimeError("Gateway HTTP client is not configured")
+        upstream = request.app.state.service_registry.get(service)
+        response = await http_client.get(upstream.build_url(target_path), params=params)
+        response.raise_for_status()
+        return cast(dict[str, Any], response.json())
 
     @staticmethod
     async def _proxy(

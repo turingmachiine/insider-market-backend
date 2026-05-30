@@ -27,5 +27,19 @@ class Rumor:
     status: RumorStatus = RumorStatus.NEW
     tags: list[str] = field(default_factory=list)
     event_candidate_payload: dict[str, Any] = field(default_factory=dict)
+    event_id: UUID | None = None
+    is_public: bool = False
+    published_at: datetime | None = None
     created_at: datetime = field(default_factory=utc_now)
     updated_at: datetime = field(default_factory=utc_now)
+
+    def update_status(self, status: RumorStatus) -> None:
+        self.status = status
+        if status == RumorStatus.APPROVED:
+            self.publish()
+        self.updated_at = utc_now()
+
+    def publish(self) -> None:
+        self.is_public = True
+        if self.published_at is None:
+            self.published_at = utc_now()

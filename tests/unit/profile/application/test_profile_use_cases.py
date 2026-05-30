@@ -59,6 +59,7 @@ class FakeTransactionManager(TransactionManager):
         self._in_nested = False
 
     async def flush(self) -> None:
+        """fake repository"""
         pass
 
     @property
@@ -244,6 +245,36 @@ async def test_create_profile_creates_balance_and_activity() -> None:
     assert profile.available_balance == Decimal("1500.000000")
     assert activity[0].activity_type == ActivityType.PROFILE_CREATED
     assert transactions[0].transaction_type == BalanceTransactionType.CREDIT
+
+
+@pytest.mark.asyncio
+async def test_public_profile_only_returns_public_profiles() -> None:
+    use_cases = create_use_cases(
+        FakeProfileRepository(),
+        FakeBalanceRepository(),
+        FakeActivityRepository(),
+        FakeAchievementRepository(),
+        FakeTransactionManager(),
+    )
+    public_user_id = uuid4()
+    private_user_id = uuid4()
+    await use_cases.create_profile(
+        CreateProfileDTO(
+            user_id=public_user_id,
+            display_name="Public Trader",
+            is_public=True,
+        )
+    )
+    await use_cases.create_profile(
+        CreateProfileDTO(user_id=private_user_id, display_name="Private Trader")
+    )
+
+    public_profile = await use_cases.get_public_profile(public_user_id)
+    private_profile = await use_cases.get_public_profile(private_user_id)
+
+    assert public_profile is not None
+    assert public_profile.user_id == public_user_id
+    assert private_profile is None
 
 
 @pytest.mark.asyncio

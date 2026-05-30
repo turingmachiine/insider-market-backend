@@ -9,7 +9,7 @@ class ETLSettings(BaseSettings):
         extra="ignore",
     )
 
-    APP_NAME: str = "Football Research ETL Service"
+    APP_NAME: str = "Инсайдер Маркет ETL Service"
     APP_VERSION: str = "0.1.0"
     RUMOR_SERVICE_URL: str = "http://rumor_service:8003"
     TASKIQ_REDIS_URL: str = "redis://redis:6379/0"

@@ -20,6 +20,7 @@ class MarketDTO:
     no_probability: float
     yes_odds: float
     no_odds: float
+    bets_count: int
     status: MarketStatus
     close_at: datetime | None
     outcome: MarketOutcome | None

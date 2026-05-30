@@ -5,7 +5,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
 from src.event_service.core.utils.datetime_utils import utc_now
-from src.event_service.domain.entities import EventOutcome, EventStatus
+from src.event_service.domain.entities import EventCategory, EventOutcome, EventStatus
 from src.event_service.infrastructure.db.metadata import mapper_registry
 
 events_table = Table(
@@ -14,6 +14,17 @@ events_table = Table(
     Column("id", PG_UUID(as_uuid=True), primary_key=True),
     Column("title", String(500), nullable=False),
     Column("description", Text, nullable=False),
+    Column(
+        "category",
+        SAEnum(
+            EventCategory,
+            name="event_category",
+            values_callable=lambda enum: [value.value for value in enum],
+            create_type=False,
+        ),
+        nullable=False,
+        default=EventCategory.OTHER,
+    ),
     Column(
         "status",
         SAEnum(
@@ -52,6 +63,7 @@ events_table = Table(
         nullable=False,
     ),
     Index("ix_events_status", "status"),
+    Index("ix_events_category", "category"),
     Index("ix_events_source_rumor", "source_rumor_id"),
     Index("ix_events_deadline", "deadline_at"),
     Index("ix_events_created_at", "created_at"),

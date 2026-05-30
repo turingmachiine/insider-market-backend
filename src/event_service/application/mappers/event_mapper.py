@@ -16,6 +16,7 @@ class EventMapper(IEventMapper):
             id=entity.id,
             title=entity.title,
             description=entity.description,
+            category=entity.category,
             status=entity.status,
             source_rumor_id=entity.source_rumor_id,
             candidate_payload=entity.candidate_payload,

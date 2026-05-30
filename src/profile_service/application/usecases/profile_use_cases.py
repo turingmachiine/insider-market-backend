@@ -14,6 +14,7 @@ from src.profile_service.application.dto import (
     CreateActivityDTO,
     CreateProfileDTO,
     ProfileDTO,
+    PublicProfileDTO,
     UpdateProfileDTO,
     UserAchievementDTO,
     UserBalanceDTO,
@@ -88,6 +89,7 @@ class ProfileUseCases(HasTransactionManager):
             bio=dto.bio,
             avatar_url=dto.avatar_url,
             favorite_club=dto.favorite_club,
+            is_public=dto.is_public,
         )
         balance = UserBalance(
             id=uuid4(),
@@ -132,6 +134,7 @@ class ProfileUseCases(HasTransactionManager):
             bio=dto.bio,
             avatar_url=dto.avatar_url,
             favorite_club=dto.favorite_club,
+            is_public=dto.is_public,
         )
         saved_profile = await self.profile_repository.save(profile)
         balance = await self._get_or_create_balance(user_id)
@@ -144,6 +147,12 @@ class ProfileUseCases(HasTransactionManager):
             )
         )
         return self.profile_mapper.to_dto(saved_profile, balance)
+
+    async def get_public_profile(self, user_id: UUID) -> PublicProfileDTO | None:
+        profile = await self.profile_repository.get_by_user_id(user_id)
+        if profile is None or not profile.is_public:
+            return None
+        return self.profile_mapper.to_public_dto(profile)
 
     async def get_balance(self, user_id: UUID) -> UserBalanceDTO | None:
         profile = await self.profile_repository.get_by_user_id(user_id)

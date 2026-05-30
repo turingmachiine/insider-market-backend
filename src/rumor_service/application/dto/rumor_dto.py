@@ -18,6 +18,9 @@ class RumorDTO:
     status: RumorStatus
     tags: list[str]
     event_candidate_payload: dict[str, Any]
+    event_id: UUID | None
+    is_public: bool
+    published_at: datetime | None
     created_at: datetime
     updated_at: datetime
 
@@ -33,6 +36,9 @@ class CreateRumorDTO:
     status: RumorStatus = RumorStatus.NEW
     tags: list[str] = field(default_factory=list)
     event_candidate_payload: dict[str, Any] = field(default_factory=dict)
+    event_id: UUID | None = None
+    is_public: bool = False
+    published_at: datetime | None = None
 
 
 @dataclass(frozen=True)

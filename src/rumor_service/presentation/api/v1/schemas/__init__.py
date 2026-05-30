@@ -4,6 +4,8 @@ from .raw_publication_schemas import (
     RawPublicationResponse,
 )
 from .rumor_schemas import (
+    PublicRumorListResponse,
+    PublicRumorResponse,
     RumorCreate,
     RumorListResponse,
     RumorResponse,
@@ -15,6 +17,8 @@ __all__ = [
     "RawPublicationCreate",
     "RawPublicationListResponse",
     "RawPublicationResponse",
+    "PublicRumorListResponse",
+    "PublicRumorResponse",
     "RumorCreate",
     "RumorListResponse",
     "RumorResponse",

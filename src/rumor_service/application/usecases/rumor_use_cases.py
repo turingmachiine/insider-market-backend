@@ -35,12 +35,16 @@ class RumorUseCases(HasTransactionManager):
         offset: int = 0,
         status: RumorStatus | None = None,
         source_id: UUID | None = None,
+        event_id: UUID | None = None,
+        is_public: bool | None = None,
     ) -> list[RumorDTO]:
         rumors = await self.rumor_repository.get_all(
             limit=limit,
             offset=offset,
             status=status,
             source_id=source_id,
+            event_id=event_id,
+            is_public=is_public,
         )
         return [self.rumor_mapper.to_dto(rumor) for rumor in rumors]
 
@@ -68,7 +72,12 @@ class RumorUseCases(HasTransactionManager):
             status=dto.status,
             tags=dto.tags,
             event_candidate_payload=dto.event_candidate_payload,
+            event_id=dto.event_id,
+            is_public=dto.is_public,
+            published_at=dto.published_at,
         )
+        if dto.status == RumorStatus.APPROVED and not rumor.is_public:
+            rumor.publish()
         saved_rumor = await self.rumor_repository.save(rumor)
         return self.rumor_mapper.to_dto(saved_rumor)
 
@@ -81,6 +90,6 @@ class RumorUseCases(HasTransactionManager):
         rumor = await self.rumor_repository.get_by_id(rumor_id)
         if rumor is None:
             return None
-        rumor.status = dto.status
+        rumor.update_status(dto.status)
         saved_rumor = await self.rumor_repository.save(rumor)
         return self.rumor_mapper.to_dto(saved_rumor)

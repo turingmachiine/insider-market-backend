@@ -17,7 +17,7 @@ class AuthSettings(BaseSettings):
     )
 
     PROXY_NAME: str = "auth"
-    APP_NAME: str = "Football Research Auth Service"
+    APP_NAME: str = "Инсайдер Маркет Auth Service"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
     HOST: str = "0.0.0.0"

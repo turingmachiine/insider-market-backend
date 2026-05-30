@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime
+from sqlalchemy import Boolean, Column, DateTime
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy import Float, ForeignKey, Index, String, Table, Text
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
@@ -41,6 +41,9 @@ rumors_table = Table(
     ),
     Column("tags", ARRAY(String(100)), nullable=False, default=list),
     Column("event_candidate_payload", JSONB, nullable=False, default=dict),
+    Column("event_id", PG_UUID(as_uuid=True), nullable=True),
+    Column("is_public", Boolean, nullable=False, default=False),
+    Column("published_at", DateTime(timezone=True), nullable=True),
     Column("created_at", DateTime(timezone=True), default=utc_now, nullable=False),
     Column(
         "updated_at",
@@ -52,6 +55,8 @@ rumors_table = Table(
     Index("ix_rumors_source", "source_id"),
     Index("ix_rumors_publication", "raw_publication_id"),
     Index("ix_rumors_status", "status"),
+    Index("ix_rumors_event", "event_id"),
+    Index("ix_rumors_is_public", "is_public"),
     Index("ix_rumors_confidence", "confidence_score"),
     Index("ix_rumors_created_at", "created_at"),
 )

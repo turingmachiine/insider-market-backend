@@ -1,3 +1,4 @@
+from dataclasses import replace
 from decimal import Decimal
 from uuid import UUID, uuid4
 
@@ -52,7 +53,10 @@ class MarketUseCases(HasTransactionManager):
 
     async def get_market(self, market_id: UUID) -> MarketDTO | None:
         market = await self.market_repository.get_by_id(market_id)
-        return self.market_mapper.to_dto(market) if market else None
+        if market is None:
+            return None
+        dto = self.market_mapper.to_dto(market)
+        return await self._with_bets_count(dto)
 
     async def get_markets(
         self,
@@ -67,7 +71,10 @@ class MarketUseCases(HasTransactionManager):
             status=status,
             event_id=event_id,
         )
-        return [self.market_mapper.to_dto(market) for market in markets]
+        return [
+            await self._with_bets_count(self.market_mapper.to_dto(market))
+            for market in markets
+        ]
 
     async def get_market_bets(
         self,
@@ -114,7 +121,13 @@ class MarketUseCases(HasTransactionManager):
         if dto.activate:
             market.activate()
         saved_market = await self.market_repository.save(market)
-        return self.market_mapper.to_dto(saved_market)
+        return await self._with_bets_count(self.market_mapper.to_dto(saved_market))
+
+    async def _with_bets_count(self, dto: MarketDTO) -> MarketDTO:
+        return replace(
+            dto,
+            bets_count=await self.bet_repository.count_by_market(dto.id),
+        )
 
     @transactional()
     async def place_bet(
@@ -221,7 +234,7 @@ class MarketUseCases(HasTransactionManager):
             return None
         market.close()
         saved_market = await self.market_repository.save(market)
-        return self.market_mapper.to_dto(saved_market)
+        return await self._with_bets_count(self.market_mapper.to_dto(saved_market))
 
     @transactional()
     async def resolve_market(
@@ -274,7 +287,7 @@ class MarketUseCases(HasTransactionManager):
                 correlation_id=correlation_id,
             )
         )
-        return self.market_mapper.to_dto(saved_market)
+        return await self._with_bets_count(self.market_mapper.to_dto(saved_market))
 
     async def _settle_positions(
         self,

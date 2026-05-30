@@ -13,6 +13,7 @@ class ProfileCreate(BaseModel):
     bio: str | None = None
     avatar_url: str | None = Field(default=None, max_length=1000)
     favorite_club: str | None = Field(default=None, max_length=200)
+    is_public: bool = False
     initial_balance: Decimal = Field(default=Decimal("1000"), ge=0)
 
 
@@ -21,6 +22,7 @@ class ProfileUpdate(BaseModel):
     bio: str | None = None
     avatar_url: str | None = Field(default=None, max_length=1000)
     favorite_club: str | None = Field(default=None, max_length=200)
+    is_public: bool | None = None
 
 
 class ProfileResponse(BaseModel):
@@ -30,6 +32,7 @@ class ProfileResponse(BaseModel):
     bio: str | None
     avatar_url: str | None
     favorite_club: str | None
+    is_public: bool
     balance: Decimal
     reserved_balance: Decimal
     available_balance: Decimal
@@ -50,6 +53,18 @@ class ProfileListResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class PublicProfileResponse(BaseModel):
+    id: UUID
+    user_id: UUID
+    display_name: str
+    bio: str | None
+    avatar_url: str | None
+    favorite_club: str | None
+    is_public: bool
+    created_at: datetime
+    updated_at: datetime
 
 
 class BalanceResponse(BaseModel):

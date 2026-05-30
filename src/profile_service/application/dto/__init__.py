@@ -16,6 +16,7 @@ from src.profile_service.application.dto.balance_dto import (
 from src.profile_service.application.dto.profile_dto import (
     CreateProfileDTO,
     ProfileDTO,
+    PublicProfileDTO,
     UpdateProfileDTO,
 )
 
@@ -29,6 +30,7 @@ __all__ = [
     "CreateActivityDTO",
     "CreateProfileDTO",
     "ProfileDTO",
+    "PublicProfileDTO",
     "UpdateProfileDTO",
     "UserAchievementDTO",
     "UserBalanceDTO",

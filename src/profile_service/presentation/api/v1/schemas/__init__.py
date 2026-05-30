@@ -13,6 +13,7 @@ from src.profile_service.presentation.api.v1.schemas.profile_schemas import (
     ProfileListResponse,
     ProfileResponse,
     ProfileUpdate,
+    PublicProfileResponse,
     UserAchievementListResponse,
     UserAchievementResponse,
 )
@@ -32,6 +33,7 @@ __all__ = [
     "ProfileListResponse",
     "ProfileResponse",
     "ProfileUpdate",
+    "PublicProfileResponse",
     "UserAchievementListResponse",
     "UserAchievementResponse",
 ]

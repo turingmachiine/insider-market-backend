@@ -11,7 +11,7 @@ class ProfileSettings(BaseSettings):
     )
 
     PROXY_NAME: str = "profile"
-    APP_NAME: str = "Football Research Profile Service"
+    APP_NAME: str = "Инсайдер Маркет Profile Service"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
     HOST: str = "0.0.0.0"

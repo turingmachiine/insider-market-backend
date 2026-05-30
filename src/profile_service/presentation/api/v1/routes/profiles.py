@@ -38,6 +38,7 @@ from src.profile_service.presentation.api.v1.schemas import (
     ProfileListResponse,
     ProfileResponse,
     ProfileUpdate,
+    PublicProfileResponse,
     UserAchievementListResponse,
     UserAchievementResponse,
 )
@@ -88,6 +89,21 @@ async def create_profile(
             detail=str(exc),
         ) from exc
     return ProfileResponse(**result.__dict__)
+
+
+@router.get("/public/{user_id}")
+@inject
+async def get_public_profile(
+    user_id: UUID,
+    profile_use_cases: FromDishka[ProfileUseCases],
+) -> PublicProfileResponse:
+    profile = await profile_use_cases.get_public_profile(user_id)
+    if profile is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Public profile for user {str(user_id)} not found",
+        )
+    return PublicProfileResponse(**profile.__dict__)
 
 
 @router.get("/{user_id}")

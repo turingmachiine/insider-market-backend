@@ -12,6 +12,7 @@ class ProfileDTO:
     bio: str | None
     avatar_url: str | None
     favorite_club: str | None
+    is_public: bool
     balance: Decimal
     reserved_balance: Decimal
     available_balance: Decimal
@@ -27,6 +28,7 @@ class CreateProfileDTO:
     bio: str | None = None
     avatar_url: str | None = None
     favorite_club: str | None = None
+    is_public: bool = False
     initial_balance: Decimal = Decimal("1000")
 
 
@@ -36,3 +38,17 @@ class UpdateProfileDTO:
     bio: str | None = None
     avatar_url: str | None = None
     favorite_club: str | None = None
+    is_public: bool | None = None
+
+
+@dataclass(frozen=True)
+class PublicProfileDTO:
+    id: UUID
+    user_id: UUID
+    display_name: str
+    bio: str | None
+    avatar_url: str | None
+    favorite_club: str | None
+    is_public: bool
+    created_at: datetime
+    updated_at: datetime

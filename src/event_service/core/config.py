@@ -11,7 +11,7 @@ class EventSettings(BaseSettings):
     )
 
     PROXY_NAME: str = "event"
-    APP_NAME: str = "Football Research Event Service"
+    APP_NAME: str = "Инсайдер Маркет Event Service"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
     HOST: str = "0.0.0.0"

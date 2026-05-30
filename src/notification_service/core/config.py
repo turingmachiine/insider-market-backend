@@ -10,7 +10,7 @@ class NotificationSettings(BaseSettings):
     )
 
     PROXY_NAME: str = "notification"
-    APP_NAME: str = "Football Research Notification Service"
+    APP_NAME: str = "Инсайдер Маркет Notification Service"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
     ENVIRONMENT: str = "production"

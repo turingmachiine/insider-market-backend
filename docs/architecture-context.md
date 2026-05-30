@@ -55,3 +55,8 @@ This file is a compact reference for future implementation work.
 ## Security work tracker
 
 - Active backlog: [docs/security-backlog.md](./security-backlog.md)
+
+## Product flow plans
+
+- Backend plan for the "Инсайдер Маркет" public flow: [docs/backend-polymarket-flow-plan.md](./backend-polymarket-flow-plan.md)
+- Frontend plan for the "Инсайдер Маркет" public flow: [docs/frontend-polymarket-flow-plan.md](./frontend-polymarket-flow-plan.md)

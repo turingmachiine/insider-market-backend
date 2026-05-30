@@ -122,6 +122,9 @@ class FakeBetRepository(IBetRepository):
             items = [item for item in items if item.user_id == user_id]
         return items[offset : offset + limit]
 
+    async def count_by_market(self, market_id: UUID) -> int:
+        return sum(1 for item in self.items.values() if item.market_id == market_id)
+
     async def save(self, bet: Bet) -> Bet:
         self.items[bet.id] = bet
         return bet

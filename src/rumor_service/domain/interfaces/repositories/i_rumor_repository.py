@@ -16,6 +16,8 @@ class IRumorRepository(ABC):
         offset: int = 0,
         status: RumorStatus | None = None,
         source_id: UUID | None = None,
+        event_id: UUID | None = None,
+        is_public: bool | None = None,
     ) -> list[Rumor]:
         pass
 

@@ -13,7 +13,7 @@ class RatingSettings(BaseSettings):
     )
 
     PROXY_NAME: str = "rating"
-    APP_NAME: str = "Football Research Rating Service"
+    APP_NAME: str = "Инсайдер Маркет Rating Service"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
     HOST: str = "0.0.0.0"

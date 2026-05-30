@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, Index, String, Table, Text
+from sqlalchemy import Boolean, Column, DateTime, Index, String, Table, Text
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
 from src.profile_service.core.utils.datetime_utils import utc_now
@@ -13,6 +13,7 @@ profiles_table = Table(
     Column("bio", Text(), nullable=True),
     Column("avatar_url", String(1000), nullable=True),
     Column("favorite_club", String(200), nullable=True),
+    Column("is_public", Boolean, nullable=False, default=False),
     Column("created_at", DateTime(timezone=True), default=utc_now, nullable=False),
     Column(
         "updated_at",
@@ -22,6 +23,7 @@ profiles_table = Table(
         nullable=False,
     ),
     Index("ix_profiles_user_id", "user_id", unique=True),
+    Index("ix_profiles_is_public", "is_public"),
 )
 
 __all__ = ["profiles_table"]

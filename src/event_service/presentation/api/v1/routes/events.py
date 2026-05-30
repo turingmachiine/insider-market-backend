@@ -17,11 +17,12 @@ from src.event_service.application.dto import (
     UpdateEventDTO,
 )
 from src.event_service.application.usecases import EventUseCases
-from src.event_service.domain.entities import EventStatus
+from src.event_service.domain.entities import EventCategory, EventSort, EventStatus
 from src.event_service.presentation.api.v1.schemas import (
     EventCancel,
     EventCreate,
     EventListResponse,
+    EventProposalCreate,
     EventReject,
     EventResolve,
     EventResponse,
@@ -43,6 +44,8 @@ async def get_events(
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
     status_filter: Annotated[EventStatus | None, Query(alias="status")] = None,
+    category: EventCategory | None = None,
+    sort: EventSort = EventSort.CREATED_AT,
     source_rumor_id: UUID | None = None,
 ) -> EventListResponse:
     dtos = await event_use_cases.get_events(
@@ -50,6 +53,8 @@ async def get_events(
         offset=offset,
         status=status_filter,
         source_rumor_id=source_rumor_id,
+        category=category,
+        sort=sort,
     )
     return EventListResponse(
         items=[to_event_response(dto) for dto in dtos],
@@ -92,6 +97,22 @@ async def get_event(
 @inject
 async def create_event(
     event_data: EventCreate,
+    event_use_cases: FromDishka[EventUseCases],
+    auth_payload: Annotated[
+        UserContext, Depends(require_permission(Permission.EVENT_WRITE))
+    ],
+) -> EventResponse:
+    event_payload = event_data.model_dump()
+    event_payload["created_by_user_id"] = auth_payload.user_id
+    dto = CreateEventDTO(**event_payload)
+    result = await event_use_cases.create_event(dto)
+    return to_event_response(result)
+
+
+@router.post("/proposals", status_code=status.HTTP_201_CREATED)
+@inject
+async def propose_event(
+    event_data: EventProposalCreate,
     event_use_cases: FromDishka[EventUseCases],
     auth_payload: Annotated[
         UserContext, Depends(require_permission(Permission.EVENT_WRITE))

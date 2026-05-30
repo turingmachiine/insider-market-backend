@@ -12,7 +12,7 @@ class Settings(BaseSettings):
 
     # App
     PROXY_NAME: str = "nsi"
-    APP_NAME: str = "Football Research Insider Market"
+    APP_NAME: str = "Инсайдер Маркет"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
     ENVIRONMENT: str = "production"

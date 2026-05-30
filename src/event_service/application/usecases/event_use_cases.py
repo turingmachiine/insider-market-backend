@@ -13,7 +13,12 @@ from src.event_service.application.dto import (
     UpdateEventDTO,
 )
 from src.event_service.application.mappers import IEventMapper
-from src.event_service.domain.entities import Event, EventStatus
+from src.event_service.domain.entities import (
+    Event,
+    EventCategory,
+    EventSort,
+    EventStatus,
+)
 from src.event_service.domain.interfaces.repositories import IEventRepository
 
 
@@ -33,12 +38,16 @@ class EventUseCases(HasTransactionManager):
         offset: int = 0,
         status: EventStatus | None = None,
         source_rumor_id: UUID | None = None,
+        category: EventCategory | None = None,
+        sort: EventSort = EventSort.CREATED_AT,
     ) -> list[EventDTO]:
         events = await self.event_repository.get_all(
             limit=limit,
             offset=offset,
             status=status,
             source_rumor_id=source_rumor_id,
+            category=category,
+            sort=sort,
         )
         return [self.event_mapper.to_dto(event) for event in events]
 
@@ -59,6 +68,7 @@ class EventUseCases(HasTransactionManager):
             id=uuid4(),
             title=dto.title,
             description=dto.description,
+            category=dto.category,
             source_rumor_id=dto.source_rumor_id,
             candidate_payload=dto.candidate_payload,
             deadline_at=dto.deadline_at,
@@ -88,6 +98,7 @@ class EventUseCases(HasTransactionManager):
             deadline_at=dto.deadline_at,
             resolution_rules=dto.resolution_rules,
             candidate_payload=dto.candidate_payload,
+            category=dto.category,
         )
         saved_event = await self.event_repository.save(event)
         return self.event_mapper.to_dto(saved_event)

@@ -18,6 +18,9 @@ from src.rating_service.presentation.api.v1.schemas import (
     AchievementDefinitionCreate,
     AchievementDefinitionListResponse,
     AchievementDefinitionResponse,
+    LeaderboardEntryResponse,
+    LeaderboardPeriod,
+    LeaderboardResponse,
     RatingEventCreate,
     RatingEventResponse,
     RatingProfileListResponse,
@@ -56,16 +59,29 @@ async def get_profiles(
 @inject
 async def get_leaderboard(
     rating_use_cases: FromDishka[RatingUseCases],
-    _: Annotated[UserContext, Depends(require_permission(Permission.RATING_READ))],
     limit: LimitQuery = 100,
     offset: OffsetQuery = 0,
-) -> RatingProfileListResponse:
+    period: LeaderboardPeriod = LeaderboardPeriod.ALL_TIME,
+) -> LeaderboardResponse:
     profiles = await rating_use_cases.get_leaderboard(limit=limit, offset=offset)
-    return RatingProfileListResponse(
-        items=[RatingProfileResponse(**item.__dict__) for item in profiles],
+    items: list[LeaderboardEntryResponse] = []
+    for index, profile in enumerate(profiles, start=offset + 1):
+        achievements = await rating_use_cases.get_user_achievements(profile.user_id)
+        items.append(
+            LeaderboardEntryResponse(
+                rank=index,
+                profile=RatingProfileResponse(**profile.__dict__),
+                achievements=[
+                    UserAchievementResponse(**item.__dict__) for item in achievements
+                ],
+            )
+        )
+    return LeaderboardResponse(
+        items=items,
         total=await rating_use_cases.count_profiles(),
         limit=limit,
         offset=offset,
+        period=period,
     )
 
 

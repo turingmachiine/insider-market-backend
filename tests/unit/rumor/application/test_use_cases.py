@@ -145,12 +145,18 @@ class FakeRumorRepository(IRumorRepository):
         offset: int = 0,
         status: RumorStatus | None = None,
         source_id: UUID | None = None,
+        event_id: UUID | None = None,
+        is_public: bool | None = None,
     ) -> list[Rumor]:
         items = list(self.items.values())
         if status is not None:
             items = [item for item in items if item.status == status]
         if source_id is not None:
             items = [item for item in items if item.source_id == source_id]
+        if event_id is not None:
+            items = [item for item in items if item.event_id == event_id]
+        if is_public is not None:
+            items = [item for item in items if item.is_public == is_public]
         return items[offset : offset + limit]
 
     async def save(self, rumor: Rumor) -> Rumor:
@@ -294,6 +300,42 @@ async def test_create_rumor_and_filter_by_status(
     assert created.status == RumorStatus.CANDIDATE
     assert candidates == [created]
     assert approved == []
+
+
+@pytest.mark.asyncio
+async def test_approved_rumor_becomes_public(
+    source_repository: FakeSourceRepository,
+    raw_publication_repository: FakeRawPublicationRepository,
+    rumor_repository: FakeRumorRepository,
+    transaction_manager: FakeTransactionManager,
+) -> None:
+    source = Source(id=uuid4(), name="Telegram", source_type=SourceType.TELEGRAM)
+    rumor = Rumor(
+        id=uuid4(),
+        source_id=source.id,
+        title="Coach exit",
+        text="Coach can leave.",
+    )
+    await source_repository.save(source)
+    await rumor_repository.save(rumor)
+    use_cases = RumorUseCases(
+        rumor_repository=rumor_repository,
+        source_repository=source_repository,
+        raw_publication_repository=raw_publication_repository,
+        rumor_mapper=RumorMapper(),
+        transaction_manager=transaction_manager,
+    )
+
+    result = await use_cases.update_status(
+        rumor.id,
+        UpdateRumorStatusDTO(status=RumorStatus.APPROVED),
+    )
+    public_rumors = await use_cases.get_rumors(is_public=True)
+
+    assert result is not None
+    assert result.is_public is True
+    assert result.published_at is not None
+    assert [item.id for item in public_rumors] == [rumor.id]
 
 
 @pytest.mark.asyncio

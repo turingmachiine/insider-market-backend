@@ -22,6 +22,20 @@ class EventOutcome(StrEnum):
     VOID = "void"
 
 
+class EventCategory(StrEnum):
+    TRANSFERS = "transfers"
+    MATCHES = "matches"
+    DISMISSALS = "dismissals"
+    TITLES = "titles"
+    OTHER = "other"
+
+
+class EventSort(StrEnum):
+    CREATED_AT = "created_at"
+    DEADLINE_AT = "deadline_at"
+    POPULARITY = "popularity"
+
+
 TERMINAL_STATUSES = {
     EventStatus.REJECTED,
     EventStatus.RESOLVED,
@@ -34,6 +48,7 @@ class Event:
     id: UUID
     title: str
     description: str
+    category: EventCategory = EventCategory.OTHER
     status: EventStatus = EventStatus.DRAFT
     source_rumor_id: UUID | None = None
     candidate_payload: dict[str, Any] = field(default_factory=dict)
@@ -91,6 +106,7 @@ class Event:
         deadline_at: datetime | None = None,
         resolution_rules: str | None = None,
         candidate_payload: dict[str, Any] | None = None,
+        category: EventCategory | None = None,
     ) -> None:
         if self.status in TERMINAL_STATUSES:
             raise ValueError(f"Cannot edit event in {self.status} status")
@@ -104,6 +120,8 @@ class Event:
             self.resolution_rules = resolution_rules
         if candidate_payload is not None:
             self.candidate_payload = candidate_payload
+        if category is not None:
+            self.category = category
         self._touch()
 
     def _ensure_status(self, expected: EventStatus) -> None:

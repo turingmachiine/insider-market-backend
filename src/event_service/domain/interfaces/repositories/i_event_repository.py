@@ -1,7 +1,12 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from src.event_service.domain.entities import Event, EventStatus
+from src.event_service.domain.entities import (
+    Event,
+    EventCategory,
+    EventSort,
+    EventStatus,
+)
 
 
 class IEventRepository(ABC):
@@ -16,6 +21,8 @@ class IEventRepository(ABC):
         offset: int = 0,
         status: EventStatus | None = None,
         source_rumor_id: UUID | None = None,
+        category: EventCategory | None = None,
+        sort: EventSort = EventSort.CREATED_AT,
     ) -> list[Event]:
         pass
 

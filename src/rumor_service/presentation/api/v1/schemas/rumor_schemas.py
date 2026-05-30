@@ -17,6 +17,9 @@ class RumorCreate(BaseModel):
     status: RumorStatus = RumorStatus.NEW
     tags: list[str] = Field(default_factory=list)
     event_candidate_payload: dict[str, Any] = Field(default_factory=dict)
+    event_id: UUID | None = None
+    is_public: bool = False
+    published_at: datetime | None = None
 
 
 class RumorStatusUpdate(BaseModel):
@@ -34,12 +37,27 @@ class RumorResponse(BaseModel):
     status: RumorStatus
     tags: list[str]
     event_candidate_payload: dict[str, Any]
+    event_id: UUID | None
+    is_public: bool
+    published_at: datetime | None
     created_at: datetime
     updated_at: datetime
 
 
 class RumorListResponse(BaseModel):
     items: list[RumorResponse]
+    total: int
+    limit: int
+    offset: int
+
+
+class PublicRumorResponse(BaseModel):
+    rumor: RumorResponse
+    source: dict[str, Any] | None = None
+
+
+class PublicRumorListResponse(BaseModel):
+    items: list[PublicRumorResponse]
     total: int
     limit: int
     offset: int

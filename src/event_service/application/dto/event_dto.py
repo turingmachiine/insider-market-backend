@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from src.event_service.domain.entities import EventOutcome, EventStatus
+from src.event_service.domain.entities import EventCategory, EventOutcome, EventStatus
 
 
 @dataclass(frozen=True)
@@ -11,6 +11,7 @@ class EventDTO:
     id: UUID
     title: str
     description: str
+    category: EventCategory
     status: EventStatus
     source_rumor_id: UUID | None
     candidate_payload: dict[str, Any]
@@ -29,6 +30,7 @@ class EventDTO:
 class CreateEventDTO:
     title: str
     description: str
+    category: EventCategory = EventCategory.OTHER
     source_rumor_id: UUID | None = None
     candidate_payload: dict[str, Any] = field(default_factory=dict)
     deadline_at: datetime | None = None
@@ -41,6 +43,7 @@ class CreateEventDTO:
 class UpdateEventDTO:
     title: str | None = None
     description: str | None = None
+    category: EventCategory | None = None
     deadline_at: datetime | None = None
     resolution_rules: str | None = None
     candidate_payload: dict[str, Any] | None = None

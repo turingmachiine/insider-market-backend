@@ -24,12 +24,18 @@ class RumorRepository(IRumorRepository):
         offset: int = 0,
         status: RumorStatus | None = None,
         source_id: UUID | None = None,
+        event_id: UUID | None = None,
+        is_public: bool | None = None,
     ) -> list[Rumor]:
         query = select(self.model)
         if status is not None:
             query = query.where(rumors_table.c.status == status)
         if source_id is not None:
             query = query.where(rumors_table.c.source_id == source_id)
+        if event_id is not None:
+            query = query.where(rumors_table.c.event_id == event_id)
+        if is_public is not None:
+            query = query.where(rumors_table.c.is_public == is_public)
         query = (
             query.order_by(rumors_table.c.created_at.desc()).offset(offset).limit(limit)
         )

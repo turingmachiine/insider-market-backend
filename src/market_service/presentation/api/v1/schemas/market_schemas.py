@@ -19,7 +19,6 @@ class MarketCreate(BaseModel):
 
 
 class BetCreate(BaseModel):
-    user_id: UUID
     side: MarketSide
     amount: Decimal = Field(gt=0)
 
@@ -42,6 +41,7 @@ class MarketResponse(BaseModel):
     no_probability: float
     yes_odds: float
     no_odds: float
+    bets_count: int
     status: MarketStatus
     close_at: datetime | None
     outcome: MarketOutcome | None

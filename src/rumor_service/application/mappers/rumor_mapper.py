@@ -23,6 +23,9 @@ class RumorMapper(IRumorMapper):
             status=entity.status,
             tags=entity.tags,
             event_candidate_payload=entity.event_candidate_payload,
+            event_id=entity.event_id,
+            is_public=entity.is_public,
+            published_at=entity.published_at,
             created_at=entity.created_at,
             updated_at=entity.updated_at,
         )

@@ -16,5 +16,9 @@ class IBetRepository(ABC):
         pass
 
     @abstractmethod
+    async def count_by_market(self, market_id: UUID) -> int:
+        pass
+
+    @abstractmethod
     async def save(self, bet: Bet) -> Bet:
         pass

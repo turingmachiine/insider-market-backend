@@ -11,7 +11,7 @@ class MarketSettings(BaseSettings):
     )
 
     PROXY_NAME: str = "market"
-    APP_NAME: str = "Football Research Market Service"
+    APP_NAME: str = "Инсайдер Маркет Market Service"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
     HOST: str = "0.0.0.0"

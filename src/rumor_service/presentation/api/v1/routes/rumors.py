@@ -8,9 +8,11 @@ from src.common.application.user_context import UserContext
 from src.common.domain.security import Permission
 from src.common.presentation.decorators import require_permission
 from src.rumor_service.application.dto import CreateRumorDTO, UpdateRumorStatusDTO
-from src.rumor_service.application.usecases import RumorUseCases
+from src.rumor_service.application.usecases import RumorUseCases, SourceUseCases
 from src.rumor_service.domain.entities import RumorStatus
 from src.rumor_service.presentation.api.v1.schemas import (
+    PublicRumorListResponse,
+    PublicRumorResponse,
     RumorCreate,
     RumorListResponse,
     RumorResponse,
@@ -28,16 +30,52 @@ async def get_rumors(
     offset: Annotated[int, Query(ge=0)] = 0,
     status_filter: Annotated[RumorStatus | None, Query(alias="status")] = None,
     source_id: UUID | None = None,
+    event_id: UUID | None = None,
+    is_public: bool | None = None,
 ) -> RumorListResponse:
     dtos = await rumor_use_cases.get_rumors(
         limit=limit,
         offset=offset,
         status=status_filter,
         source_id=source_id,
+        event_id=event_id,
+        is_public=is_public,
     )
     return RumorListResponse(
         items=[RumorResponse(**dto.__dict__) for dto in dtos],
         total=len(dtos),
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.get("/public")
+@inject
+async def get_public_rumors(
+    rumor_use_cases: FromDishka[RumorUseCases],
+    source_use_cases: FromDishka[SourceUseCases],
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    event_id: UUID | None = None,
+) -> PublicRumorListResponse:
+    dtos = await rumor_use_cases.get_rumors(
+        limit=limit,
+        offset=offset,
+        event_id=event_id,
+        is_public=True,
+    )
+    items: list[PublicRumorResponse] = []
+    for dto in dtos:
+        source = await source_use_cases.get_source(dto.source_id)
+        items.append(
+            PublicRumorResponse(
+                rumor=RumorResponse(**dto.__dict__),
+                source=source.__dict__ if source is not None else None,
+            )
+        )
+    return PublicRumorListResponse(
+        items=items,
+        total=len(items),
         limit=limit,
         offset=offset,
     )

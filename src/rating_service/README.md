@@ -52,3 +52,7 @@
 
 Worker и scheduler запускаются отдельно от HTTP-сервиса, но используют тот же
 контейнер зависимостей и доменную логику.
+
+Расписания Taskiq jobs задаются в
+`resources/rating_service/taskiq/jobs.yml`. Путь внутри контейнера задается
+через `TASKIQ_JOBS_CONFIG_PATH`.

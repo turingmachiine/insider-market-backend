@@ -28,6 +28,7 @@ dependencies = [
     "httpx>=0.25.0",
     "taskiq>=0.12.2",
     "taskiq-redis>=1.2.2",
+    "pyyaml>=6.0.0",
 ]
 
 [build-system]
@@ -46,6 +47,7 @@ dev = [
     "mypy>=1.8.0",
     "pre-commit>=3.6.0",
     "testcontainers>=4.0.0",
+    "types-pyyaml>=6.0.12.20260518",
 ]
 
 [tool.uv.sources]

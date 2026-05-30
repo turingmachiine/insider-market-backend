@@ -38,8 +38,7 @@ class RatingSettings(BaseSettings):
     SERVICE_JWT_TTL: int = 300
     TASKIQ_REDIS_URL: str = "redis://redis:6379/0"
     TASKIQ_QUEUE_NAME: str = "insider_market_backend_rating"
-    RATING_EVENTS_CRON: str = "*/5 * * * *"
-    RATING_REWARDS_CRON: str = "*/2 * * * *"
+    TASKIQ_JOBS_CONFIG_PATH: str = "resources/rating_service/taskiq/jobs.yml"
     BACKGROUND_BATCH_SIZE: int = 250
 
     LOG_LEVEL: str = "INFO"

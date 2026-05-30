@@ -4,20 +4,10 @@ from src.etl_service.application.usecases import (
     ImportRawPublicationsUseCase,
     NormalizeRumorsUseCase,
 )
-from src.etl_service.core.config import get_settings
 from src.etl_service.infrastructure.taskiq.broker import broker
 
-settings = get_settings()
 
-
-@broker.task(
-    schedule=[
-        {
-            "cron": settings.RAW_IMPORT_CRON,
-            "schedule_id": "import_raw_publications",
-        }
-    ],
-)
+@broker.task
 @inject(patch_module=True)
 async def import_raw_publications_task(
     use_case: FromDishka[ImportRawPublicationsUseCase],
@@ -31,14 +21,7 @@ async def import_raw_publications_task(
     }
 
 
-@broker.task(
-    schedule=[
-        {
-            "cron": settings.RUMOR_NORMALIZATION_CRON,
-            "schedule_id": "normalize_rumors",
-        }
-    ],
-)
+@broker.task
 @inject(patch_module=True)
 async def normalize_rumors_task(
     use_case: FromDishka[NormalizeRumorsUseCase],

@@ -15,7 +15,7 @@
 Для запуска ETL используется Taskiq:
 
 - async-first task queue без тяжелой orchestration-платформы;
-- cron-расписания через `LabelScheduleSource`;
+- cron-расписания через YAML-конфиг `resources/etl_service/taskiq/jobs.yml`;
 - Redis broker через `taskiq-redis`;
 - официальная интеграция с Dishka.
 
@@ -93,11 +93,13 @@ src/etl_service/
 - `RUMOR_SERVICE_URL` — URL `rumor_service`.
 - `TASKIQ_REDIS_URL` — Redis URL для Taskiq broker.
 - `TASKIQ_QUEUE_NAME` — имя очереди Taskiq.
-- `RAW_IMPORT_CRON` — расписание импорта сырых публикаций.
-- `RUMOR_NORMALIZATION_CRON` — расписание нормализации слухов.
+- `TASKIQ_JOBS_CONFIG_PATH` — путь к YAML-конфигу Taskiq jobs внутри контейнера.
 - `SOURCE_FETCH_LIMIT` — максимальное число публикаций за один проход источника.
 - `RAW_PUBLICATIONS_LIMIT` — размер окна сырых публикаций для проверки дублей.
 - `EXISTING_RUMORS_LIMIT` — размер окна слухов для проверки уже обработанных публикаций.
+
+Расписания Taskiq jobs задаются в
+`resources/etl_service/taskiq/jobs.yml`.
 
 ## Границы реализации
 

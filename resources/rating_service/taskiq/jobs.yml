@@ -1,0 +1,8 @@
+jobs:
+  - schedule_id: process_rating_events
+    task_name: src.rating_service.presentation.taskiq.tasks:process_rating_events_task
+    cron: "*/5 * * * *"
+
+  - schedule_id: dispatch_rating_rewards
+    task_name: src.rating_service.presentation.taskiq.tasks:dispatch_rating_rewards_task
+    cron: "*/2 * * * *"

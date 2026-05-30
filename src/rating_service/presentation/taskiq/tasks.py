@@ -7,14 +7,7 @@ from src.rating_service.infrastructure.taskiq.broker import broker
 settings = get_settings()
 
 
-@broker.task(
-    schedule=[
-        {
-            "cron": settings.RATING_EVENTS_CRON,
-            "schedule_id": "process_rating_events",
-        }
-    ],
-)
+@broker.task
 @inject(patch_module=True)
 async def process_rating_events_task(
     use_cases: FromDishka[RatingUseCases],
@@ -29,14 +22,7 @@ async def process_rating_events_task(
     }
 
 
-@broker.task(
-    schedule=[
-        {
-            "cron": settings.RATING_REWARDS_CRON,
-            "schedule_id": "dispatch_rating_rewards",
-        }
-    ],
-)
+@broker.task
 @inject(patch_module=True)
 async def dispatch_rating_rewards_task(
     use_cases: FromDishka[RatingUseCases],

@@ -815,8 +815,6 @@ services:
       RUMOR_SERVICE_URL: ${RUMOR_SERVICE_URL:-http://rumor_service:8003}
       TASKIQ_REDIS_URL: ${TASKIQ_REDIS_URL:-redis://redis:6379/0}
       TASKIQ_QUEUE_NAME: ${TASKIQ_QUEUE_NAME:-insider_market_backend_etl}
-      RAW_IMPORT_CRON: "${RAW_IMPORT_CRON:-*/30 * * * *}"
-      RUMOR_NORMALIZATION_CRON: "${RUMOR_NORMALIZATION_CRON:-*/15 * * * *}"
       SOURCE_FETCH_LIMIT: ${SOURCE_FETCH_LIMIT:-20}
       RAW_PUBLICATIONS_LIMIT: ${RAW_PUBLICATIONS_LIMIT:-500}
       EXISTING_RUMORS_LIMIT: ${EXISTING_RUMORS_LIMIT:-500}
@@ -844,13 +842,14 @@ services:
       RUMOR_SERVICE_URL: ${RUMOR_SERVICE_URL:-http://rumor_service:8003}
       TASKIQ_REDIS_URL: ${TASKIQ_REDIS_URL:-redis://redis:6379/0}
       TASKIQ_QUEUE_NAME: ${TASKIQ_QUEUE_NAME:-insider_market_backend_etl}
-      RAW_IMPORT_CRON: "${RAW_IMPORT_CRON:-*/30 * * * *}"
-      RUMOR_NORMALIZATION_CRON: "${RUMOR_NORMALIZATION_CRON:-*/15 * * * *}"
+      TASKIQ_JOBS_CONFIG_PATH: ${ETL_TASKIQ_JOBS_CONFIG_PATH:-/app/resources/etl_service/taskiq/jobs.yml}
       SOURCE_FETCH_LIMIT: ${SOURCE_FETCH_LIMIT:-20}
       RAW_PUBLICATIONS_LIMIT: ${RAW_PUBLICATIONS_LIMIT:-500}
       EXISTING_RUMORS_LIMIT: ${EXISTING_RUMORS_LIMIT:-500}
       SERVICE_JWT_SECRET: ${SERVICE_JWT_SECRET:-change-me-service}
       SERVICE_JWT_ALGORITHM: ${SERVICE_JWT_ALGORITHM:-HS256}
+    volumes:
+      - ./resources/etl_service/taskiq/jobs.yml:${ETL_TASKIQ_JOBS_CONFIG_PATH:-/app/resources/etl_service/taskiq/jobs.yml}:ro
     depends_on:
       redis:
         condition: service_healthy
@@ -874,8 +873,6 @@ services:
       TASKIQ_QUEUE_NAME: ${RATING_TASKIQ_QUEUE_NAME:-insider_market_backend_rating}
       SERVICE_JWT_SECRET: ${SERVICE_JWT_SECRET:-change-me-service}
       SERVICE_JWT_ALGORITHM: ${SERVICE_JWT_ALGORITHM:-HS256}
-      RATING_EVENTS_CRON: "${RATING_EVENTS_CRON:-*/5 * * * *}"
-      RATING_REWARDS_CRON: "${RATING_REWARDS_CRON:-*/2 * * * *}"
       BACKGROUND_BATCH_SIZE: ${RATING_BACKGROUND_BATCH_SIZE:-250}
     depends_on:
       rating_service:
@@ -900,11 +897,12 @@ services:
       PROFILE_SERVICE_URL: ${PROFILE_SERVICE_URL:-http://profile_service:8007}
       TASKIQ_REDIS_URL: ${TASKIQ_REDIS_URL:-redis://redis:6379/0}
       TASKIQ_QUEUE_NAME: ${RATING_TASKIQ_QUEUE_NAME:-insider_market_backend_rating}
+      TASKIQ_JOBS_CONFIG_PATH: ${RATING_TASKIQ_JOBS_CONFIG_PATH:-/app/resources/rating_service/taskiq/jobs.yml}
       SERVICE_JWT_SECRET: ${SERVICE_JWT_SECRET:-change-me-service}
       SERVICE_JWT_ALGORITHM: ${SERVICE_JWT_ALGORITHM:-HS256}
-      RATING_EVENTS_CRON: "${RATING_EVENTS_CRON:-*/5 * * * *}"
-      RATING_REWARDS_CRON: "${RATING_REWARDS_CRON:-*/2 * * * *}"
       BACKGROUND_BATCH_SIZE: ${RATING_BACKGROUND_BATCH_SIZE:-250}
+    volumes:
+      - ./resources/rating_service/taskiq/jobs.yml:${RATING_TASKIQ_JOBS_CONFIG_PATH:-/app/resources/rating_service/taskiq/jobs.yml}:ro
     depends_on:
       redis:
         condition: service_healthy

@@ -14,12 +14,11 @@ class ETLSettings(BaseSettings):
     RUMOR_SERVICE_URL: str = "http://rumor_service:8003"
     TASKIQ_REDIS_URL: str = "redis://redis:6379/0"
     TASKIQ_QUEUE_NAME: str = "insider_market_backend_etl"
+    TASKIQ_JOBS_CONFIG_PATH: str = "resources/etl_service/taskiq/jobs.yml"
     REQUEST_TIMEOUT_SECONDS: float = 20.0
     SOURCE_FETCH_LIMIT: int = 20
     RAW_PUBLICATIONS_LIMIT: int = 500
     EXISTING_RUMORS_LIMIT: int = 500
-    RAW_IMPORT_CRON: str = "*/30 * * * *"
-    RUMOR_NORMALIZATION_CRON: str = "*/15 * * * *"
     SERVICE_NAME: str = "etl_service"
     SERVICE_JWT_SECRET: str = "change-me-service"
     SERVICE_JWT_ALGORITHM: str = "HS256"

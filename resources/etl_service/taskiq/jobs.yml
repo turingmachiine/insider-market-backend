@@ -1,0 +1,8 @@
+jobs:
+  - schedule_id: import_raw_publications
+    task_name: src.etl_service.presentation.taskiq.tasks:import_raw_publications_task
+    cron: "*/30 * * * *"
+
+  - schedule_id: normalize_rumors
+    task_name: src.etl_service.presentation.taskiq.tasks:normalize_rumors_task
+    cron: "*/15 * * * *"

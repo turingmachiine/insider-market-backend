@@ -258,7 +258,7 @@ services:
     volumes:
       # Монтируем код для hot-reload, но исключаем .venv
       - .:/app:cached
-      - /app/.venv
+      - app_venv_local:/app/.venv
     command: >
       python -m alembic -c migrations/nsi_service/alembic.ini upgrade head
 
@@ -280,7 +280,7 @@ services:
       - football_network_local
     volumes:
       - .:/app:cached
-      - /app/.venv
+      - app_venv_local:/app/.venv
     command: >
       python -m alembic -c migrations/auth_service/alembic.ini upgrade head
 
@@ -302,7 +302,7 @@ services:
       - football_network_local
     volumes:
       - .:/app:cached
-      - /app/.venv
+      - app_venv_local:/app/.venv
     command: >
       python -m alembic -c migrations/admin_service/alembic.ini upgrade head
 
@@ -324,7 +324,7 @@ services:
       - football_network_local
     volumes:
       - .:/app:cached
-      - /app/.venv
+      - app_venv_local:/app/.venv
     command: >
       python -m alembic -c migrations/rumor_service/alembic.ini upgrade head
 
@@ -346,7 +346,7 @@ services:
       - football_network_local
     volumes:
       - .:/app:cached
-      - /app/.venv
+      - app_venv_local:/app/.venv
     command: >
       python -m alembic -c migrations/event_service/alembic.ini upgrade head
 
@@ -368,7 +368,7 @@ services:
       - football_network_local
     volumes:
       - .:/app:cached
-      - /app/.venv
+      - app_venv_local:/app/.venv
     command: >
       python -m alembic -c migrations/market_service/alembic.ini upgrade head
 
@@ -390,7 +390,7 @@ services:
       - football_network_local
     volumes:
       - .:/app:cached
-      - /app/.venv
+      - app_venv_local:/app/.venv
     command: >
       python -m alembic -c migrations/profile_service/alembic.ini upgrade head
 
@@ -412,7 +412,7 @@ services:
       - football_network_local
     volumes:
       - .:/app:cached
-      - /app/.venv
+      - app_venv_local:/app/.venv
     command: >
       python -m alembic -c migrations/rating_service/alembic.ini upgrade head
 
@@ -449,7 +449,7 @@ services:
     volumes:
       # Монтируем код для hot-reload, но исключаем .venv
       - .:/app:cached
-      - /app/.venv
+      - app_venv_local:/app/.venv
       - ./logs:/app/logs:rw
     depends_on:
       postgres_nsi:
@@ -495,7 +495,7 @@ services:
       - "8002"
     volumes:
       - .:/app:cached
-      - /app/.venv
+      - app_venv_local:/app/.venv
       - ./logs:/app/logs:rw
     depends_on:
       postgres_auth:
@@ -547,7 +547,7 @@ services:
       - "8009"
     volumes:
       - .:/app:cached
-      - /app/.venv
+      - app_venv_local:/app/.venv
       - ./logs:/app/logs:rw
     depends_on:
       postgres_admin:
@@ -607,7 +607,7 @@ services:
       - "8003"
     volumes:
       - .:/app:cached
-      - /app/.venv
+      - app_venv_local:/app/.venv
       - ./logs:/app/logs:rw
     depends_on:
       postgres_rumor:
@@ -651,7 +651,7 @@ services:
       - "8004"
     volumes:
       - .:/app:cached
-      - /app/.venv
+      - app_venv_local:/app/.venv
       - ./logs:/app/logs:rw
     depends_on:
       postgres_event:
@@ -695,7 +695,7 @@ services:
       - "8005"
     volumes:
       - .:/app:cached
-      - /app/.venv
+      - app_venv_local:/app/.venv
       - ./logs:/app/logs:rw
     depends_on:
       postgres_market:
@@ -739,7 +739,7 @@ services:
       - "8006"
     volumes:
       - .:/app:cached
-      - /app/.venv
+      - app_venv_local:/app/.venv
       - ./logs:/app/logs:rw
     depends_on:
       redis:
@@ -781,7 +781,7 @@ services:
       - "8007"
     volumes:
       - .:/app:cached
-      - /app/.venv
+      - app_venv_local:/app/.venv
       - ./logs:/app/logs:rw
     depends_on:
       postgres_profile:
@@ -830,7 +830,7 @@ services:
       - "8008"
     volumes:
       - .:/app:cached
-      - /app/.venv
+      - app_venv_local:/app/.venv
       - ./logs:/app/logs:rw
     depends_on:
       postgres_rating:
@@ -895,7 +895,7 @@ services:
       - "${GATEWAY_PORT:-8000}:8000"
     volumes:
       - .:/app:cached
-      - /app/.venv
+      - app_venv_local:/app/.venv
       - ./logs:/app/logs:rw
     depends_on:
       nsi_service:
@@ -938,8 +938,6 @@ services:
       RUMOR_SERVICE_URL: ${RUMOR_SERVICE_URL:-http://rumor_service:8003}
       TASKIQ_REDIS_URL: ${TASKIQ_REDIS_URL:-redis://redis:6379/0}
       TASKIQ_QUEUE_NAME: ${TASKIQ_QUEUE_NAME:-insider_market_backend_etl}
-      RAW_IMPORT_CRON: "${RAW_IMPORT_CRON:-*/30 * * * *}"
-      RUMOR_NORMALIZATION_CRON: "${RUMOR_NORMALIZATION_CRON:-*/15 * * * *}"
       SOURCE_FETCH_LIMIT: ${SOURCE_FETCH_LIMIT:-20}
       RAW_PUBLICATIONS_LIMIT: ${RAW_PUBLICATIONS_LIMIT:-500}
       EXISTING_RUMORS_LIMIT: ${EXISTING_RUMORS_LIMIT:-500}
@@ -947,7 +945,7 @@ services:
       SERVICE_JWT_ALGORITHM: ${SERVICE_JWT_ALGORITHM:-HS256}
     volumes:
       - .:/app:cached
-      - /app/.venv
+      - app_venv_local:/app/.venv
     depends_on:
       rumor_service:
         condition: service_started
@@ -972,8 +970,7 @@ services:
       RUMOR_SERVICE_URL: ${RUMOR_SERVICE_URL:-http://rumor_service:8003}
       TASKIQ_REDIS_URL: ${TASKIQ_REDIS_URL:-redis://redis:6379/0}
       TASKIQ_QUEUE_NAME: ${TASKIQ_QUEUE_NAME:-insider_market_backend_etl}
-      RAW_IMPORT_CRON: "${RAW_IMPORT_CRON:-*/30 * * * *}"
-      RUMOR_NORMALIZATION_CRON: "${RUMOR_NORMALIZATION_CRON:-*/15 * * * *}"
+      TASKIQ_JOBS_CONFIG_PATH: ${ETL_TASKIQ_JOBS_CONFIG_PATH:-/app/resources/etl_service/taskiq/jobs.yml}
       SOURCE_FETCH_LIMIT: ${SOURCE_FETCH_LIMIT:-20}
       RAW_PUBLICATIONS_LIMIT: ${RAW_PUBLICATIONS_LIMIT:-500}
       EXISTING_RUMORS_LIMIT: ${EXISTING_RUMORS_LIMIT:-500}
@@ -981,7 +978,8 @@ services:
       SERVICE_JWT_ALGORITHM: ${SERVICE_JWT_ALGORITHM:-HS256}
     volumes:
       - .:/app:cached
-      - /app/.venv
+      - app_venv_local:/app/.venv
+      - ./resources/etl_service/taskiq/jobs.yml:${ETL_TASKIQ_JOBS_CONFIG_PATH:-/app/resources/etl_service/taskiq/jobs.yml}:ro
     depends_on:
       redis:
         condition: service_healthy
@@ -1007,12 +1005,10 @@ services:
       TASKIQ_QUEUE_NAME: ${RATING_TASKIQ_QUEUE_NAME:-insider_market_backend_rating}
       SERVICE_JWT_SECRET: ${SERVICE_JWT_SECRET:-change-me-service}
       SERVICE_JWT_ALGORITHM: ${SERVICE_JWT_ALGORITHM:-HS256}
-      RATING_EVENTS_CRON: "${RATING_EVENTS_CRON:-*/5 * * * *}"
-      RATING_REWARDS_CRON: "${RATING_REWARDS_CRON:-*/2 * * * *}"
       BACKGROUND_BATCH_SIZE: ${RATING_BACKGROUND_BATCH_SIZE:-250}
     volumes:
       - .:/app:cached
-      - /app/.venv
+      - app_venv_local:/app/.venv
     depends_on:
       rating_service:
         condition: service_started
@@ -1038,14 +1034,14 @@ services:
       PROFILE_SERVICE_URL: ${PROFILE_SERVICE_URL:-http://profile_service:8007}
       TASKIQ_REDIS_URL: ${TASKIQ_REDIS_URL:-redis://redis:6379/0}
       TASKIQ_QUEUE_NAME: ${RATING_TASKIQ_QUEUE_NAME:-insider_market_backend_rating}
+      TASKIQ_JOBS_CONFIG_PATH: ${RATING_TASKIQ_JOBS_CONFIG_PATH:-/app/resources/rating_service/taskiq/jobs.yml}
       SERVICE_JWT_SECRET: ${SERVICE_JWT_SECRET:-change-me-service}
       SERVICE_JWT_ALGORITHM: ${SERVICE_JWT_ALGORITHM:-HS256}
-      RATING_EVENTS_CRON: "${RATING_EVENTS_CRON:-*/5 * * * *}"
-      RATING_REWARDS_CRON: "${RATING_REWARDS_CRON:-*/2 * * * *}"
       BACKGROUND_BATCH_SIZE: ${RATING_BACKGROUND_BATCH_SIZE:-250}
     volumes:
       - .:/app:cached
-      - /app/.venv
+      - app_venv_local:/app/.venv
+      - ./resources/rating_service/taskiq/jobs.yml:${RATING_TASKIQ_JOBS_CONFIG_PATH:-/app/resources/rating_service/taskiq/jobs.yml}:ro
     depends_on:
       redis:
         condition: service_healthy
@@ -1109,6 +1105,8 @@ volumes:
   postgres_rating_data_local:
     driver: local
   redis_data_local:
+    driver: local
+  app_venv_local:
     driver: local
   elasticsearch_data_local:
     driver: local

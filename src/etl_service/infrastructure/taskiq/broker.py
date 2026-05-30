@@ -13,3 +13,6 @@ broker = ListQueueBroker(
 
 container = create_container(settings)
 setup_dishka(container=container, broker=broker)
+
+# Import task handlers for worker processes started from this broker module.
+from src.etl_service.presentation.taskiq import tasks  # noqa: E402,F401
